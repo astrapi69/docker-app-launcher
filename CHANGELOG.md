@@ -6,6 +6,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-06-23
+
+### Fixed
+
+- **Windows: no more swarm of CMD windows during install.** Every
+  `subprocess.run` / `subprocess.Popen` in the package now passes
+  `CREATE_NO_WINDOW` on Windows via the new `subprocess_utils.subprocess_kwargs()`
+  helper. Previously each Docker command opened a visible console window, so an
+  install flashed 30-40 windows open and shut — alarming and virus-like. The
+  central `actions._run` / `actions._stream_command` runners and the lockfile's
+  `tasklist` probe all route through the helper; behaviour on Linux/macOS is
+  unchanged (empty kwargs). A lint-style test guards against any future
+  subprocess call that forgets the flag.
+
 ## [0.2.0] - 2026-06-23
 
 ### Added
@@ -64,6 +78,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - CLI ↔ GUI parity: both route through the same actions.
 - 160+ tests (no display required), mypy strict, ruff clean.
 
-[Unreleased]: https://github.com/astrapi69/docker-app-launcher/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/astrapi69/docker-app-launcher/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/astrapi69/docker-app-launcher/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/astrapi69/docker-app-launcher/releases/tag/v0.1.0

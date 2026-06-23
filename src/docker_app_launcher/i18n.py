@@ -114,6 +114,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "not_reachable_after": "{app} not reachable after {timeout}s ({detail}).",
         "error": "Error: {msg}",
         "error_word": "Error",
+        # --- update check ---
+        "update_available": "Update available: {tag} - {url}",
     },
     "de": {
         # --- state headings ---
@@ -200,6 +202,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "not_reachable_after": "{app} nicht erreichbar nach {timeout}s ({detail}).",
         "error": "Fehler: {msg}",
         "error_word": "Fehler",
+        # --- update check ---
+        "update_available": "Update verfuegbar: {tag} - {url}",
     },
 }
 

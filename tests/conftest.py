@@ -2,11 +2,33 @@
 
 from __future__ import annotations
 
+import contextlib
+import logging
 import subprocess
 
 import pytest
 
 from docker_app_launcher.config import LauncherConfig
+
+
+@pytest.fixture(autouse=True)
+def reset_root_logging():
+    """Restore the root logger after each test.
+
+    ``__main__.main`` / ``logging_setup.setup_logging`` add handlers to the
+    root logger; without this they would accumulate across tests (leaking
+    file descriptors and duplicating log output into ``capsys``).
+    """
+    root = logging.getLogger()
+    saved_handlers = root.handlers[:]
+    saved_level = root.level
+    yield
+    for handler in root.handlers[:]:
+        if handler not in saved_handlers:
+            root.removeHandler(handler)
+            with contextlib.suppress(Exception):
+                handler.close()
+    root.setLevel(saved_level)
 
 
 @pytest.fixture(autouse=True)

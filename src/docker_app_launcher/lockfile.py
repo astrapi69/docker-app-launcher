@@ -72,14 +72,15 @@ def _pid_alive_posix(pid: int) -> bool:
 def _pid_alive_windows(pid: int) -> bool:
     import subprocess
 
-    _CREATE_NO_WINDOW = 0x08000000
+    from docker_app_launcher.subprocess_utils import subprocess_kwargs
+
     try:
         result = subprocess.run(
             ["tasklist", "/FI", f"PID eq {pid}", "/NH"],
             capture_output=True,
             text=True,
             timeout=5.0,
-            creationflags=_CREATE_NO_WINDOW,
+            **subprocess_kwargs(),
         )
     except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
         # If we cannot check, prefer "alive" so we never silently clobber a

@@ -40,6 +40,7 @@ from typing import Any
 
 from docker_app_launcher import __version__, i18n
 from docker_app_launcher.config import LauncherConfig
+from docker_app_launcher.subprocess_utils import subprocess_kwargs
 
 logger = logging.getLogger("docker_app_launcher.actions")
 
@@ -66,6 +67,7 @@ def _run(cmd: list[str], *, timeout: float = 15.0, cwd: Path | None = None) -> s
         text=True,
         timeout=timeout,
         cwd=str(cwd) if cwd else None,
+        **subprocess_kwargs(),
     )
     logger.debug(
         "exit=%s stdout=%r stderr=%r",
@@ -110,6 +112,7 @@ def _stream_command(
         text=True,
         bufsize=1,
         cwd=str(cwd) if cwd else None,
+        **subprocess_kwargs(),
     )
     lines: list[str] = []
     killed = {"v": False}

@@ -1,14 +1,15 @@
 [project]
-name = "python-poetry-template"
+name = "docker-app-launcher"
 version = "0.1.0"
-description = "A lightweight, ready-to-use template for modern Python projects using Poetry"
+description = "Configurable desktop launcher for Docker-based applications"
 authors = [{ name = "Asterios Raptis", email = "aster.raptis@gmail.com" }]
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10,<4.0"
-keywords = ["template", "poetry", "starter", "boilerplate"]
+keywords = ["docker", "launcher", "desktop", "tkinter", "gui"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 3 - Alpha",
+    "Environment :: X11 Applications",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
@@ -17,20 +18,27 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development :: Build Tools",
+    "Topic :: System :: Installation/Setup",
     "Typing :: Typed",
 ]
 dependencies = []
 
+[project.optional-dependencies]
+tray = ["pystray>=0.19", "Pillow>=10.0"]
+
 [project.urls]
-Homepage = "https://github.com/astrapi69/python-poetry-template"
-Repository = "https://github.com/astrapi69/python-poetry-template"
-Issues = "https://github.com/astrapi69/python-poetry-template/issues"
+Homepage = "https://github.com/astrapi69/docker-app-launcher"
+Repository = "https://github.com/astrapi69/docker-app-launcher"
+Documentation = "https://github.com/astrapi69/docker-app-launcher#readme"
+Changelog = "https://github.com/astrapi69/docker-app-launcher/blob/main/CHANGELOG.md"
+"Issue Tracker" = "https://github.com/astrapi69/docker-app-launcher/issues"
 
 [project.scripts]
-template-script = "python_poetry_template.cli:main"
+docker-app-launcher = "docker_app_launcher.__main__:main"
 
 [tool.poetry]
-packages = [{ include = "python_poetry_template", from = "src" }]
+packages = [{ include = "docker_app_launcher", from = "src" }]
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.15.0"
@@ -40,6 +48,7 @@ pytest = "^9.1.0"
 pytest-cov = "^7.1.0"
 pytest-mock = "^3.15.0"
 codespell = "^2.4.0"
+twine = "^6.2.0"
 
 [build-system]
 requires = ["poetry-core>=2.0"]
@@ -51,7 +60,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.ruff]
 target-version = "py310"
-line-length = 100
+line-length = 120
 src = ["src", "tests"]
 
 [tool.ruff.lint]
@@ -64,12 +73,13 @@ select = [
     "C4",  # flake8-comprehensions
     "UP",  # pyupgrade
     "SIM", # flake8-simplify
+    "BLE", # flake8-blind-except
     "RUF", # ruff-specific rules
 ]
 ignore = []
 
 [tool.ruff.lint.isort]
-known-first-party = ["python_poetry_template"]
+known-first-party = ["docker_app_launcher"]
 
 [tool.ruff.format]
 docstring-code-format = true
@@ -78,15 +88,26 @@ docstring-code-format = true
 python_version = "3.10"
 strict = true
 warn_unused_configs = true
+warn_return_any = true
 ignore_missing_imports = true
 files = ["src", "tests"]
 
+# Tests stay readable: pytest fixtures are injected untyped, so don't require
+# annotations on every test function/parameter. Bodies are still type-checked.
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--cov=python_poetry_template --cov-report=term-missing --strict-markers"
+addopts = "--cov=docker_app_launcher --cov-report=term-missing --strict-markers"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
 
 [tool.coverage.run]
-source = ["python_poetry_template"]
+source = ["docker_app_launcher"]
 branch = true
 omit = ["tests/*"]
 
@@ -95,4 +116,6 @@ show_missing = true
 skip_covered = false
 
 [tool.codespell]
-skip = "poetry.lock,.git"
+# i18n.py is a bilingual (EN/DE) string catalog; German words are not typos.
+skip = "poetry.lock,.git,src/docker_app_launcher/i18n.py"
+ignore-words-list = "oeffnen,uebersprungen,ueberspringen"

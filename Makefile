@@ -2,7 +2,7 @@
 SHELL := /bin/bash
 
 SRC_DIRS := src/ tests/
-PKG := python_poetry_template
+PKG := docker_app_launcher
 
 # ---------------------------------------------------------------------------
 # Setup
@@ -118,16 +118,25 @@ bump-major: ## Bump major version (0.1.0 -> 1.0.0)
 # ---------------------------------------------------------------------------
 
 .PHONY: build
-build: ## Build distribution package
+build: ## Build distribution package (sdist + wheel)
 	poetry build
 
-.PHONY: publish
-publish: ci build ## Run CI, build and publish to PyPI
-	poetry publish
+.PHONY: build-check
+build-check: build ## Build, then validate artifacts with twine + inspect wheel
+	poetry run twine check dist/*
+	poetry run python -m zipfile -l dist/*.whl
+
+.PHONY: release-check
+release-check: ci codespell build-check ## Full pre-release gate (CI + spell + build + twine)
+	@echo "Release gate passed. See .claude/rules/release-workflow.md for the full checklist."
 
 .PHONY: publish-test
-publish-test: ci build ## Run CI, build and publish to TestPyPI
+publish-test: release-check ## Publish to TestPyPI (smoke-test before the real thing)
 	poetry publish -r testpypi
+
+.PHONY: publish
+publish: release-check ## Run full gate, then publish to PyPI (irreversible)
+	poetry publish
 
 # ---------------------------------------------------------------------------
 # Cleanup

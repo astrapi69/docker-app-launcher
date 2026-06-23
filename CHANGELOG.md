@@ -6,6 +6,23 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-06-23
+
+### Fixed
+
+- **Buttons stay disabled for the whole duration of an action.** While an
+  install / start / stop / uninstall / cleanup runs, every button in the window
+  is disabled - not just the action row but any transient buttons (the cleanup
+  offer) too - so a second action can no longer be launched in parallel. The
+  guard now walks the full widget tree (`_iter_buttons`) instead of a single
+  frame, closing a gap where the cleanup-offer buttons stayed clickable during
+  another action.
+- **The launcher no longer disappears behind shell windows or dialogs mid
+  action.** During an action the window is held `-topmost`; when the action
+  finishes the flag is dropped (so it does not nag during normal use) and the
+  window is raised and focused once. Window-manager quirks are swallowed so a
+  `TclError` can never break an action.
+
 ## [0.2.1] - 2026-06-23
 
 ### Fixed
@@ -78,7 +95,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - CLI ↔ GUI parity: both route through the same actions.
 - 160+ tests (no display required), mypy strict, ruff clean.
 
-[Unreleased]: https://github.com/astrapi69/docker-app-launcher/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/astrapi69/docker-app-launcher/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/astrapi69/docker-app-launcher/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/astrapi69/docker-app-launcher/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/astrapi69/docker-app-launcher/releases/tag/v0.1.0

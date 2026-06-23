@@ -30,3 +30,6 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_TOKEN }}
+          # Idempotent: a tag whose version was already uploaded (e.g. via the
+          # local `make publish` path) does not fail the workflow.
+          skip-existing: true

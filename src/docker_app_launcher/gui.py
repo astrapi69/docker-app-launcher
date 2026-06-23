@@ -279,11 +279,51 @@ class LauncherApp(tk.Tk):
         self._refresh()
 
     def _set_busy(self, busy: bool) -> None:
-        for child in self._button_row.winfo_children():
-            child["state"] = "disabled" if busy else "normal"
+        """Toggle the window between idle and "an action is running".
+
+        Disables EVERY button in the window - not just the action row, but any
+        transient buttons too (e.g. the cleanup offer) - so a running action
+        can never be triggered a second time or have a different action started
+        in parallel. While busy the window is forced ``-topmost`` so it cannot
+        vanish behind a shell window or dialog that pops up mid-install; when
+        the action finishes the flag is dropped (so it does not nag during
+        normal use) and the window is brought to the front once.
+        """
+        for btn in self._iter_buttons():
+            btn["state"] = "disabled" if busy else "normal"
+        self._set_topmost(busy)
         if busy:
             self._clear_status()
             self._log(self._t("installing"))
+        else:
+            self._bring_to_front()
+
+    def _iter_buttons(self) -> list[tk.Button]:
+        """Every ``tk.Button`` currently in the window, walked fresh each call
+        so buttons created after start-up (the cleanup offer) are included."""
+        found: list[tk.Button] = []
+        stack: list[tk.Misc] = list(self.winfo_children())
+        while stack:
+            widget = stack.pop()
+            if isinstance(widget, tk.Button):
+                found.append(widget)
+            stack.extend(widget.winfo_children())
+        return found
+
+    def _set_topmost(self, on: bool) -> None:
+        """Best-effort ``-topmost`` toggle; never let a WM quirk break the UI."""
+        try:
+            self.attributes("-topmost", on)
+        except tk.TclError as exc:  # pragma: no cover - platform/WM dependent
+            logger.debug("could not set -topmost=%s: %s", on, exc)
+
+    def _bring_to_front(self) -> None:
+        """Raise and focus the window once (after an action completes)."""
+        try:
+            self.lift()
+            self.focus_force()
+        except tk.TclError as exc:  # pragma: no cover - platform/WM dependent
+            logger.debug("could not bring window to front: %s", exc)
 
     # --- close / system tray ---
 

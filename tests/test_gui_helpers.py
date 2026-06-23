@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import tkinter as tk
+from typing import Any
+
 import pytest
 
 from docker_app_launcher import actions, gui
@@ -76,6 +79,81 @@ class TestDispatchAction:
 
     def test_unknown_returns_none(self, cfg) -> None:
         assert gui.dispatch_action("frobnicate", cfg) is None
+
+
+class _FakeButton:
+    """Stands in for a ``tk.Button``: supports ``btn["state"] = ...``."""
+
+    def __init__(self) -> None:
+        self.state = "normal"
+
+    def __setitem__(self, key: str, value: str) -> None:
+        assert key == "state"
+        self.state = value
+
+
+def _busy_app(
+    monkeypatch: pytest.MonkeyPatch, buttons: list[_FakeButton]
+) -> tuple[gui.LauncherApp, dict[str, Any]]:
+    """Build a LauncherApp without a real Tk window, with every Tk-touching
+    method stubbed so ``_set_busy`` can be exercised headlessly."""
+    app = gui.LauncherApp.__new__(gui.LauncherApp)
+    app._cfg = LauncherConfig(app_name="X").resolve()
+    calls: dict[str, Any] = {"attributes": [], "lift": 0, "focus_force": 0, "logged": 0, "cleared": 0}
+    # ``_iter_buttons`` would walk a real widget tree; feed it our fakes instead
+    # so the test does not need a window. The real ``_set_topmost`` /
+    # ``_bring_to_front`` still run, calling the stubbed primitives below.
+    monkeypatch.setattr(app, "_iter_buttons", lambda: buttons)
+    monkeypatch.setattr(app, "attributes", lambda *a: calls["attributes"].append(a))
+    monkeypatch.setattr(app, "lift", lambda: calls.__setitem__("lift", calls["lift"] + 1))
+    monkeypatch.setattr(app, "focus_force", lambda: calls.__setitem__("focus_force", calls["focus_force"] + 1))
+    monkeypatch.setattr(app, "_clear_status", lambda: calls.__setitem__("cleared", calls["cleared"] + 1))
+    monkeypatch.setattr(app, "_log", lambda *a, **k: calls.__setitem__("logged", calls["logged"] + 1))
+    return app, calls
+
+
+class TestSetBusy:
+    def test_all_buttons_disabled_during_action(self, monkeypatch) -> None:
+        buttons = [_FakeButton(), _FakeButton(), _FakeButton()]
+        app, _ = _busy_app(monkeypatch, buttons)
+        app._set_busy(True)
+        assert all(btn.state == "disabled" for btn in buttons)
+
+    def test_all_buttons_enabled_after_action(self, monkeypatch) -> None:
+        buttons = [_FakeButton(), _FakeButton()]
+        app, _ = _busy_app(monkeypatch, buttons)
+        app._set_busy(True)
+        app._set_busy(False)
+        assert all(btn.state == "normal" for btn in buttons)
+
+    def test_topmost_set_while_busy(self, monkeypatch) -> None:
+        app, calls = _busy_app(monkeypatch, [_FakeButton()])
+        app._set_busy(True)
+        assert ("-topmost", True) in calls["attributes"]
+        # Busy must not steal focus repeatedly; front-raising happens on finish.
+        assert calls["lift"] == 0 and calls["focus_force"] == 0
+
+    def test_topmost_cleared_and_window_raised_after(self, monkeypatch) -> None:
+        app, calls = _busy_app(monkeypatch, [_FakeButton()])
+        app._set_busy(True)
+        app._set_busy(False)
+        assert calls["attributes"][-1] == ("-topmost", False)
+        assert calls["lift"] == 1 and calls["focus_force"] == 1
+
+    def test_busy_clears_and_logs_once(self, monkeypatch) -> None:
+        app, calls = _busy_app(monkeypatch, [_FakeButton()])
+        app._set_busy(True)
+        assert calls["cleared"] == 1 and calls["logged"] == 1
+
+    def test_topmost_tclerror_is_swallowed(self, monkeypatch) -> None:
+        app, _ = _busy_app(monkeypatch, [_FakeButton()])
+
+        def boom(*_a: object) -> None:
+            raise tk.TclError("no WM")
+
+        monkeypatch.setattr(app, "attributes", boom)
+        # A window-manager quirk must never crash an action.
+        app._set_busy(True)
 
 
 class TestShouldMinimizeToTray:

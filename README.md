@@ -1,134 +1,107 @@
-# python-poetry-template
+# docker-app-launcher
 
-A lightweight, ready-to-use template for modern Python projects using [Poetry](https://python-poetry.org/) (2.x / PEP 621).
-Ideal for quick prototyping, scripting projects, or laying the foundation for scalable applications.
+Configurable desktop launcher for Docker-based applications.
+**One persistent window.** It opens, shows progress, and never closes itself —
+no dialog chains.
 
----
+[![CI](https://github.com/astrapi69/docker-app-launcher/actions/workflows/ci.yml/badge.svg)](https://github.com/astrapi69/docker-app-launcher/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/docker-app-launcher.svg)](https://pypi.org/project/docker-app-launcher/)
+[![Python](https://img.shields.io/pypi/pyversions/docker-app-launcher.svg)](https://pypi.org/project/docker-app-launcher/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+> 🇩🇪 [Deutsche Version](README-de.md)
+
+## Quick Start
+
+```bash
+pip install docker-app-launcher
+```
+
+### Python API (3 lines)
+
+```python
+from docker_app_launcher import LauncherConfig, launch
+
+launch(LauncherConfig(
+    app_name="My App",
+    container_name="my-app",
+    default_port=8080,
+))
+```
+
+### CLI
+
+```bash
+docker-app-launcher --config launcher.json   # open the window
+docker-app-launcher --status                  # print state and exit
+docker-app-launcher --install --port 9000     # build + start headless
+docker-app-launcher --check                   # is Docker running?
+```
+
+### launcher.json
+
+Everything is configurable. Only `app_name` is required — the rest is derived
+(slug, container/image names, compose project, config dir) or defaulted.
+
+```json
+{
+  "app_name": "My App",
+  "container_name": "my-app",
+  "default_port": 8080,
+  "compose_file": "docker-compose.prod.yml",
+  "install_dir": "/opt/my-app",
+  "health_check_path": "/api/health",
+  "health_check_key": "status",
+  "health_check_value": "ok",
+  "repo_url": "https://github.com/owner/repo",
+  "locale": "en"
+}
+```
 
 ## Features
 
-- **PEP 621 `pyproject.toml`** with native Poetry 2.x metadata
-- **`src/` layout** — import-safe, packaging-friendly project structure
-- **Pytest** test suite with branch coverage via `pytest-cov`
-- **Ruff** for linting **and** formatting (one fast tool, no Black needed)
-- **mypy** in `strict` mode for type checking, with `py.typed` marker
-- **codespell** for catching typos
-- **Pre-commit hooks** (ruff, mypy, codespell, hygiene checks)
-- **GitHub Actions CI** matrix across Python 3.10 – 3.14
-- **Makefile** for common development tasks
-- Typed example CLI with `argparse` and `--version`
+- **One persistent window** — never closes itself; only the X closes it.
+- **Docker check on startup** — distinguishes *not installed* / *running* / *stopped* / *no Docker*.
+- **Live build progress** — the Docker build is streamed line-by-line into the window.
+- **Configurable port** — editable in the GUI and via `--port`, validated and persisted (to `launcher.json` and `.env`).
+- **Verified actions** — install runs a health check; uninstall re-lists the containers to confirm they are gone.
+- **Install manifest + startup cleanup** — finds and offers to remove stale leftovers of older installs.
+- **Verbose uninstall / cleanup** — every step reported with a ✓ / ✗ result.
+- **System tray** (optional) — `pip install docker-app-launcher[tray]`; the window minimizes to the tray while running.
+- **DE / EN i18n** — with per-app custom-string overrides via `custom_strings`.
+- **Actions architecture** — all business logic is GUI-free and unit-tested without a display.
+- **CLI ↔ GUI parity** — both call the exact same actions layer.
 
----
+## Architecture
 
-## Getting Started
+| Module        | Responsibility                                              |
+|---------------|-------------------------------------------------------------|
+| `config.py`   | `LauncherConfig` dataclass — the single source of truth.    |
+| `actions.py`  | All business logic. No `tkinter`. Fully testable.           |
+| `gui.py`      | `LauncherApp(tk.Tk)` — a thin window over the actions.       |
+| `tray.py`     | Optional system tray (pystray + Pillow).                     |
+| `i18n.py`     | DE/EN strings with custom-string overrides.                  |
+| `__main__.py` | CLI entry point + GUI router.                                |
 
-### 1. Create your project from this template
+## Configuration reference
 
-Click **Use this template** → **Create a new repository**, then clone it:
+See [LauncherConfig](src/docker_app_launcher/config.py) for the full field list
+(app identity, network/health, Docker timeouts, paths, GUI, links, cleanup,
+tray, i18n, and lifecycle callbacks).
 
-```bash
-git clone https://github.com/YOUR_USERNAME/YOUR_PROJECT_NAME.git
-cd YOUR_PROJECT_NAME
-```
-
-### 2. Rename the package
-
-Replace the placeholder name in these spots:
-
-- `src/python_poetry_template/` → `src/your_package_name/`
-- `pyproject.toml` → `name`, `[project.scripts]`, `[tool.poetry] packages`,
-  `[tool.ruff.lint.isort] known-first-party`, `--cov` targets
-- imports in `tests/`
-
-### 3. Install dependencies
-
-Make sure [Poetry ≥ 2.0](https://python-poetry.org/docs/#installation) is installed, then:
+## Development
 
 ```bash
-make install
-# or
-poetry install --with dev
+poetry install --with dev --all-extras
+make ci        # lint + format-check + typecheck + tests
+make test      # tests with coverage
+make fix       # auto-fix lint + format
 ```
 
-### 4. Install pre-commit hooks
+## Used by
 
-```bash
-make hooks
-# or
-poetry run pre-commit install --install-hooks
-```
-
-### 5. Run the CLI
-
-```bash
-poetry run template-script --name Asterios
-poetry run template-script --version
-```
-
-### 6. Run the checks
-
-```bash
-make ci      # lint + format-check + typecheck + test
-make test    # tests only
-```
-
----
-
-## Makefile Commands
-
-Run `make help` to see all available targets:
-
-| Command            | Description                                       |
-|--------------------|---------------------------------------------------|
-| `make install`     | Install project with dev dependencies             |
-| `make update`      | Update dependencies                               |
-| `make hooks`       | Install pre-commit + commit-msg hooks             |
-| `make lint`        | Run ruff linter                                   |
-| `make lint-fix`    | Run ruff linter with auto-fix                     |
-| `make format`      | Format code with ruff                             |
-| `make format-check`| Check formatting without changes                  |
-| `make typecheck`   | Run mypy type checks                              |
-| `make codespell`   | Run codespell spell checker                       |
-| `make fix`         | Run all auto-fixes (ruff lint + format)           |
-| `make precommit`   | Run all pre-commit hooks                          |
-| `make test`        | Run all tests                                     |
-| `make test-cov`    | Run tests with coverage report                    |
-| `make ci`          | Full CI pipeline (lint + format + types + test)   |
-| `make build`       | Build distribution package                        |
-| `make publish`     | Publish to PyPI                                   |
-| `make bump-patch`  | Bump patch version                                |
-| `make clean`       | Remove build artifacts and caches                 |
-
----
-
-## Project Structure
-
-```text
-python-poetry-template/
-├── .github/workflows/ci.yml   # GitHub Actions CI (Python 3.10–3.14)
-├── .pre-commit-config.yaml    # Pre-commit hook configuration
-├── .env.example               # Environment variable template
-├── LICENSE                    # MIT license
-├── Makefile                   # Development task automation
-├── pyproject.toml             # PEP 621 metadata + tool config
-├── poetry.lock                # Exact version locks for reproducibility
-├── README.md                  # You're reading it
-├── src/
-│   └── python_poetry_template/
-│       ├── __init__.py        # Package version
-│       ├── cli.py             # Example typed CLI entry point
-│       └── py.typed           # PEP 561 typing marker
-└── tests/
-    ├── __init__.py
-    └── test_example.py
-```
-
----
+- [Adaptive Learner](https://github.com/astrapi69/adaptive-learner)
 
 ## License
 
-This project is licensed under the **MIT License**. See [LICENSE](LICENSE) for details.
-
----
-
-> Created with love by Asterios Raptis
+[MIT](LICENSE) © Asterios Raptis

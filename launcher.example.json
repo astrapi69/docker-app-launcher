@@ -1,0 +1,15 @@
+{
+  "app_name": "My App",
+  "container_name": "my-app",
+  "default_port": 8080,
+  "compose_file": "docker-compose.prod.yml",
+  "install_dir": "/opt/my-app",
+  "health_check_path": "/api/health",
+  "health_check_key": "status",
+  "health_check_value": "ok",
+  "env_port_key": "APP_PORT",
+  "repo_url": "https://github.com/owner/repo",
+  "locale": "en",
+  "tray_enabled": true,
+  "legacy_names": []
+}

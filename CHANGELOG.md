@@ -6,8 +6,33 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-23
+
 ### Added
 
+- **Single-instance lockfile** (`lockfile.py`): a PID-based guard so a second
+  launch is refused with an "already running" notice instead of opening a
+  duplicate window. Path-driven via `LauncherConfig.lock_path`; the GUI path in
+  `__main__` writes the lock on start and clears it on exit.
+- **Update check** (`update_check.py`): a background GitHub Releases check that
+  derives the API URL from `repo_url`, compares the latest tag against
+  `LauncherConfig.app_version`, and logs an in-window note when a strictly
+  newer release exists. Gated by `update_check_enabled`; completely silent on
+  any network/parse error.
+- **File logging** (`logging_setup.py`): a persistent rotated `launcher.log`
+  plus a per-run `install.log` under the config directory, and a CWD
+  `launcher-debug.log` on `--debug`. Best-effort - an unwritable directory
+  degrades to fewer sinks rather than crashing the launcher.
+- **PyInstaller integration** (`docker_app_launcher.pyinstaller`): a bundled
+  `launcher.spec.template` with `render_spec()`, a `hidden_imports()` list, and
+  build-time version injection (`write_build_info` / `read_build_info`) for
+  frozen builds.
+- New `LauncherConfig` fields `update_check_enabled` + `app_version`, and
+  `lock_path` / `log_path` / `install_log_path` path helpers.
+- `update_available` i18n string (EN/DE).
+- 46 new tests (lockfile, update check, file logging, PyInstaller helpers, and
+  the single-instance CLI guard); the verbose-cleanup path is now
+  regression-covered.
 - Enforced release gate synced from the project template: `make release-check`
   (CI + codespell + build + `twine check`), `make build-check`, and the
   `.claude/rules/release-workflow.md` release SOP. `twine` added as a dev
@@ -15,6 +40,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- `__main__` now loads the config *before* configuring logging (so the file
+  sinks land under the configured directory) and routes the GUI launch through
+  the single-instance lockfile guard.
 - CI bumped to `actions/checkout@v7`, `actions/setup-python@v6`,
   `codecov/codecov-action@v7`.
 
@@ -36,5 +64,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - CLI ↔ GUI parity: both route through the same actions.
 - 160+ tests (no display required), mypy strict, ruff clean.
 
-[Unreleased]: https://github.com/astrapi69/docker-app-launcher/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/astrapi69/docker-app-launcher/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/astrapi69/docker-app-launcher/releases/tag/v0.1.0

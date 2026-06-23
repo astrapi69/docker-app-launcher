@@ -19,7 +19,7 @@ import threading
 import tkinter as tk
 from pathlib import Path
 
-from docker_app_launcher import actions, i18n, tray
+from docker_app_launcher import actions, i18n, tray, update_check
 from docker_app_launcher.config import LauncherConfig
 
 logger = logging.getLogger("docker_app_launcher.gui")
@@ -147,6 +147,8 @@ class LauncherApp(tk.Tk):
         self._refresh()
         if config.cleanup_on_start:
             self._offer_cleanup_if_stale()
+        if config.update_check_enabled:
+            self._check_for_update()
 
     # --- helpers ---
 
@@ -190,6 +192,16 @@ class LauncherApp(tk.Tk):
             return
         free, _ = actions.check_port(int(raw))
         self._port_indicator.configure(text="✓" if free else "✗", fg="#188038" if free else "#c5221f")
+
+    # --- update check ---
+
+    def _check_for_update(self) -> None:
+        """Kick off the background update check; log a note when newer exists."""
+
+        def on_update(tag: str, url: str) -> None:
+            self.after(0, lambda: self._log(self._t("update_available", tag=tag, url=url)))
+
+        update_check.check_for_update_async(self._cfg, on_update)
 
     # --- startup cleanup offer ---
 

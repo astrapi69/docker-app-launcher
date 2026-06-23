@@ -76,6 +76,12 @@ class LauncherConfig:
     releases_url: str = ""
     docs_url: str = ""
 
+    # === Update check ===
+    # ``app_version`` is the version this launcher ships for; the update
+    # check compares it against the latest GitHub release of ``repo_url``.
+    update_check_enabled: bool = True
+    app_version: str = ""
+
     # === Cleanup ===
     cleanup_on_start: bool = True
     legacy_names: list[str] = field(default_factory=list)
@@ -128,6 +134,21 @@ class LauncherConfig:
     def launcher_config_file(self) -> Path:
         """JSON file holding the user's persisted launcher settings (port...)."""
         return self.config_path / "launcher.json"
+
+    @property
+    def lock_path(self) -> Path:
+        """Single-instance PID lockfile (under the config directory)."""
+        return self.config_path / "launcher.lock"
+
+    @property
+    def log_path(self) -> Path:
+        """Persistent launcher log (rotated)."""
+        return self.config_path / "launcher.log"
+
+    @property
+    def install_log_path(self) -> Path:
+        """Activity log of the most recent install/uninstall run."""
+        return self.config_path / "install.log"
 
     @property
     def manifest_path(self) -> Path:

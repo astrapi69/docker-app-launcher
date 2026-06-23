@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from docker_app_launcher import __main__, __version__, actions, gui
+from docker_app_launcher import __main__, __version__, actions, gui, lockfile
 
 
 class TestParser:
@@ -92,3 +92,32 @@ class TestGuiFallback:
         monkeypatch.setattr(gui, "run", lambda c, **k: launched.setdefault("v", 0) or 0)
         rc = __main__.main([])
         assert rc == 0 and "v" in launched
+
+
+class TestSingleInstance:
+    def test_second_instance_is_refused(self, monkeypatch, capsys) -> None:
+        monkeypatch.setattr(lockfile, "another_instance_alive", lambda path: True)
+
+        def boom(*a, **k):
+            raise AssertionError("a second instance must not open a window")
+
+        monkeypatch.setattr(gui, "run", boom)
+        rc = __main__.main([])
+        assert rc == 0
+        assert "already running" in capsys.readouterr().out.lower()
+
+    def test_lock_is_written_during_run_and_cleared_after(self, monkeypatch) -> None:
+        from docker_app_launcher.config import LauncherConfig
+
+        state: dict[str, bool] = {}
+
+        def fake_run(config, **k):
+            state["existed_during"] = config.lock_path.is_file()
+            return 0
+
+        monkeypatch.setattr(gui, "run", fake_run)
+        rc = __main__.main([])
+        assert rc == 0
+        assert state["existed_during"] is True
+        cfg = LauncherConfig.from_json("launcher.json")
+        assert not cfg.lock_path.is_file()

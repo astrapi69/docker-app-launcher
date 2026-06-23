@@ -1,6 +1,6 @@
 [project]
 name = "docker-app-launcher"
-version = "0.1.0"
+version = "0.2.0"
 description = "Configurable desktop launcher for Docker-based applications"
 authors = [{ name = "Asterios Raptis", email = "aster.raptis@gmail.com" }]
 readme = "README.md"
@@ -118,4 +118,4 @@ skip_covered = false
 [tool.codespell]
 # i18n.py is a bilingual (EN/DE) string catalog; German words are not typos.
 skip = "poetry.lock,.git,src/docker_app_launcher/i18n.py"
-ignore-words-list = "oeffnen,uebersprungen,ueberspringen"
+ignore-words-list = "oeffnen,uebersprungen,ueberspringen,datas"

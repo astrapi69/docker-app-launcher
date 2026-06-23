@@ -1,0 +1,98 @@
+[project]
+name = "python-poetry-template"
+version = "0.1.0"
+description = "A lightweight, ready-to-use template for modern Python projects using Poetry"
+authors = [{ name = "Asterios Raptis", email = "aster.raptis@gmail.com" }]
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10,<4.0"
+keywords = ["template", "poetry", "starter", "boilerplate"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Typing :: Typed",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/astrapi69/python-poetry-template"
+Repository = "https://github.com/astrapi69/python-poetry-template"
+Issues = "https://github.com/astrapi69/python-poetry-template/issues"
+
+[project.scripts]
+template-script = "python_poetry_template.cli:main"
+
+[tool.poetry]
+packages = [{ include = "python_poetry_template", from = "src" }]
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.15.0"
+mypy = "^2.1.0"
+pre-commit = "^4.6.0"
+pytest = "^9.1.0"
+pytest-cov = "^7.1.0"
+pytest-mock = "^3.15.0"
+codespell = "^2.4.0"
+
+[build-system]
+requires = ["poetry-core>=2.0"]
+build-backend = "poetry.core.masonry.api"
+
+# ---------------------------------------------------------------------------
+# Tool Configuration
+# ---------------------------------------------------------------------------
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "SIM", # flake8-simplify
+    "RUF", # ruff-specific rules
+]
+ignore = []
+
+[tool.ruff.lint.isort]
+known-first-party = ["python_poetry_template"]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_unused_configs = true
+ignore_missing_imports = true
+files = ["src", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=python_poetry_template --cov-report=term-missing --strict-markers"
+
+[tool.coverage.run]
+source = ["python_poetry_template"]
+branch = true
+omit = ["tests/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+
+[tool.codespell]
+skip = "poetry.lock,.git"

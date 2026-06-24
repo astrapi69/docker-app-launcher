@@ -37,7 +37,7 @@ except Exception:  # noqa: BLE001 - importing pystray can fail beyond ImportErro
     # init failure). Any such failure must DISABLE the tray, never crash the
     # launcher on startup.
     pystray = None
-    Image = None  # type: ignore[assignment]
+    Image = None  # type: ignore[assignment, unused-ignore]
     HAS_TRAY = False
 
 # pystray backends that do NOT reliably dock on modern Linux desktops. The

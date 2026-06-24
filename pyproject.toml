@@ -116,6 +116,7 @@ show_missing = true
 skip_covered = false
 
 [tool.codespell]
-# i18n.py is a bilingual (EN/DE) string catalog; German words are not typos.
-skip = "poetry.lock,.git,src/docker_app_launcher/i18n.py"
+# i18n.py is a bilingual (EN/DE) string catalog and README-de.md is the German
+# README; German words there are not typos.
+skip = "poetry.lock,.git,src/docker_app_launcher/i18n.py,README-de.md"
 ignore-words-list = "oeffnen,uebersprungen,ueberspringen,datas"

@@ -242,3 +242,74 @@ class TestShouldMinimizeToTray:
 
     def test_stopped_never_minimizes(self) -> None:
         assert gui.should_minimize_to_tray("stopped", tray_available=True, tray_enabled=True) is False
+
+
+class _StubText:
+    """Stands in for the log ``tk.Text`` widget: only ``get`` is exercised."""
+
+    def __init__(self, content: str) -> None:
+        self._content = content
+
+    def get(self, start: str, end: str) -> str:
+        return self._content
+
+
+class _StubCopyButton:
+    """Stands in for the copy-log ``tk.Button``: records every label set."""
+
+    def __init__(self) -> None:
+        self.texts: list[str] = []
+
+    def configure(self, *, text: str) -> None:
+        self.texts.append(text)
+
+
+def _copy_log_app(
+    monkeypatch: pytest.MonkeyPatch, content: str
+) -> tuple[gui.LauncherApp, _StubCopyButton, dict[str, Any]]:
+    """Build a LauncherApp without a real Tk window, with the log widget,
+    copy button, and clipboard primitives stubbed so ``_copy_log`` runs
+    headlessly (same idiom as ``_busy_app``)."""
+    app = gui.LauncherApp.__new__(gui.LauncherApp)
+    app._cfg = LauncherConfig(app_name="X").resolve()
+    btn = _StubCopyButton()
+    calls: dict[str, Any] = {"cleared": 0, "appended": [], "scheduled": []}
+    # ``_status`` / ``_copy_log_btn`` are created in ``__init__`` (skipped here),
+    # so they are absent on the bare instance - assign directly (monkeypatch
+    # would probe the missing attr and trip ``Tk.__getattr__`` recursion). The
+    # clipboard / after primitives DO exist on ``tk.Misc`` and are monkeypatched.
+    app._status = _StubText(content)  # type: ignore[assignment]
+    app._copy_log_btn = btn  # type: ignore[assignment]
+    monkeypatch.setattr(app, "clipboard_clear", lambda: calls.__setitem__("cleared", calls["cleared"] + 1))
+    monkeypatch.setattr(app, "clipboard_append", lambda text: calls["appended"].append(text))
+    monkeypatch.setattr(app, "after", lambda ms, cb: calls["scheduled"].append((ms, cb)))
+    return app, btn, calls
+
+
+class TestCopyLog:
+    def test_copies_stripped_content_and_shows_feedback(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        app, btn, calls = _copy_log_app(monkeypatch, "  line one\nline two\n")
+        app._copy_log()
+        assert calls["cleared"] == 1
+        assert calls["appended"] == ["line one\nline two"]
+        # feedback flips to the localized "copied" label ...
+        assert btn.texts == [app._t("log_copied")]
+        # ... and the scheduled restore callback flips it back after ~2s
+        assert calls["scheduled"] and calls["scheduled"][0][0] == 2000
+        calls["scheduled"][0][1]()
+        assert btn.texts == [app._t("log_copied"), app._t("log_copy")]
+
+    def test_empty_log_is_a_noop(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        app, btn, calls = _copy_log_app(monkeypatch, "   \n  ")
+        app._copy_log()
+        assert calls["cleared"] == 0
+        assert calls["appended"] == []
+        assert btn.texts == []
+        assert calls["scheduled"] == []
+
+    def test_copy_log_keys_exist_in_every_locale(self) -> None:
+        from docker_app_launcher import i18n
+
+        for lang in i18n.available_languages():
+            assert "log_copy" in i18n.STRINGS[lang]
+            assert "log_copied" in i18n.STRINGS[lang]

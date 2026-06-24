@@ -6,6 +6,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-06-24
+
+### Added
+
+- **"Copy log" button.** A small button above the scrollable log copies the
+  entire log contents to the clipboard in one click - via Tk's built-in
+  clipboard (`clipboard_clear` + `clipboard_append`), no extra dependency - so
+  a user hitting an error can paste the full log straight into a bug report,
+  email, or chat. The label flips to a localized "Copied!" for ~2s as feedback,
+  then restores; an empty log is a safe no-op. New `log_copy` / `log_copied`
+  strings in all 11 languages, relabeled live on a language switch.
+
 ## [0.8.0] - 2026-06-24
 
 ### Added

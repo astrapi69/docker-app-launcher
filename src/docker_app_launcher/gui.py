@@ -236,9 +236,21 @@ class LauncherApp(tk.Tk):
         self._progress_label = tk.Label(self._progress_frame, text="", anchor="w", font=("Segoe UI", 8))
         self._progress_label.pack(fill="x", padx=12)
 
+        # Copy-log toolbar: a small button above the scrollable log so the user
+        # can grab the whole log in one click for a bug report / email / chat.
+        log_toolbar = tk.Frame(self)
+        log_toolbar.pack(fill="x", padx=12, pady=(8, 0))
+        self._copy_log_btn = tk.Button(
+            log_toolbar,
+            text=self._t("log_copy"),
+            width=14,
+            command=self._copy_log,
+        )
+        self._copy_log_btn.pack(side="right")
+
         status_frame = tk.Frame(self)
         self._status_frame = status_frame
-        status_frame.pack(fill="both", expand=True, padx=12, pady=(8, 12))
+        status_frame.pack(fill="both", expand=True, padx=12, pady=(4, 12))
         scrollbar = tk.Scrollbar(status_frame, orient="vertical")
         scrollbar.pack(side="right", fill="y")
         self._status = tk.Text(
@@ -277,6 +289,21 @@ class LauncherApp(tk.Tk):
         self._status.configure(state="normal")
         self._status.delete("1.0", "end")
         self._status.configure(state="disabled")
+
+    def _copy_log(self) -> None:
+        """Copy the entire log contents to the clipboard.
+
+        An empty log is a no-op (no clipboard change, no crash). On success the
+        button label flips to a localized "Copied!" for ~2s, then restores, so
+        the user gets visible feedback that the copy happened.
+        """
+        content = self._status.get("1.0", "end").strip()
+        if not content:
+            return
+        self.clipboard_clear()
+        self.clipboard_append(content)
+        self._copy_log_btn.configure(text=self._t("log_copied"))
+        self.after(2000, lambda: self._copy_log_btn.configure(text=self._t("log_copy")))
 
     # --- rendering ---
 
@@ -456,6 +483,8 @@ class LauncherApp(tk.Tk):
     def _reload_ui_strings(self) -> None:
         """Re-render every translated label after a language change (no restart)."""
         self._refresh()  # state heading + primary/secondary button rows
+        if hasattr(self, "_copy_log_btn"):
+            self._copy_log_btn.configure(text=self._t("log_copy"))
         if hasattr(self, "_advanced_toggle_row"):
             was_open = getattr(self, "_advanced_open", False)
             self._advanced_toggle_row.destroy()

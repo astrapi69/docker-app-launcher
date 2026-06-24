@@ -150,6 +150,43 @@ def _load_icon_image(icon_path: str) -> Any:
         return None
 
 
+def _generate_default_icon(app_name: str, size: int = 64) -> Any:
+    """Generate a default tray icon: the app's initial on a colored tile.
+
+    A sensible fallback when no icon is configured - far better than pystray's
+    bare default square. Returns ``None`` only when the ``tray`` extra (Pillow)
+    is absent.
+    """
+    if not HAS_TRAY:
+        return None
+    from PIL import ImageDraw, ImageFont
+
+    image = Image.new("RGBA", (size, size), (52, 120, 246, 255))
+    draw = ImageDraw.Draw(image)
+    letter = app_name[0].upper() if app_name else "A"
+    try:
+        font = ImageFont.load_default(size=int(size * 0.6))  # Pillow >= 10.1
+    except TypeError:  # pragma: no cover - older Pillow has no size arg
+        font = ImageFont.load_default()
+    draw.text((size // 2, size // 2), letter, fill="white", anchor="mm", font=font)
+    return image
+
+
+def _resolve_tray_image(config: LauncherConfig) -> Any:
+    """Resolve the tray icon: ``tray_icon_path`` -> ``icon_path`` -> generated default.
+
+    Returns a PIL image (never ``None`` while the ``tray`` extra is present), so
+    the tray always shows a sensible icon.
+    """
+    if not HAS_TRAY:
+        return None
+    path = config.tray_icon_path or config.icon_path
+    image = _load_icon_image(path) if path else None
+    if image is not None:
+        return image
+    return _generate_default_icon(config.app_name)
+
+
 class TrayController:
     """Owns the ``pystray`` icon lifecycle for the launcher window.
 
@@ -186,7 +223,7 @@ class TrayController:
         if not HAS_TRAY:
             logger.info("system tray unavailable: the 'tray' extra (pystray + Pillow) is not installed")
             return False
-        image = _load_icon_image(self._config.icon_path)
+        image = _resolve_tray_image(self._config)
         if image is None:
             return False
         backend = getattr(_TrayIcon, "__module__", "")

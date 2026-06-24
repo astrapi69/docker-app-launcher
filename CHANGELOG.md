@@ -16,7 +16,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   is **minimized to the taskbar** instead, with a status hint - never silently
   killed. The X button now keeps a running app alive (tray, else taskbar) and
   only closes the launcher when the app is stopped (or the app opted out via
-  `tray_minimize_on_close`). pystray's **AppIndicator backend is now forced**
+  `tray_minimize_on_close`). A separate **`tray_icon_path`** config field sets
+  the tray icon (falling back to `icon_path`); when neither is set the tray
+  shows a **generated default** - the app's initial on a colored tile, not
+  pystray's bare square. pystray's **AppIndicator backend is now forced**
   (`pystray._appindicator`) rather than letting it auto-select the legacy X11
   backend that fires its setup callback but never docks; `PyGObject` is added to
   the `tray` extra (Linux-only marker). `--debug` logs tray diagnostics

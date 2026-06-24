@@ -72,6 +72,10 @@ class LauncherConfig:
 
     # === Paths ===
     icon_path: str = ""
+    # Separate tray icon; falls back to ``icon_path`` when empty, and to a
+    # generated initial-on-a-tile default when both are empty (never pystray's
+    # bare default square).
+    tray_icon_path: str = ""
     config_dir: str = ""
     install_dir: str = ""
     manifest_file: str = "install-manifest.json"

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from docker_app_launcher import tray
 from docker_app_launcher.config import LauncherConfig
 
@@ -97,6 +99,62 @@ class TestTryMinimizeToBackground:
         mode = tray.try_minimize_to_background(root, None)
         assert mode == "iconify"
         assert root.calls == ["iconify"]
+
+
+class TestTrayImageResolution:
+    """tray_icon_path -> icon_path -> generated default (#9 follow-up)."""
+
+    def _patch(self, monkeypatch) -> None:
+        monkeypatch.setattr(tray, "HAS_TRAY", True)
+        monkeypatch.setattr(tray, "_load_icon_image", lambda p: f"img:{p}" if p else None)
+        monkeypatch.setattr(tray, "_generate_default_icon", lambda name: f"default:{name}")
+
+    def test_prefers_tray_icon_path(self, monkeypatch) -> None:
+        self._patch(monkeypatch)
+        cfg = LauncherConfig(app_name="X", icon_path="win.png", tray_icon_path="tray.png").resolve()
+        assert tray._resolve_tray_image(cfg) == "img:tray.png"
+
+    def test_falls_back_to_icon_path(self, monkeypatch) -> None:
+        self._patch(monkeypatch)
+        cfg = LauncherConfig(app_name="X", icon_path="win.png").resolve()
+        assert tray._resolve_tray_image(cfg) == "img:win.png"
+
+    def test_generates_default_when_no_paths(self, monkeypatch) -> None:
+        self._patch(monkeypatch)
+        cfg = LauncherConfig(app_name="Demo").resolve()
+        assert tray._resolve_tray_image(cfg) == "default:Demo"
+
+    def test_none_without_tray_extra(self, monkeypatch) -> None:
+        monkeypatch.setattr(tray, "HAS_TRAY", False)
+        cfg = LauncherConfig(app_name="X", icon_path="win.png").resolve()
+        assert tray._resolve_tray_image(cfg) is None
+
+
+def _pillow_available() -> bool:
+    try:
+        from PIL import Image, ImageDraw, ImageFont  # noqa: F401
+    except ImportError:
+        return False
+    return True
+
+
+@pytest.mark.skipif(not _pillow_available(), reason="Pillow (the tray extra) not installed")
+def test_generate_default_icon_renders(monkeypatch) -> None:
+    import PIL.Image
+
+    # Run independently of pystray: force the tray-present guard and the real
+    # PIL.Image even if importing pystray nulled the module-level Image.
+    monkeypatch.setattr(tray, "HAS_TRAY", True)
+    monkeypatch.setattr(tray, "Image", PIL.Image)
+    img = tray._generate_default_icon("Demo", size=64)
+    assert img is not None
+    assert img.size == (64, 64)
+    assert img.mode == "RGBA"
+
+
+def test_generate_default_icon_none_without_tray(monkeypatch) -> None:
+    monkeypatch.setattr(tray, "HAS_TRAY", False)
+    assert tray._generate_default_icon("Demo") is None
 
 
 def test_log_diagnostics_never_raises() -> None:

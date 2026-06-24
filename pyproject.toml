@@ -25,7 +25,12 @@ classifiers = [
 dependencies = []
 
 [project.optional-dependencies]
-tray = ["pystray>=0.19", "Pillow>=10.0"]
+# PyGObject powers pystray's AppIndicator backend (the reliable Linux tray);
+# it is Linux-only and needs system libs, so it is gated by a platform marker
+# to keep the extra installable on Windows/macOS (which use pystray's own
+# native backends). When AppIndicator is still unavailable at runtime the
+# launcher falls back to a taskbar-minimized window, so this never hard-fails.
+tray = ["pystray>=0.19", "Pillow>=10.0", "PyGObject>=3.42,<3.52; sys_platform == 'linux'"]
 
 [project.urls]
 Homepage = "https://github.com/astrapi69/docker-app-launcher"

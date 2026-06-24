@@ -115,6 +115,12 @@ class TestSerialization:
         assert loaded.app_name == "My App"
         assert loaded.default_port == 9000
 
+    def test_tray_icon_path_default_and_round_trip(self, tmp_path: Path) -> None:
+        assert LauncherConfig(app_name="X").resolve().tray_icon_path == ""
+        path = tmp_path / "cfg.json"
+        LauncherConfig(app_name="X", tray_icon_path="t.png").resolve().to_json(path)
+        assert LauncherConfig.from_json(path).tray_icon_path == "t.png"
+
     def test_internal_port_defaults_empty(self) -> None:
         cfg = LauncherConfig(app_name="X").resolve()
         assert cfg.internal_ports == {}

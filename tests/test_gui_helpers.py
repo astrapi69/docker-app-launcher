@@ -22,7 +22,7 @@ class TestPortEditable:
         [
             ("not_installed", True),
             ("stopped", True),
-            ("running", False),
+            ("running", True),
             ("no_docker", False),
         ],
     )
@@ -37,9 +37,9 @@ class TestButtonsForState:
     def test_not_installed_has_install(self) -> None:
         assert ("install", "install") in gui.buttons_for_state("not_installed")
 
-    def test_running_has_open_stop_uninstall(self) -> None:
+    def test_running_has_open_change_port_stop_uninstall(self) -> None:
         ids = [a for a, _ in gui.buttons_for_state("running")]
-        assert ids == ["open", "stop", "uninstall"]
+        assert ids == ["open", "change_port", "stop", "uninstall"]
 
     def test_stopped_has_start_uninstall(self) -> None:
         ids = [a for a, _ in gui.buttons_for_state("stopped")]
@@ -67,6 +67,23 @@ class TestDispatchAction:
     def test_uninstall_routes(self, cfg, monkeypatch) -> None:
         monkeypatch.setattr(actions, "uninstall", lambda c, **k: (True, "gone"))
         assert gui.dispatch_action("uninstall", cfg) == (True, "gone")
+
+    def test_change_port_routes_with_port(self, cfg, monkeypatch) -> None:
+        seen: dict[str, object] = {}
+
+        def fake_change(c, p, **k):
+            seen["port"] = p
+            return (True, "ok")
+
+        monkeypatch.setattr(actions, "change_port", fake_change)
+        assert gui.dispatch_action("change_port", cfg, port=9000) == (True, "ok")
+        assert seen["port"] == 9000
+
+    def test_change_port_without_port_is_invalid(self, cfg) -> None:
+        result = gui.dispatch_action("change_port", cfg)
+        assert result is not None
+        ok, msg = result
+        assert ok is False and "between" in msg
 
     def test_open_returns_none(self, cfg, monkeypatch) -> None:
         opened: list[object] = []

@@ -41,6 +41,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "stop": "Stop",
         "uninstall": "Uninstall",
         "open_browser": "Open in browser",
+        "apply_port": "Apply port",
         "retry": "Check again",
         "cleanup": "Clean up",
         "skip": "Skip",
@@ -92,6 +93,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "port_occupied": "Port {port} is occupied.",
         "port_invalid": "Port must be between {min} and {max}.",
         "port_set": "Port set to {port}.",
+        "port_restarting": "Port changed. Restarting {app}...",
+        "port_changed": "Port changed to {port}.",
         "no_free_port": "No free port found.",
         "free_port_found": "Free port found: {port}.",
         # --- docker / errors ---
@@ -129,6 +132,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "stop": "Stoppen",
         "uninstall": "Deinstallieren",
         "open_browser": "Im Browser oeffnen",
+        "apply_port": "Port uebernehmen",
         "retry": "Erneut pruefen",
         "cleanup": "Aufraeumen",
         "skip": "Ueberspringen",
@@ -180,6 +184,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "port_occupied": "Port {port} ist belegt.",
         "port_invalid": "Port muss zwischen {min} und {max} liegen.",
         "port_set": "Port auf {port} gesetzt.",
+        "port_restarting": "Port geaendert. {app} wird neu gestartet...",
+        "port_changed": "Port auf {port} geaendert.",
         "no_free_port": "Kein freier Port gefunden.",
         "free_port_found": "Freier Port gefunden: {port}.",
         # --- docker / errors ---

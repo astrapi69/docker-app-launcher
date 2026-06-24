@@ -185,6 +185,19 @@ class TestPortPersistence:
         text = env.read_text()
         assert "APP_PORT=9100" in text and "APP_PORT=9000" not in text
 
+    def test_write_env_port_without_install_dir(self, tmp_path) -> None:
+        # Regression (Bug 1): with no install_dir the .env must STILL be written,
+        # next to the compose file, so `docker compose` actually sees the new
+        # port. Previously _env_path returned None and the write was a silent
+        # no-op, so the launcher and Compose disagreed on the port.
+        compose = tmp_path / "docker-compose.prod.yml"
+        compose.write_text("services: {}\n")
+        cfg = LauncherConfig(app_name="X", compose_file=str(compose), config_dir=str(tmp_path / ".x")).resolve()
+        assert cfg.install_dir == ""
+        actions._write_env_port(cfg, 9000)
+        env = tmp_path / ".env"
+        assert env.is_file() and "APP_PORT=9000" in env.read_text()
+
     def test_load_config_missing(self, tmp_path) -> None:
         assert actions.load_config(tmp_path / "no.json") == {}
 
@@ -344,6 +357,99 @@ class TestStop:
         monkeypatch.setattr(actions, "_run", lambda *a, **k: make_result())
         ok, _ = actions.stop(config)
         assert ok is False
+
+
+# --- change_port (public host-port change) --------------------------------
+
+
+class TestChangePort:
+    def test_invalid_port_rejected(self, config) -> None:
+        ok, _ = actions.change_port(config, 1)
+        assert ok is False
+
+    def test_docker_down(self, config, monkeypatch) -> None:
+        monkeypatch.setattr(actions, "check_docker", lambda: (False, "down"))
+        ok, msg = actions.change_port(config, 9000)
+        assert ok is False and "not available" in msg
+
+    def test_not_running_only_persists(self, config, monkeypatch) -> None:
+        # Stack stopped -> persist the port (a later start picks it up), do NOT
+        # touch Compose. resolve_port reflects the new value afterwards.
+        monkeypatch.setattr(actions, "check_docker", lambda: (True, "ok"))
+        monkeypatch.setattr(actions, "get_state", lambda c: "stopped")
+        ok, _ = actions.change_port(config, 9000)
+        assert ok is True
+        assert actions.resolve_port(config) == 9000
+
+    def test_running_stop_restart_healthcheck(self, config, monkeypatch) -> None:
+        _make_repo(config)
+        states = iter(["running", "running"])  # initial probe, then post-restart
+        monkeypatch.setattr(actions, "check_docker", lambda: (True, "ok"))
+        monkeypatch.setattr(actions, "get_state", lambda c: next(states))
+        monkeypatch.setattr(actions, "stop", lambda c: (True, "stopped"))
+        monkeypatch.setattr(actions, "_stream_compose", lambda c, *a, **k: (0, ""))
+        monkeypatch.setattr(actions, "health_check", lambda c, port=None: (True, "ok"))
+        monkeypatch.setattr(actions, "_run", lambda *a, **k: make_result(stdout=""))
+        ok, msg = actions.change_port(config, 9000)
+        assert ok is True and "9000" in msg
+        assert actions.resolve_port(config) == 9000
+
+    def test_restart_uses_no_build(self, config, monkeypatch) -> None:
+        # A public-port change must recreate WITHOUT --build (seconds, not the
+        # minutes a rebuild costs). The internal-port rebuild path is separate.
+        captured: dict[str, tuple[str, ...]] = {}
+        states = iter(["running", "running"])
+        monkeypatch.setattr(actions, "check_docker", lambda: (True, "ok"))
+        monkeypatch.setattr(actions, "get_state", lambda c: next(states))
+        monkeypatch.setattr(actions, "stop", lambda c: (True, "stopped"))
+
+        def fake_stream(c, *args, **kwargs):
+            captured["args"] = args
+            return (0, "")
+
+        monkeypatch.setattr(actions, "_stream_compose", fake_stream)
+        monkeypatch.setattr(actions, "health_check", lambda c, port=None: (True, "ok"))
+        monkeypatch.setattr(actions, "_run", lambda *a, **k: make_result(stdout=""))
+        actions.change_port(config, 9000)
+        assert captured["args"] == ("up", "-d")
+        assert "--build" not in captured["args"]
+
+    def test_stop_failure_aborts(self, config, monkeypatch) -> None:
+        monkeypatch.setattr(actions, "check_docker", lambda: (True, "ok"))
+        monkeypatch.setattr(actions, "get_state", lambda c: "running")
+        monkeypatch.setattr(actions, "stop", lambda c: (False, "cannot stop"))
+        ok, msg = actions.change_port(config, 9000)
+        assert ok is False and "cannot stop" in msg
+
+    def test_unhealthy_after_restart(self, config, monkeypatch) -> None:
+        _make_repo(config)
+        states = iter(["running", "running"])
+        monkeypatch.setattr(actions, "check_docker", lambda: (True, "ok"))
+        monkeypatch.setattr(actions, "get_state", lambda c: next(states))
+        monkeypatch.setattr(actions, "stop", lambda c: (True, "stopped"))
+        monkeypatch.setattr(actions, "_stream_compose", lambda c, *a, **k: (0, ""))
+        monkeypatch.setattr(actions, "health_check", lambda c, port=None: (False, "no route"))
+        monkeypatch.setattr(actions, "_run", lambda *a, **k: make_result(stdout=""))
+        ok, msg = actions.change_port(config, 9000)
+        assert ok is False and "not reachable" in msg
+
+    def test_health_check_targets_new_port(self, config, monkeypatch) -> None:
+        _make_repo(config)
+        seen: dict[str, int] = {}
+        states = iter(["running", "running"])
+        monkeypatch.setattr(actions, "check_docker", lambda: (True, "ok"))
+        monkeypatch.setattr(actions, "get_state", lambda c: next(states))
+        monkeypatch.setattr(actions, "stop", lambda c: (True, "stopped"))
+        monkeypatch.setattr(actions, "_stream_compose", lambda c, *a, **k: (0, ""))
+        monkeypatch.setattr(actions, "_run", lambda *a, **k: make_result(stdout=""))
+
+        def fake_health(c, port=None):
+            seen["port"] = port
+            return (True, "ok")
+
+        monkeypatch.setattr(actions, "health_check", fake_health)
+        actions.change_port(config, 9000)
+        assert seen["port"] == 9000
 
 
 # --- uninstall ------------------------------------------------------------

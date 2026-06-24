@@ -38,13 +38,19 @@ _BUTTONS: dict[str, list[tuple[str, str]]] = {
     "no_docker": [("recheck", "retry")],
     "not_installed": [("install", "install")],
     "stopped": [("start", "start"), ("uninstall", "uninstall")],
-    "running": [("open", "open_browser"), ("stop", "stop"), ("uninstall", "uninstall")],
+    "running": [("open", "open_browser"), ("change_port", "apply_port"), ("stop", "stop"), ("uninstall", "uninstall")],
 }
 
 
 def port_editable(state: str) -> bool:
-    """The port field is editable only before the app is running."""
-    return state in ("not_installed", "stopped")
+    """Whether the port field is editable.
+
+    Editable in every state except when Docker is down (nothing can act on the
+    stack then). A RUNNING stack can have its host port changed in place via the
+    "Apply port" button (Stop -> rewrite ``.env`` -> ``up -d``); see
+    :func:`actions.change_port`.
+    """
+    return state != "no_docker"
 
 
 def buttons_for_state(state: str) -> list[tuple[str, str]]:
@@ -56,19 +62,25 @@ def dispatch_action(
     action_id: str,
     config: LauncherConfig,
     *,
+    port: int | None = None,
     on_step: actions.ProgressFn | None = None,
     on_output: actions.OutputFn | None = None,
 ) -> tuple[bool, str] | None:
     """Run the action for ``action_id`` through the actions layer.
 
     Returns ``(ok, message)`` for actions that report a result, or ``None`` for
-    fire-and-forget ids (open, recheck). Pure (no Tk) so it is unit-testable by
-    mocking ``actions``.
+    fire-and-forget ids (open, recheck). ``port`` is only consumed by
+    ``change_port`` (the in-place host-port change). Pure (no Tk) so it is
+    unit-testable by mocking ``actions``.
     """
     if action_id == "install":
         return actions.ensure_installed(config, on_step=on_step, on_output=on_output)
     if action_id == "start":
         return actions.start(config, on_step=on_step, on_output=on_output)
+    if action_id == "change_port":
+        if port is None:
+            return False, i18n.t("port_invalid", config, min=actions.MIN_PORT, max=actions.MAX_PORT)
+        return actions.change_port(config, port, on_step=on_step, on_output=on_output)
     if action_id == "stop":
         return actions.stop(config)
     if action_id == "uninstall":
@@ -250,8 +262,14 @@ class LauncherApp(tk.Tk):
 
     def _on_action(self, action_id: str) -> None:
         raw = self._port_var.get().strip()
-        if raw.isdigit():
-            actions.set_port(self._cfg, int(raw))
+        port = int(raw) if raw.isdigit() else None
+        # Persist the typed port only for actions that (re)create the stack from
+        # scratch; ``change_port`` persists it itself, and the running-state
+        # buttons (open/stop/uninstall) must NOT silently move the port out from
+        # under the live container (that re-introduces the launcher<->Compose
+        # mismatch this fix closes).
+        if action_id in ("install", "start") and port is not None:
+            actions.set_port(self._cfg, port)
         self._set_busy(True)
 
         def step(label: str) -> None:
@@ -261,7 +279,7 @@ class LauncherApp(tk.Tk):
             self.after(0, functools.partial(self._log, line))
 
         def worker() -> None:
-            result = dispatch_action(action_id, self._cfg, on_step=step, on_output=output)
+            result = dispatch_action(action_id, self._cfg, port=port, on_step=step, on_output=output)
             self.after(0, lambda: self._on_result(action_id, result))
 
         threading.Thread(target=worker, daemon=True).start()

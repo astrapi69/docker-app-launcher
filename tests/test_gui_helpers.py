@@ -43,12 +43,17 @@ class TestButtonsForState:
         assert ids == ["open", "stop", "uninstall"]
 
     def test_running_secondary_row(self) -> None:
+        # Cleanup is always available in the installed states (running/stopped).
         ids = [a for a, _ in gui.secondary_buttons_for_state("running")]
-        assert ids == ["change_port", "background"]
+        assert ids == ["change_port", "background", "cleanup"]
 
-    def test_no_secondary_row_when_not_running(self) -> None:
-        assert gui.secondary_buttons_for_state("stopped") == []
+    def test_stopped_secondary_row_has_cleanup(self) -> None:
+        ids = [a for a, _ in gui.secondary_buttons_for_state("stopped")]
+        assert ids == ["cleanup"]
+
+    def test_no_secondary_row_when_not_installed_or_no_docker(self) -> None:
         assert gui.secondary_buttons_for_state("not_installed") == []
+        assert gui.secondary_buttons_for_state("no_docker") == []
 
     def test_stopped_has_start_uninstall(self) -> None:
         ids = [a for a, _ in gui.buttons_for_state("stopped")]
@@ -313,3 +318,77 @@ class TestCopyLog:
         for lang in i18n.available_languages():
             assert "log_copy" in i18n.STRINGS[lang]
             assert "log_copied" in i18n.STRINGS[lang]
+
+
+class _ImmediateThread:
+    """Runs the target synchronously so cleanup-scan tests stay deterministic."""
+
+    def __init__(self, target=None, daemon=None) -> None:
+        self._target = target
+
+    def start(self) -> None:
+        if self._target is not None:
+            self._target()
+
+
+class TestSecondaryCommand:
+    def test_cleanup_routes_to_manual_cleanup(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        app = gui.LauncherApp.__new__(gui.LauncherApp)
+        sentinel = object()
+        monkeypatch.setattr(app, "_run_manual_cleanup", lambda: sentinel)
+        assert app._secondary_command("cleanup")() is sentinel
+
+    def test_background_routes_to_go_background(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        app = gui.LauncherApp.__new__(gui.LauncherApp)
+        sentinel = object()
+        monkeypatch.setattr(app, "_go_background", lambda: sentinel)
+        assert app._secondary_command("background")() is sentinel
+
+    def test_other_action_routes_to_on_action(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        app = gui.LauncherApp.__new__(gui.LauncherApp)
+        seen: list[str] = []
+        monkeypatch.setattr(app, "_on_action", lambda action_id: seen.append(action_id))
+        app._secondary_command("change_port")()
+        assert seen == ["change_port"]
+
+
+def _cleanup_app(monkeypatch: pytest.MonkeyPatch) -> tuple[gui.LauncherApp, dict[str, Any]]:
+    """LauncherApp without a Tk window, with the scan thread + Tk marshaling +
+    log + offer stubbed so ``_run_manual_cleanup`` runs synchronously."""
+    app = gui.LauncherApp.__new__(gui.LauncherApp)
+    app._cfg = LauncherConfig(app_name="X").resolve()
+    calls: dict[str, Any] = {"logged": [], "offered": []}
+    monkeypatch.setattr("docker_app_launcher.gui.threading.Thread", _ImmediateThread)
+    monkeypatch.setattr(app, "after", lambda ms, fn: fn())
+    monkeypatch.setattr(app, "_log", lambda msg, **kw: calls["logged"].append(msg))
+    monkeypatch.setattr(app, "_show_cleanup_offer", lambda stale: calls["offered"].append(stale))
+    return app, calls
+
+
+class TestManualCleanup:
+    def test_shows_offer_when_artifacts_found(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        app, calls = _cleanup_app(monkeypatch)
+        stale = {"volumes": ["x_data"]}
+        monkeypatch.setattr(actions, "find_stale_artifacts", lambda cfg: stale)
+        monkeypatch.setattr(actions, "has_stale_artifacts", lambda s: True)
+        app._run_manual_cleanup()
+        assert calls["offered"] == [stale]
+
+    def test_reports_nothing_when_clean(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        app, calls = _cleanup_app(monkeypatch)
+        monkeypatch.setattr(actions, "find_stale_artifacts", lambda cfg: {})
+        monkeypatch.setattr(actions, "has_stale_artifacts", lambda s: False)
+        app._run_manual_cleanup()
+        assert calls["offered"] == []
+        assert app._t("cleanup_none") in calls["logged"]
+
+    def test_scan_error_is_reported_not_raised(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        app, calls = _cleanup_app(monkeypatch)
+
+        def boom(cfg):
+            raise RuntimeError("docker down")
+
+        monkeypatch.setattr(actions, "find_stale_artifacts", boom)
+        app._run_manual_cleanup()  # must not raise
+        assert calls["offered"] == []
+        assert any("docker down" in str(m) for m in calls["logged"])

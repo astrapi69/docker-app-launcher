@@ -17,6 +17,7 @@ import functools
 import logging
 import threading
 import tkinter as tk
+from collections.abc import Callable
 from pathlib import Path
 from tkinter import messagebox, ttk
 
@@ -45,9 +46,13 @@ _BUTTONS: dict[str, list[tuple[str, str]]] = {
 # Secondary actions rendered on a SECOND row so the primary row never overflows
 # the fixed-width window (the running state would otherwise pack 5 buttons into
 # one row and clip "Uninstall"). ``background`` is wired to the run-in-background
-# handler; the rest route through the normal action dispatch.
+# handler and ``cleanup`` to the on-demand cleanup scan; the rest route through
+# the normal action dispatch. ``cleanup`` is ALWAYS present in the installed
+# states (running/stopped) - it is independent of the startup cleanup offer,
+# which only fires once at launch when leftover artifacts already exist.
 _SECONDARY_BUTTONS: dict[str, list[tuple[str, str]]] = {
-    "running": [("change_port", "apply_port"), ("background", "run_in_background")],
+    "running": [("change_port", "apply_port"), ("background", "run_in_background"), ("cleanup", "cleanup")],
+    "stopped": [("cleanup", "cleanup")],
 }
 
 
@@ -329,12 +334,23 @@ class LauncherApp(tk.Tk):
         for child in self._background_row.winfo_children():
             child.destroy()
         for action_id, label_key in secondary_buttons_for_state(state):
-            command = (
-                self._go_background if action_id == "background" else functools.partial(self._on_action, action_id)
-            )
+            command = self._secondary_command(action_id)
             tk.Button(self._background_row, text=self._t(label_key), width=22, command=command).pack(
                 side="left", padx=4
             )
+
+    def _secondary_command(self, action_id: str) -> Callable[[], None]:
+        """Resolve the click handler for a second-row button.
+
+        ``background`` and ``cleanup`` have bespoke handlers (the latter scans
+        on demand rather than dispatching a one-shot action); everything else
+        routes through the normal action dispatch.
+        """
+        if action_id == "background":
+            return self._go_background
+        if action_id == "cleanup":
+            return self._run_manual_cleanup
+        return functools.partial(self._on_action, action_id)
 
     def _validate_port(self) -> None:
         raw = self._port_var.get().strip()
@@ -503,6 +519,35 @@ class LauncherApp(tk.Tk):
             self.after(0, lambda: self._log(self._t("update_available", tag=tag, url=url)))
 
         update_check.check_for_update_async(self._cfg, on_update)
+
+    # --- cleanup ---
+
+    def _run_manual_cleanup(self) -> None:
+        """Manual 'Cleanup' button: scan for leftover artifacts on demand, then
+        either show the selection offer or report that nothing was found.
+
+        Always available in the installed states (running/stopped) and fully
+        decoupled from the startup offer (which only fires once at launch when
+        artifacts already exist). The scan runs off the Tk thread; results are
+        marshaled back via ``after``.
+        """
+        self._log(self._t("cleanup_scanning"))
+
+        def scan() -> None:
+            try:
+                stale = actions.find_stale_artifacts(self._cfg)
+            except Exception as exc:  # noqa: BLE001 - report, never crash the action
+                # Bind the message now: ``exc`` is cleared when the except block
+                # exits, but the lambda runs later (deferred via ``after``).
+                message = str(exc)
+                self.after(0, lambda: self._log(self._t("error", msg=message), tag="err"))
+                return
+            if actions.has_stale_artifacts(stale):
+                self.after(0, lambda: self._show_cleanup_offer(stale))
+            else:
+                self.after(0, lambda: self._log(self._t("cleanup_none")))
+
+        threading.Thread(target=scan, daemon=True).start()
 
     # --- startup cleanup offer ---
 

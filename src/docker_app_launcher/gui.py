@@ -111,18 +111,20 @@ def dispatch_action(
     port: int | None = None,
     on_step: actions.ProgressFn | None = None,
     on_output: actions.OutputFn | None = None,
+    on_progress: actions.ProgressPctFn | None = None,
 ) -> tuple[bool, str] | None:
     """Run the action for ``action_id`` through the actions layer.
 
     Returns ``(ok, message)`` for actions that report a result, or ``None`` for
     fire-and-forget ids (open, recheck). ``port`` is only consumed by
-    ``change_port`` (the in-place host-port change). Pure (no Tk) so it is
-    unit-testable by mocking ``actions``.
+    ``change_port`` (the in-place host-port change); ``on_progress`` by the
+    install/start build phases. Pure (no Tk) so it is unit-testable by mocking
+    ``actions``.
     """
     if action_id == "install":
-        return actions.ensure_installed(config, on_step=on_step, on_output=on_output)
+        return actions.ensure_installed(config, on_step=on_step, on_output=on_output, on_progress=on_progress)
     if action_id == "start":
-        return actions.start(config, on_step=on_step, on_output=on_output)
+        return actions.start(config, on_step=on_step, on_output=on_output, on_progress=on_progress)
     if action_id == "change_port":
         if port is None:
             return False, i18n.t("port_invalid", config, min=actions.MIN_PORT, max=actions.MAX_PORT)
@@ -225,7 +227,17 @@ class LauncherApp(tk.Tk):
         self._background_row = tk.Frame(self)
         self._background_row.pack(pady=(2, 0))
 
+        # Progress bar + label above the log: a quick visual for long actions
+        # (install/start build, cleanup), with the scrollable log below for
+        # detail. Hidden until an action reports progress.
+        self._progress_frame = tk.Frame(self)
+        self._progress = ttk.Progressbar(self._progress_frame, mode="determinate", maximum=100)
+        self._progress.pack(fill="x", padx=12, pady=(6, 0))
+        self._progress_label = tk.Label(self._progress_frame, text="", anchor="w", font=("Segoe UI", 8))
+        self._progress_label.pack(fill="x", padx=12)
+
         status_frame = tk.Frame(self)
+        self._status_frame = status_frame
         status_frame.pack(fill="both", expand=True, padx=12, pady=(8, 12))
         scrollbar = tk.Scrollbar(status_frame, orient="vertical")
         scrollbar.pack(side="right", fill="y")
@@ -277,13 +289,16 @@ class LauncherApp(tk.Tk):
         self._validate_port()
         for child in self._button_row.winfo_children():
             child.destroy()
-        for action_id, label_key in buttons_for_state(state):
-            tk.Button(
-                self._button_row,
-                text=self._t(label_key),
-                width=18,
-                command=functools.partial(self._on_action, action_id),
-            ).pack(side="left", padx=4)
+        if state == "no_docker":
+            self._render_docker_help()
+        else:
+            for action_id, label_key in buttons_for_state(state):
+                tk.Button(
+                    self._button_row,
+                    text=self._t(label_key),
+                    width=18,
+                    command=functools.partial(self._on_action, action_id),
+                ).pack(side="left", padx=4)
         for child in self._background_row.winfo_children():
             child.destroy()
         for action_id, label_key in secondary_buttons_for_state(state):
@@ -301,6 +316,46 @@ class LauncherApp(tk.Tk):
             return
         free, _ = actions.check_port(int(raw))
         self._port_indicator.configure(text="✓" if free else "✗", fg="#188038" if free else "#c5221f")
+
+    # --- docker help (no-docker state) ---
+
+    def _render_docker_help(self) -> None:
+        """Platform-specific Docker diagnostics + actions for the no-docker state."""
+        info = actions.check_docker_detailed(self._cfg)
+        text = info.get("detail") or self._t("no_docker")
+        if info.get("command"):
+            text += "\n" + info["command"]
+        self._state_label.configure(text=text, justify="center")
+        tk.Button(
+            self._button_row, text=self._t("retry"), width=16, command=functools.partial(self._on_action, "recheck")
+        ).pack(side="left", padx=4)
+        if info.get("can_start"):
+            tk.Button(
+                self._button_row,
+                text=self._t("start_docker"),
+                width=16,
+                command=functools.partial(self._start_docker, info),
+            ).pack(side="left", padx=4)
+        if not info.get("installed"):
+            tk.Button(
+                self._button_row,
+                text=self._t("open_install_guide"),
+                width=22,
+                command=functools.partial(actions.open_url, info["install_url"]),
+            ).pack(side="left", padx=4)
+
+    def _start_docker(self, info: dict[str, object]) -> None:
+        """Start the Docker daemon (Linux) or Docker Desktop (Win/macOS), then recheck."""
+        self._set_busy(True)
+
+        def worker() -> None:
+            if info.get("platform") == "Linux":
+                result = actions.start_docker_daemon()
+            else:
+                result = actions.start_docker_desktop(self._cfg)
+            self.after(0, lambda: self._on_result("start_docker", result))
+
+        threading.Thread(target=worker, daemon=True).start()
 
     # --- advanced (internal ports, experts) ---
 
@@ -458,10 +513,38 @@ class LauncherApp(tk.Tk):
             self.after(0, lambda: self._log(label))
 
         def worker() -> None:
-            result = actions.cleanup_stale(self._cfg, stale, on_step=step)
+            result = actions.cleanup_stale(self._cfg, stale, on_step=step, on_progress=self._on_progress)
             self.after(0, lambda: self._on_result("cleanup", result))
 
         threading.Thread(target=worker, daemon=True).start()
+
+    # --- progress bar ---
+
+    def _on_progress(self, percent: int | None, label: str) -> None:
+        """Thread-safe: marshal a progress update onto the Tk thread."""
+        self.after(0, lambda: self._update_progress(percent, label))
+
+    def _update_progress(self, percent: int | None, label: str) -> None:
+        if not self._progress_frame.winfo_ismapped():
+            self._progress_frame.pack(fill="x", before=self._status_frame)
+        self._progress_label.configure(text=label)
+        if percent is None:  # indeterminate: unknown duration (e.g. health check)
+            self._progress.configure(mode="indeterminate")
+            self._progress.start(12)
+        else:
+            self._progress.stop()
+            self._progress.configure(mode="determinate")
+            self._progress["value"] = percent
+            if percent >= 100:
+                self.after(2000, self._hide_progress)
+
+    def _hide_progress(self) -> None:
+        try:
+            self._progress.stop()
+            self._progress["value"] = 0
+            self._progress_frame.pack_forget()
+        except tk.TclError as exc:  # pragma: no cover - WM dependent
+            logger.debug("could not hide progress bar: %s", exc)
 
     # --- actions (threaded) ---
 
@@ -484,7 +567,9 @@ class LauncherApp(tk.Tk):
             self.after(0, functools.partial(self._log, line))
 
         def worker() -> None:
-            result = dispatch_action(action_id, self._cfg, port=port, on_step=step, on_output=output)
+            result = dispatch_action(
+                action_id, self._cfg, port=port, on_step=step, on_output=output, on_progress=self._on_progress
+            )
             self.after(0, lambda: self._on_result(action_id, result))
 
         threading.Thread(target=worker, daemon=True).start()

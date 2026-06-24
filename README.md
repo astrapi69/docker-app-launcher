@@ -76,26 +76,26 @@ Everything is configurable. Only `app_name` is required — the rest is derived
 
 ## Features
 
-- **One persistent window** — never closes itself; only the X closes it.
-- **Docker check on startup** — distinguishes *not installed* / *running* / *stopped* / *no Docker*.
-- **Live build progress** — the Docker build is streamed line-by-line into the window.
-- **Configurable port** — editable in the GUI and via `--port`, validated and persisted (to `launcher.json` and the `.env` next to the compose file, so the launcher and Compose can't disagree).
-- **Live port changes** — the port field stays editable while the app runs; "Apply port" validates, rewrites `.env`, and recreates the stack in seconds (no rebuild — only the published host port changed), then health-checks on the **new** port.
-- **Advanced internal ports** (experts) — optional `internal_ports` / `env_internal_port_keys` let you remap in-container ports (full 1–65535 range, e.g. nginx `:80`); a collapsed "Advanced settings" panel (gated by `show_advanced_ports`) applies them with an image rebuild + health check. Empty by default: no extra `.env` keys, no UI, no behaviour change.
-- **Verified actions** — install runs a health check; uninstall re-lists the containers to confirm they are gone.
-- **Install manifest + startup cleanup** — finds and offers to remove stale leftovers of older installs.
-- **Verbose uninstall / cleanup** — every step reported with a ✓ / ✗ result.
-- **Single-instance guard** — a PID-based lockfile refuses a second launch with an "already running" notice instead of opening a duplicate window.
-- **Background update check** — checks GitHub Releases (derived from `repo_url`) and notes in-window when a newer release exists. Opt-out via `update_check_enabled`; silent on any network error.
-- **File logging** — a rotated `launcher.log` plus a per-run `install.log` under the config dir, and a `launcher-debug.log` on `--debug`. Best-effort: an unwritable dir degrades gracefully rather than crashing.
-- **Concurrency-safe UI** — every button is disabled for the full duration of an action and the window is held on top, so a second action can't be launched in parallel.
-- **Quiet on Windows** — every Docker subprocess runs with `CREATE_NO_WINDOW`, so an install no longer flashes a swarm of console windows (no change on Linux/macOS).
-- **PyInstaller-ready** — a bundled spec template, hidden-imports list, and build-time version injection for shipping frozen single-file builds.
-- **System tray + "Run in background"** (optional) — `pip install docker-app-launcher[tray]`; while running, the window minimizes to the tray (a visible **Run in the background** button and the X both use it). When the tray can't dock it falls back to a taskbar-minimized window, so it never silently closes.
-  - **Linux note:** the reliable tray uses pystray's **AppIndicator** backend, which needs `gi` (PyGObject) plus the AppIndicator typelib. The `[tray]` extra pip-installs PyGObject (Linux-only; needs `libgirepository1.0-dev`, `libcairo2-dev`, `pkg-config` to build), and you also need the typelib at runtime — on Ubuntu: `sudo apt install gir1.2-ayatanaappindicator3-0.1`. If you instead rely on the system `python3-gi` (apt), create the venv with `--system-site-packages` so `gi` is importable. Without any of this the launcher still works — it just minimizes to the taskbar. Run with `--debug` to see which backend was selected.
-- **DE / EN i18n (YAML)** — strings live in per-language YAML files (`i18n/de.yaml`, `i18n/en.yaml`) loaded at startup; **add a language by dropping a `<code>.yaml` file** beside them. German uses real UTF-8 umlauts. Per-app overrides via `custom_strings`.
-- **Actions architecture** — all business logic is GUI-free and unit-tested without a display.
-- **CLI ↔ GUI parity** — both call the exact same actions layer.
+- One persistent window (never closes itself)
+- Real-time progress bar with Docker build step parsing
+- Docker check on startup
+- Live build progress (streamed line by line)
+- Configurable port (GUI + CLI) with live validation
+- Expert internal ports (collapsible)
+- 3 states: not installed / running / stopped
+- Install manifest for precise cleanup
+- Startup cleanup (active volumes excluded)
+- System tray with AppIndicator (Linux/Wayland) + taskbar fallback
+- "Run in background" button
+- Custom window + tray icons
+- Language picker with OS auto-detection (11 languages)
+- Single-instance lockfile
+- Persistent file logging with rotation
+- Verbose uninstall with per-step verification
+- Update checker via GitHub Releases API
+- DE/EN + 9 additional languages (YAML-based, extensible)
+- Actions architecture (testable without GUI)
+- CLI ↔ GUI parity
 
 ## Custom Icons
 
@@ -233,6 +233,92 @@ Cleanup without manifest: Pattern-based — searches by name patterns
 ```
 
 This is why the manifest is created automatically and should not be deleted manually.
+
+## Progress Bar
+
+The launcher shows a real-time progress bar during installation, startup, cleanup, and uninstall.
+
+During Docker builds, progress is parsed from the build output (step N/M). Configure an estimate for the initial build:
+
+```json
+{
+  "estimated_build_steps": 38
+}
+```
+
+Set to 0 (default) for auto-detection from Docker output.
+
+## Language Selection
+
+The launcher auto-detects your system language. A dropdown lets you switch at any time. Supported: Deutsch, English, Ελληνικά, Español, Français, हिन्दी, 日本語, 한국어, Português, Türkçe, Bahasa Indonesia.
+
+```json
+{
+  "locale": "auto"
+}
+```
+
+`"auto"` detects the OS language. Set a specific code (`"de"`, `"en"`, `"ja"`, ...) to override.
+
+## Single Instance
+
+Prevents launching multiple instances simultaneously.
+
+```json
+{
+  "single_instance": true
+}
+```
+
+## Logging
+
+The launcher writes persistent logs for diagnostics:
+
+```
+~/.my-app/
+  launcher.log    # Persistent, rotated (default 5 MB, 3 backups)
+  install.log     # Overwritten per install/rebuild
+```
+
+With `--debug`: an additional `launcher-debug.log` in the current directory.
+
+```json
+{
+  "log_level": "INFO",
+  "log_max_size": 5000000,
+  "log_backup_count": 3
+}
+```
+
+## Cleanup Safety
+
+The startup cleanup automatically excludes active project volumes. Only stale artifacts from previous or legacy installations are offered for removal.
+
+Skipped items are logged explicitly:
+
+```
+Volume 'my-app-data' skipped (active project)
+Volume 'old-app-data' removing... ✓
+```
+
+## Docker Check
+
+The launcher checks Docker availability at startup with platform-specific diagnostics, and offers the right next action (start the daemon / Desktop, or open the install guide):
+
+| Platform | Checks | Start action |
+|----------|--------|-------------|
+| Linux | docker binary + systemd daemon + group membership | `systemctl start docker` (via `pkexec`) |
+| Windows | docker binary + Docker Desktop path + daemon | Launches `Docker Desktop.exe` |
+| macOS | docker binary + Docker.app + daemon | `open /Applications/Docker.app` |
+
+Override the Docker Desktop path or install URL:
+
+```json
+{
+  "docker_desktop_path": "/custom/path/Docker Desktop.exe",
+  "docker_install_url": "https://my-company.com/docker-setup"
+}
+```
 
 ## Architecture
 

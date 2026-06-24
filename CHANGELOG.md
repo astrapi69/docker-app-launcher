@@ -6,6 +6,45 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Platform-specific Docker diagnostics + guided start.** When Docker is down,
+  the window now explains *why* per OS and offers the right next action:
+  `check_docker_detailed()` distinguishes not-installed / daemon-stopped /
+  no-permission (Linux group) / not-in-PATH (Desktop) / no-response, with a
+  copy-pasteable command hint. A **Start Docker** button runs
+  `systemctl start docker` (via `pkexec`) on Linux or launches Docker Desktop on
+  Windows/macOS, and an **Open installation guide** button opens the right URL.
+  New `docker_desktop_path` / `docker_install_url` config overrides. Every probe
+  is guarded - it never raises.
+- **Real-time progress bar.** A `ttk.Progressbar` above the log shows install /
+  start / cleanup progress (determinate) and animates (indeterminate) during the
+  health-check wait. Build progress is **parsed from the Docker build output**
+  (`#<n> [stage x/y]` lines) rather than hard-coded - `DockerBuildProgress`
+  tracks the highest step, or uses the new `estimated_build_steps` config hint
+  for a smooth bar from the first line. Actions gained an `on_progress(percent,
+  label)` callback (`percent=None` = indeterminate).
+
+### Fixed
+
+- **Cleanup never offers the active project's data volume (re-fix).** The
+  previous guard only applied when containers were detected at scan time; the
+  startup cleanup runs before that, so `<compose_project>_*` volumes (e.g.
+  `adaptive-learner_adaptive-learner-data`) could still be listed. They are now
+  excluded **unconditionally** - never offered, never deleted (deleting one
+  while its container runs also blocks `docker volume rm`). Legacy volumes
+  (different prefix) are still offered. New `cleanup_search_paths`-style debug
+  log notes each protected volume.
+- **No more silent gap during cleanup.** Every cleanup step now logs a line,
+  including SKIPPED volumes - `Volume 'x' skipped (not selected)` and
+  `Volume 'y' skipped (active project)` - so a run with no volume removals no
+  longer looks frozen.
+
+### Changed
+
+- Default log rotation is now 5 MB × 3 backups (was 1 MB × 2), matching the
+  documented defaults and `launcher.example.json`.
+
 ## [0.7.0] - 2026-06-24
 
 ### Added

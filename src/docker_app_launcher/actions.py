@@ -26,6 +26,8 @@ from __future__ import annotations
 import contextlib
 import json
 import logging
+import os
+import platform
 import re
 import shutil
 import socket
@@ -53,10 +55,76 @@ MIN_INTERNAL_PORT = 1
 
 ProgressFn = Callable[[str], None]
 OutputFn = Callable[[str], None]
+# (percent, label). ``percent`` is 0-100 for determinate progress, or ``None``
+# to request an indeterminate (animated) bar when the duration is unknown.
+ProgressPctFn = Callable[["int | None", str], None]
 
 
 def _t(config: LauncherConfig, key: str, **kwargs: Any) -> str:
     return i18n.t(key, config, **kwargs)
+
+
+def _progress(on_progress: ProgressPctFn | None, percent: int | None, label: str) -> None:
+    """Report determinate (``percent`` 0-100) or indeterminate (``None``) progress."""
+    if on_progress is not None:
+        try:
+            on_progress(percent, label)
+        except Exception as exc:  # noqa: BLE001 - progress UI must never break an action
+            logger.debug("progress callback failed: %s", exc)
+
+
+class DockerBuildProgress:
+    """Turn streamed ``docker build`` output into a 0-99 build percentage.
+
+    BuildKit prints ``#<n> [stage x/y] ...`` lines. The step count is not known
+    up front and differs per Dockerfile, so we DON'T hard-code it: we track the
+    highest ``#<n>`` seen and divide by it (or by ``estimated_total`` when the
+    app provides a hint, giving a smooth bar from the first line). ``CACHED`` /
+    ``DONE`` lines also carry ``#<n>`` and so count too. ``report(percent, line)``
+    is called per parsed line; the caller maps that percentage into its own band.
+    """
+
+    _STEP_RE = re.compile(r"#(\d+)\b")
+
+    def __init__(self, report: Callable[[int, str], None], *, estimated_total: int = 0) -> None:
+        self._report = report
+        self._estimated_total = max(0, estimated_total)
+        self._max_step = 0
+
+    def parse_line(self, line: str) -> None:
+        match = self._STEP_RE.search(line)
+        if not match:
+            return
+        step = int(match.group(1))
+        self._max_step = max(self._max_step, step)
+        total = self._estimated_total or self._max_step
+        if total > 0:
+            # Cap at 99 so the bar never reaches 100% before the health check.
+            self._report(min(step * 100 // total, 99), line.strip())
+
+
+def _stream_build_with_progress(
+    config: LauncherConfig,
+    *args: str,
+    on_output: OutputFn | None,
+    on_progress: ProgressPctFn | None,
+    lo: int,
+    hi: int,
+    timeout: float,
+) -> tuple[int, str]:
+    """Run a ``build`` / ``up --build`` stream, mapping parsed build steps into
+    the ``lo..hi`` percentage band while still forwarding raw lines to ``on_output``."""
+    parser = DockerBuildProgress(
+        lambda pct, label: _progress(on_progress, lo + pct * (hi - lo) // 100, label),
+        estimated_total=config.estimated_build_steps,
+    )
+
+    def out(line: str) -> None:
+        if on_output is not None:
+            on_output(line)
+        parser.parse_line(line)
+
+    return _stream_compose(config, *args, on_output=out, timeout=timeout)
 
 
 # --- low-level command runners --------------------------------------------
@@ -178,6 +246,125 @@ def check_docker() -> tuple[bool, str]:
     if result.returncode != 0:
         return False, "Docker is not started."
     return True, "Docker is running."
+
+
+_DOCKER_INSTALL_URLS = {
+    "Windows": "https://docs.docker.com/desktop/install/windows-install/",
+    "Linux": "https://docs.docker.com/engine/install/",
+    "Darwin": "https://docs.docker.com/desktop/install/mac-install/",
+}
+
+
+def _docker_info_rc() -> tuple[int | None, str]:
+    """Run ``docker info``: ``(returncode, stderr)``; ``returncode=None`` on timeout."""
+    try:
+        result = _run(["docker", "info"], timeout=10.0)
+    except FileNotFoundError:
+        return 127, "docker not found"
+    except subprocess.TimeoutExpired:
+        return None, "timeout"
+    return result.returncode, (result.stderr or "")
+
+
+def check_docker_detailed(config: LauncherConfig) -> dict[str, Any]:
+    """Platform-specific Docker diagnostics for the "no Docker" screen.
+
+    Returns a dict with ``platform`` (Linux/Windows/Darwin), ``installed``,
+    ``running`` (bools), ``detail`` (a localized message), ``command`` (a
+    copy-pasteable shell hint, or ``""``), ``install_url``, and ``can_start``
+    (whether a Start-Docker button applies). Never raises - every probe is
+    guarded, so a weird host degrades to "not installed".
+    """
+    system = platform.system()
+    out: dict[str, Any] = {
+        "platform": system,
+        "installed": False,
+        "running": False,
+        "detail": "",
+        "command": "",
+        "install_url": config.docker_install_url or _DOCKER_INSTALL_URLS.get(system, _DOCKER_INSTALL_URLS["Linux"]),
+        "can_start": False,
+    }
+    has_cli = shutil.which("docker") is not None
+
+    if system == "Linux":
+        if not has_cli:
+            out["detail"] = _t(config, "docker_not_installed")
+            out["command"] = "sudo apt install docker.io docker-compose-plugin"
+            return out
+        out["installed"] = True
+        rc, stderr = _docker_info_rc()
+        if rc == 0:
+            out["running"] = True
+            out["detail"] = _t(config, "docker_running")
+        elif rc is None:
+            out["detail"] = _t(config, "docker_no_response")
+            out["command"] = "sudo systemctl restart docker"
+        elif "permission denied" in stderr.lower():
+            out["detail"] = _t(config, "docker_no_permission")
+            out["command"] = "sudo usermod -aG docker $USER"
+        else:
+            out["detail"] = _t(config, "docker_not_running")
+            out["command"] = "sudo systemctl start docker"
+            out["can_start"] = True
+        return out
+
+    # Windows / macOS: Docker Desktop.
+    if system == "Windows":
+        default_path = os.path.expandvars(r"%ProgramFiles%\Docker\Docker\Docker Desktop.exe")
+    else:  # Darwin and any other -> treat as Desktop-style
+        default_path = "/Applications/Docker.app"
+    desktop_path = config.docker_desktop_path or default_path
+
+    if not has_cli:
+        if os.path.exists(desktop_path):
+            out["installed"] = True
+            out["detail"] = _t(config, "docker_no_path")
+            out["can_start"] = True
+        else:
+            out["detail"] = _t(config, "docker_not_installed")
+        return out
+    out["installed"] = True
+    rc, _ = _docker_info_rc()
+    if rc == 0:
+        out["running"] = True
+        out["detail"] = _t(config, "docker_running")
+    elif rc is None:
+        out["detail"] = _t(config, "docker_no_response")
+    else:
+        out["detail"] = _t(config, "docker_stopped")
+        out["can_start"] = True
+    return out
+
+
+def start_docker_daemon() -> tuple[bool, str]:
+    """Linux: try to start the Docker daemon (systemctl, then a graphical pkexec)."""
+    for cmd in (["systemctl", "start", "docker"], ["pkexec", "systemctl", "start", "docker"]):
+        try:
+            result = _run(cmd, timeout=30.0)
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            continue
+        if result.returncode == 0:
+            return True, "Docker daemon started."
+    return False, "Could not start the Docker daemon."
+
+
+def start_docker_desktop(config: LauncherConfig) -> tuple[bool, str]:
+    """Windows / macOS: launch Docker Desktop (no wait). Never raises."""
+    system = platform.system()
+    if system == "Windows":
+        path = config.docker_desktop_path or os.path.expandvars(r"%ProgramFiles%\Docker\Docker\Docker Desktop.exe")
+        if os.path.exists(path):
+            with contextlib.suppress(OSError):
+                subprocess.Popen([path], **subprocess_kwargs())
+                return True, "Docker Desktop starting..."
+    elif system == "Darwin":
+        app = config.docker_desktop_path or "/Applications/Docker.app"
+        if os.path.exists(app):
+            with contextlib.suppress(OSError):
+                subprocess.Popen(["open", app], **subprocess_kwargs())
+                return True, "Docker Desktop starting..."
+    return False, "Docker Desktop not found."
 
 
 def _name_filter_args(config: LauncherConfig) -> list[str]:
@@ -597,13 +784,14 @@ def install(
     *,
     on_step: ProgressFn | None = None,
     on_output: OutputFn | None = None,
+    on_progress: ProgressPctFn | None = None,
 ) -> tuple[bool, str]:
     """Build + start the stack, then VERIFY it is running and healthy.
 
     Guards (each returns ``(False, ...)``): invalid port, Docker down, missing
     compose file, occupied port. If the app is already running it returns
     ``(True, already_installed)``. Streams the build output through
-    ``on_output``.
+    ``on_output`` and reports a 0/25/50/health/100 bar via ``on_progress``.
     """
     port = resolve_port(config)
     valid, reason = _validate_port(port)
@@ -612,6 +800,7 @@ def install(
 
     _call(config, config.on_before_install)
     _notify(on_step, _t(config, "checking_docker"))
+    _progress(on_progress, 0, _t(config, "checking_docker"))
     docker_ok, _ = check_docker()
     if not docker_ok:
         return False, _t(config, "docker_unavailable")
@@ -626,9 +815,16 @@ def install(
     _notify(on_step, _t(config, "docker_ok"))
 
     _notify(on_step, _t(config, "building"))
+    _progress(on_progress, 5, _t(config, "building"))
     try:
-        build_rc, build_tail = _stream_compose(
-            config, "build", on_output=on_output, timeout=float(config.build_timeout)
+        build_rc, build_tail = _stream_build_with_progress(
+            config,
+            "build",
+            on_output=on_output,
+            on_progress=on_progress,
+            lo=5,
+            hi=85,
+            timeout=float(config.build_timeout),
         )
     except FileNotFoundError:
         return False, _t(config, "docker_unavailable")
@@ -637,8 +833,10 @@ def install(
     if build_rc != 0:
         return False, _t(config, "build_failed", detail=build_tail)
     _notify(on_step, _t(config, "image_built"))
+    _progress(on_progress, 85, _t(config, "image_built"))
 
     _notify(on_step, _t(config, "starting"))
+    _progress(on_progress, 88, _t(config, "starting"))
     try:
         up_rc, up_tail = _stream_compose(config, "up", "-d", on_output=on_output, timeout=float(config.start_timeout))
     except FileNotFoundError:
@@ -650,12 +848,14 @@ def install(
     _notify(on_step, _t(config, "container_started"))
 
     _notify(on_step, _t(config, "checking_health"))
+    _progress(on_progress, None, _t(config, "checking_health"))  # indeterminate: duration unknown
     if get_state(config) != "running":
         return False, _t(config, "container_not_running")
     healthy, health_msg = health_check(config)
     if not healthy:
         return False, _t(config, "not_reachable", detail=health_msg)
     _notify(on_step, _t(config, "health_ok"))
+    _progress(on_progress, 100, _t(config, "ready"))
     _record_manifest(config, port, action="install")
     _call(config, config.on_after_install)
     return True, _t(config, "ready")
@@ -666,6 +866,7 @@ def ensure_installed(
     *,
     on_step: ProgressFn | None = None,
     on_output: OutputFn | None = None,
+    on_progress: ProgressPctFn | None = None,
 ) -> tuple[bool, str]:
     """Single install entry point for the persistent window.
 
@@ -673,7 +874,7 @@ def ensure_installed(
     :func:`install`. It exists as a stable seam: an app that ships frozen
     binaries can wire a download step via ``config.on_before_install``.
     """
-    return install(config, on_step=on_step, on_output=on_output)
+    return install(config, on_step=on_step, on_output=on_output, on_progress=on_progress)
 
 
 def start(
@@ -681,6 +882,7 @@ def start(
     *,
     on_step: ProgressFn | None = None,
     on_output: OutputFn | None = None,
+    on_progress: ProgressPctFn | None = None,
 ) -> tuple[bool, str]:
     """Start the stack via ``compose up --build -d``, then VERIFY it runs.
 
@@ -696,9 +898,18 @@ def start(
     if get_state(config) == "running":
         return True, _t(config, "already_running")
     _notify(on_step, _t(config, "updating"))
+    _progress(on_progress, 5, _t(config, "updating"))
     try:
-        rc, tail = _stream_compose(
-            config, "up", "--build", "-d", on_output=on_output, timeout=float(config.build_timeout)
+        rc, tail = _stream_build_with_progress(
+            config,
+            "up",
+            "--build",
+            "-d",
+            on_output=on_output,
+            on_progress=on_progress,
+            lo=5,
+            hi=95,
+            timeout=float(config.build_timeout),
         )
     except FileNotFoundError:
         return False, _t(config, "docker_unavailable")
@@ -708,6 +919,7 @@ def start(
         return False, _t(config, "start_failed", detail=tail)
     if get_state(config) != "running":
         return False, _t(config, "start_no_container")
+    _progress(on_progress, 100, _t(config, "start_done"))
     existing = read_manifest(config) or {}
     _record_manifest(config, int(existing.get("port", resolve_port(config))), action="update")
     _call(config, config.on_after_start)
@@ -903,6 +1115,14 @@ def open_browser(config: LauncherConfig, port: int | None = None) -> None:
         webbrowser.open(url)
     except OSError as exc:
         logger.warning("could not open browser: %s", exc)
+
+
+def open_url(url: str) -> None:
+    """Open an arbitrary URL (e.g. the Docker install guide). Never raises."""
+    try:
+        webbrowser.open(url)
+    except OSError as exc:
+        logger.warning("could not open url %s: %s", url, exc)
 
 
 # --- Version --------------------------------------------------------------
@@ -1148,6 +1368,18 @@ def _stale_config_dirs(config: LauncherConfig, active_configs: list[str]) -> lis
     return out
 
 
+def _project_volumes(config: LauncherConfig) -> list[str]:
+    """Volumes belonging to the active Compose project (``<compose_project>_*``).
+
+    These are NEVER offered or removed by cleanup; the launcher reports them as
+    protected so the user always sees why they were left alone.
+    """
+    prefix = f"{config.compose_project}_" if config.compose_project else ""
+    if not prefix:
+        return []
+    return [v for v in _docker_names(config, "volume", tuple(config.cleanup_patterns())) if v.startswith(prefix)]
+
+
 def find_stale_artifacts(config: LauncherConfig) -> dict[str, list[Any]]:
     """Find STALE (leftover) artifacts to offer for cleanup at startup.
 
@@ -1156,10 +1388,11 @@ def find_stale_artifacts(config: LauncherConfig) -> dict[str, list[Any]]:
     returned. Without a manifest, currently-RUNNING containers are protected.
 
     The active install's own Compose volumes (named ``<compose_project>_*``) are
-    ALSO protected while the install is live (its containers still exist),
-    independent of the manifest - they hold live user data and must never be
-    offered for deletion. Once the install is uninstalled (its containers are
-    gone) the volume becomes reclaimable and shows up as stale again.
+    ALWAYS excluded, unconditionally and independent of the manifest or whether
+    containers currently exist - they hold live user data and must never be
+    offered for deletion (deleting one while its container runs also blocks
+    ``docker volume rm`` indefinitely). Legacy volumes (a different prefix) are
+    still offered.
     """
     active = manifest_artifacts(config)
     active_containers = set(active["containers"])
@@ -1169,10 +1402,15 @@ def find_stale_artifacts(config: LauncherConfig) -> dict[str, list[Any]]:
         active_containers |= set(_running_container_names(config))
 
     patterns = tuple(config.cleanup_patterns())
-    volumes = [v for v in _docker_names(config, "volume", patterns) if v not in active_volumes]
-    if _project_container_ids(config, running_only=False):
-        project_prefix = f"{config.compose_project}_"
-        volumes = [v for v in volumes if not v.startswith(project_prefix)]
+    project_prefix = f"{config.compose_project}_" if config.compose_project else ""
+    volumes: list[str] = []
+    for vol in _docker_names(config, "volume", patterns):
+        if vol in active_volumes:
+            continue
+        if project_prefix and vol.startswith(project_prefix):
+            logger.debug("cleanup: protecting active-project volume %s (prefix %r)", vol, project_prefix)
+            continue
+        volumes.append(vol)
     return {
         "containers": [n for n in _docker_names(config, "container", patterns) if n not in active_containers],
         "images": [r for r in _image_refs(config, patterns) if r not in active_images],
@@ -1246,6 +1484,7 @@ def cleanup_stale(
     selected: dict[str, list[Any]],
     *,
     on_step: ProgressFn | None = None,
+    on_progress: ProgressPctFn | None = None,
     remove_volumes_too: bool = False,
 ) -> tuple[bool, str]:
     """Remove the STALE artifacts in ``selected`` (from :func:`find_stale_artifacts`).
@@ -1253,7 +1492,8 @@ def cleanup_stale(
     Verbose: a discovery line per category, then a SEPARATE ``on_step`` line per
     container / image / config dir (and, when ``remove_volumes_too``, per
     volume) carrying a ``✓``/``✗`` result, then a closing summary. Volumes are
-    DATA - skipped unless the caller opts in. Best-effort.
+    DATA - skipped unless the caller opts in. ``on_progress`` gets a determinate
+    bar over the removable artifacts. Best-effort.
     """
     docker_ok, _ = check_docker()
     if not docker_ok:
@@ -1273,12 +1513,22 @@ def cleanup_stale(
     removed = 0
     failures = 0
     freed_bytes = 0
+    total_steps = len(containers) + len(images) + len(configs) + (len(volumes) if remove_volumes_too else 0)
+    done = 0
 
+    def _bump(label: str) -> None:
+        nonlocal done
+        done += 1
+        if total_steps > 0:
+            _progress(on_progress, min(done * 100 // total_steps, 100), label)
+
+    _progress(on_progress, 0, _t(config, "cleanup_running"))
     for name in containers:
         ok, detail = _docker_op(["docker", "rm", "-f", name], timeout=60.0)
         _notify(on_step, _step_label(config, _t(config, "step_remove_container", name=name), ok, detail))
         removed += 1 if ok else 0
         failures += 0 if ok else 1
+        _bump(_t(config, "step_remove_container", name=name))
     for ref in images:
         size = _image_size_bytes(ref)
         ok, detail = _docker_op(["docker", "image", "rm", "--force", ref], timeout=60.0)
@@ -1289,20 +1539,37 @@ def cleanup_stale(
             freed_bytes += size
         else:
             failures += 1
+        _bump(_t(config, "step_remove_image", ref=ref))
+    # Volumes are DATA. The active project's own volumes are NEVER touched
+    # (removing one while its container runs blocks ``docker volume rm``); every
+    # volume gets an explicit line so the run never looks stalled.
+    project_volumes = _project_volumes(config)
+    project_set = set(project_volumes)
     if remove_volumes_too:
         for vol in volumes:
+            if vol in project_set:
+                continue  # active-project volume; reported below, never removed
             ok, detail = _docker_op(["docker", "volume", "rm", vol], timeout=30.0)
             _notify(on_step, _step_label(config, _t(config, "step_remove_volume", name=vol), ok, detail))
             removed += 1 if ok else 0
             failures += 0 if ok else 1
+            _bump(_t(config, "step_remove_volume", name=vol))
+    else:
+        for vol in volumes:
+            if vol not in project_set:
+                _notify(on_step, _t(config, "step_skip_volume", name=vol))
+    for vol in project_volumes:
+        _notify(on_step, _t(config, "step_skip_volume_active", name=vol))
     for path in configs:
         ok, detail = _remove_config_path(path)
         _notify(on_step, _step_label(config, _t(config, "step_remove_config", path=path), ok, detail))
         removed += 1 if ok else 0
         failures += 0 if ok else 1
+        _bump(_t(config, "step_remove_config", path=path))
 
     freed = _human_size(freed_bytes)
     _notify(on_step, _t(config, "data_preserved"))
+    _progress(on_progress, 100, _t(config, "data_preserved"))
     if failures:
         return False, _t(config, "cleanup_partial", count=failures)
     return True, _t(config, "cleanup_done", count=removed, freed=freed)

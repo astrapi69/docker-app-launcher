@@ -99,3 +99,10 @@ not_reachable_after: '{timeout}秒後も {app} に到達できません（{detai
 error: 'エラー: {msg}'
 error_word: エラー
 update_available: 'アップデートがあります: {tag} - {url}'
+step_skip_volume: "ボリューム '{name}' をスキップしました（未選択）。"
+step_skip_volume_active: "ボリューム '{name}' をスキップしました（アクティブなプロジェクト）。"
+docker_not_running: "Docker はインストールされていますが起動していません。"
+docker_no_permission: "Docker はインストールされていますが、権限がありません。"
+docker_no_path: "Docker Desktop はインストールされていますが PATH にありません。"
+start_docker: "Docker を起動"
+open_install_guide: "インストールガイドを開く"

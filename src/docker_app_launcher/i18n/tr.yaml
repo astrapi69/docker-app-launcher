@@ -99,3 +99,10 @@ not_reachable_after: '{app} {timeout}sn sonra erişilebilir değil ({detail}).'
 error: 'Hata: {msg}'
 error_word: Hata
 update_available: 'Güncelleme mevcut: {tag} - {url}'
+step_skip_volume: "'{name}' birimi atlandı (seçilmedi)."
+step_skip_volume_active: "'{name}' birimi atlandı (etkin proje)."
+docker_not_running: "Docker kurulu ama başlatılmadı."
+docker_no_permission: "Docker kurulu, ancak yetkiniz yok."
+docker_no_path: "Docker Desktop kurulu ama PATH'te değil."
+start_docker: "Docker'ı başlat"
+open_install_guide: "Kurulum kılavuzunu aç"

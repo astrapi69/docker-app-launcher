@@ -99,3 +99,10 @@ not_reachable_after: '{app} not reachable after {timeout}s ({detail}).'
 error: 'Error: {msg}'
 error_word: Error
 update_available: 'Update available: {tag} - {url}'
+step_skip_volume: "Volume '{name}' skipped (not selected)."
+step_skip_volume_active: "Volume '{name}' skipped (active project)."
+docker_not_running: "Docker is installed but not started."
+docker_no_permission: "Docker is installed, but you don't have permission."
+docker_no_path: "Docker Desktop is installed but not in PATH."
+start_docker: "Start Docker"
+open_install_guide: "Open installation guide"

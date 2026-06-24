@@ -99,3 +99,10 @@ not_reachable_after: '{app} tidak dapat dijangkau setelah {timeout}d ({detail}).
 error: 'Kesalahan: {msg}'
 error_word: Kesalahan
 update_available: 'Pembaruan tersedia: {tag} - {url}'
+step_skip_volume: "Volume '{name}' dilewati (tidak dipilih)."
+step_skip_volume_active: "Volume '{name}' dilewati (proyek aktif)."
+docker_not_running: "Docker terpasang tetapi belum dijalankan."
+docker_no_permission: "Docker terpasang, tetapi Anda tidak memiliki izin."
+docker_no_path: "Docker Desktop terpasang tetapi tidak ada di PATH."
+start_docker: "Jalankan Docker"
+open_install_guide: "Buka panduan instalasi"

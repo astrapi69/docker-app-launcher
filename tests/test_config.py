@@ -54,8 +54,9 @@ class TestNewConfigDefaults:
         assert cfg.locale == "auto"
         assert cfg.single_instance is True
         assert cfg.log_level == "INFO"
-        assert cfg.log_max_size == 1_000_000
-        assert cfg.log_backup_count == 2
+        assert cfg.log_max_size == 5_000_000
+        assert cfg.log_backup_count == 3
+        assert cfg.estimated_build_steps == 0
 
 
 class TestSlugify:

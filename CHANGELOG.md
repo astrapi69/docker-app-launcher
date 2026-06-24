@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-06-24
+
 ### Added
 
 - **In-window language picker + system-locale auto-detect.** The window shows a

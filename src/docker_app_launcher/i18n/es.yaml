@@ -101,3 +101,8 @@ error_word: Error
 update_available: 'Actualización disponible: {tag} - {url}'
 step_skip_volume: "Volumen '{name}' omitido (no seleccionado)."
 step_skip_volume_active: "Volumen '{name}' omitido (proyecto activo)."
+docker_not_running: "Docker está instalado pero no iniciado."
+docker_no_permission: "Docker está instalado, pero no tienes permiso."
+docker_no_path: "Docker Desktop está instalado pero no está en el PATH."
+start_docker: "Iniciar Docker"
+open_install_guide: "Abrir guía de instalación"

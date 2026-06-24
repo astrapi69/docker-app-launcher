@@ -101,3 +101,8 @@ error_word: Erro
 update_available: 'Atualização disponível: {tag} - {url}'
 step_skip_volume: "Volume '{name}' ignorado (não selecionado)."
 step_skip_volume_active: "Volume '{name}' ignorado (projeto ativo)."
+docker_not_running: "O Docker está instalado mas não iniciado."
+docker_no_permission: "O Docker está instalado, mas você não tem permissão."
+docker_no_path: "O Docker Desktop está instalado mas não está no PATH."
+start_docker: "Iniciar Docker"
+open_install_guide: "Abrir guia de instalação"

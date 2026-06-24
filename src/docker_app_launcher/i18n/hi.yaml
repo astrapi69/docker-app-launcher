@@ -101,3 +101,8 @@ error_word: त्रुटि
 update_available: 'अपडेट उपलब्ध: {tag} - {url}'
 step_skip_volume: "वॉल्यूम '{name}' छोड़ा गया (चयनित नहीं)."
 step_skip_volume_active: "वॉल्यूम '{name}' छोड़ा गया (सक्रिय प्रोजेक्ट)."
+docker_not_running: "Docker इंस्टॉल है लेकिन शुरू नहीं हुआ।"
+docker_no_permission: "Docker इंस्टॉल है, लेकिन आपके पास अनुमति नहीं है।"
+docker_no_path: "Docker Desktop इंस्टॉल है लेकिन PATH में नहीं है।"
+start_docker: "Docker शुरू करें"
+open_install_guide: "इंस्टॉलेशन गाइड खोलें"

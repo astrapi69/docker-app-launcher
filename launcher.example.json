@@ -18,6 +18,9 @@
   "stop_timeout": 30,
   "estimated_build_steps": 0,
 
+  "docker_desktop_path": "",
+  "docker_install_url": "",
+
   "icon_path": "branding/app-icon.png",
   "tray_icon_path": "",
   "config_dir": "",

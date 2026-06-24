@@ -101,3 +101,8 @@ error_word: 오류
 update_available: '업데이트 사용 가능: {tag} - {url}'
 step_skip_volume: "볼륨 '{name}' 건너뜀 (선택 안 함)."
 step_skip_volume_active: "볼륨 '{name}' 건너뜀 (활성 프로젝트)."
+docker_not_running: "Docker가 설치되었지만 시작되지 않았습니다."
+docker_no_permission: "Docker가 설치되었지만 권한이 없습니다."
+docker_no_path: "Docker Desktop이 설치되었지만 PATH에 없습니다."
+start_docker: "Docker 시작"
+open_install_guide: "설치 안내 열기"

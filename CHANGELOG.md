@@ -8,6 +8,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Platform-specific Docker diagnostics + guided start.** When Docker is down,
+  the window now explains *why* per OS and offers the right next action:
+  `check_docker_detailed()` distinguishes not-installed / daemon-stopped /
+  no-permission (Linux group) / not-in-PATH (Desktop) / no-response, with a
+  copy-pasteable command hint. A **Start Docker** button runs
+  `systemctl start docker` (via `pkexec`) on Linux or launches Docker Desktop on
+  Windows/macOS, and an **Open installation guide** button opens the right URL.
+  New `docker_desktop_path` / `docker_install_url` config overrides. Every probe
+  is guarded - it never raises.
 - **Real-time progress bar.** A `ttk.Progressbar` above the log shows install /
   start / cleanup progress (determinate) and animates (indeterminate) during the
   health-check wait. Build progress is **parsed from the Docker build output**

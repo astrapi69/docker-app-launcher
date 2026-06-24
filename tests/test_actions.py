@@ -64,6 +64,70 @@ class TestCheckDocker:
         assert ok is False
 
 
+# --- platform-specific docker check ---------------------------------------
+
+
+class TestCheckDockerDetailed:
+    def _patch(self, monkeypatch, system, which, info) -> None:
+        monkeypatch.setattr("platform.system", lambda: system)
+        monkeypatch.setattr("shutil.which", lambda _x: which)
+        monkeypatch.setattr(actions, "_docker_info_rc", lambda: info)
+
+    def test_linux_not_installed(self, config, monkeypatch) -> None:
+        self._patch(monkeypatch, "Linux", None, (127, ""))
+        r = actions.check_docker_detailed(config)
+        assert r["installed"] is False and "apt install" in r["command"] and r["platform"] == "Linux"
+
+    def test_linux_daemon_off_offers_start(self, config, monkeypatch) -> None:
+        self._patch(monkeypatch, "Linux", "/usr/bin/docker", (1, "Cannot connect to the Docker daemon"))
+        r = actions.check_docker_detailed(config)
+        assert r["installed"] and not r["running"] and r["can_start"] and "systemctl start docker" in r["command"]
+
+    def test_linux_permission_denied(self, config, monkeypatch) -> None:
+        self._patch(monkeypatch, "Linux", "/usr/bin/docker", (1, "permission denied while trying to connect"))
+        r = actions.check_docker_detailed(config)
+        assert "usermod -aG docker" in r["command"] and not r["running"]
+
+    def test_linux_running(self, config, monkeypatch) -> None:
+        self._patch(monkeypatch, "Linux", "/usr/bin/docker", (0, ""))
+        assert actions.check_docker_detailed(config)["running"] is True
+
+    def test_windows_desktop_installed_not_in_path(self, config, monkeypatch) -> None:
+        self._patch(monkeypatch, "Windows", None, (127, ""))
+        monkeypatch.setattr("os.path.exists", lambda _p: True)
+        r = actions.check_docker_detailed(config)
+        assert r["installed"] and r["can_start"]
+
+    def test_windows_not_installed(self, config, monkeypatch) -> None:
+        self._patch(monkeypatch, "Windows", None, (127, ""))
+        monkeypatch.setattr("os.path.exists", lambda _p: False)
+        assert actions.check_docker_detailed(config)["installed"] is False
+
+    def test_darwin_app_present_not_running(self, config, monkeypatch) -> None:
+        self._patch(monkeypatch, "Darwin", "/usr/local/bin/docker", (1, "Cannot connect"))
+        r = actions.check_docker_detailed(config)
+        assert r["installed"] and r["can_start"]
+
+    def test_never_raises_on_unknown_platform(self, config, monkeypatch) -> None:
+        self._patch(monkeypatch, "Plan9", None, (127, ""))
+        monkeypatch.setattr("os.path.exists", lambda _p: False)
+        assert actions.check_docker_detailed(config)["installed"] is False
+
+    def test_install_url_override(self, config, monkeypatch) -> None:
+        config.docker_install_url = "https://corp/docker"
+        self._patch(monkeypatch, "Linux", None, (127, ""))
+        assert actions.check_docker_detailed(config)["install_url"] == "https://corp/docker"
+
+    def test_start_docker_daemon_success(self, monkeypatch) -> None:
+        monkeypatch.setattr(actions, "_run", lambda cmd, **k: make_result(returncode=0))
+        assert actions.start_docker_daemon()[0] is True
+
+    def test_start_docker_desktop_not_found(self, config, monkeypatch) -> None:
+        monkeypatch.setattr("platform.system", lambda: "Windows")
+        monkeypatch.setattr("os.path.exists", lambda _p: False)
+        assert actions.start_docker_desktop(config)[0] is False
+
+
 # --- get_state ------------------------------------------------------------
 
 

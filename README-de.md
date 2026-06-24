@@ -273,6 +273,25 @@ Volume 'meine-app-data' übersprungen (aktives Projekt)
 Volume 'alte-app-data' wird entfernt... ✓
 ```
 
+## Docker-Prüfung
+
+Der Launcher prüft die Docker-Verfügbarkeit beim Start mit plattformspezifischer Diagnose und bietet die passende nächste Aktion an (Daemon/Desktop starten oder die Installationsanleitung öffnen):
+
+| Plattform | Prüfungen | Start-Aktion |
+|-----------|-----------|--------------|
+| Linux | docker-Binary + systemd-Daemon + Gruppenzugehörigkeit | `systemctl start docker` (über `pkexec`) |
+| Windows | docker-Binary + Docker-Desktop-Pfad + Daemon | Startet `Docker Desktop.exe` |
+| macOS | docker-Binary + Docker.app + Daemon | `open /Applications/Docker.app` |
+
+Den Docker-Desktop-Pfad oder die Installations-URL überschreiben:
+
+```json
+{
+  "docker_desktop_path": "/eigener/pfad/Docker Desktop.exe",
+  "docker_install_url": "https://meine-firma.de/docker-setup"
+}
+```
+
 ## Verwendet von
 
 - [Adaptive Learner](https://github.com/astrapi69/adaptive-learner) — KI-gestützte Sprachlernplattform

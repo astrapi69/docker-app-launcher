@@ -289,13 +289,16 @@ class LauncherApp(tk.Tk):
         self._validate_port()
         for child in self._button_row.winfo_children():
             child.destroy()
-        for action_id, label_key in buttons_for_state(state):
-            tk.Button(
-                self._button_row,
-                text=self._t(label_key),
-                width=18,
-                command=functools.partial(self._on_action, action_id),
-            ).pack(side="left", padx=4)
+        if state == "no_docker":
+            self._render_docker_help()
+        else:
+            for action_id, label_key in buttons_for_state(state):
+                tk.Button(
+                    self._button_row,
+                    text=self._t(label_key),
+                    width=18,
+                    command=functools.partial(self._on_action, action_id),
+                ).pack(side="left", padx=4)
         for child in self._background_row.winfo_children():
             child.destroy()
         for action_id, label_key in secondary_buttons_for_state(state):
@@ -313,6 +316,46 @@ class LauncherApp(tk.Tk):
             return
         free, _ = actions.check_port(int(raw))
         self._port_indicator.configure(text="✓" if free else "✗", fg="#188038" if free else "#c5221f")
+
+    # --- docker help (no-docker state) ---
+
+    def _render_docker_help(self) -> None:
+        """Platform-specific Docker diagnostics + actions for the no-docker state."""
+        info = actions.check_docker_detailed(self._cfg)
+        text = info.get("detail") or self._t("no_docker")
+        if info.get("command"):
+            text += "\n" + info["command"]
+        self._state_label.configure(text=text, justify="center")
+        tk.Button(
+            self._button_row, text=self._t("retry"), width=16, command=functools.partial(self._on_action, "recheck")
+        ).pack(side="left", padx=4)
+        if info.get("can_start"):
+            tk.Button(
+                self._button_row,
+                text=self._t("start_docker"),
+                width=16,
+                command=functools.partial(self._start_docker, info),
+            ).pack(side="left", padx=4)
+        if not info.get("installed"):
+            tk.Button(
+                self._button_row,
+                text=self._t("open_install_guide"),
+                width=22,
+                command=functools.partial(actions.open_url, info["install_url"]),
+            ).pack(side="left", padx=4)
+
+    def _start_docker(self, info: dict[str, object]) -> None:
+        """Start the Docker daemon (Linux) or Docker Desktop (Win/macOS), then recheck."""
+        self._set_busy(True)
+
+        def worker() -> None:
+            if info.get("platform") == "Linux":
+                result = actions.start_docker_daemon()
+            else:
+                result = actions.start_docker_desktop(self._cfg)
+            self.after(0, lambda: self._on_result("start_docker", result))
+
+        threading.Thread(target=worker, daemon=True).start()
 
     # --- advanced (internal ports, experts) ---
 

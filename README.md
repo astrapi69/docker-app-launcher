@@ -301,6 +301,25 @@ Volume 'my-app-data' skipped (active project)
 Volume 'old-app-data' removing... ✓
 ```
 
+## Docker Check
+
+The launcher checks Docker availability at startup with platform-specific diagnostics, and offers the right next action (start the daemon / Desktop, or open the install guide):
+
+| Platform | Checks | Start action |
+|----------|--------|-------------|
+| Linux | docker binary + systemd daemon + group membership | `systemctl start docker` (via `pkexec`) |
+| Windows | docker binary + Docker Desktop path + daemon | Launches `Docker Desktop.exe` |
+| macOS | docker binary + Docker.app + daemon | `open /Applications/Docker.app` |
+
+Override the Docker Desktop path or install URL:
+
+```json
+{
+  "docker_desktop_path": "/custom/path/Docker Desktop.exe",
+  "docker_install_url": "https://my-company.com/docker-setup"
+}
+```
+
 ## Architecture
 
 | Module        | Responsibility                                              |

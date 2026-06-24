@@ -154,6 +154,12 @@ class LauncherConfig:
     releases_url: str = ""
     docs_url: str = ""
 
+    # === Docker check ===
+    # Optional overrides for the platform-specific Docker diagnostics. Empty =
+    # use the platform default (Docker's official install URL / Desktop path).
+    docker_desktop_path: str = ""
+    docker_install_url: str = ""
+
     # === Update check ===
     # ``app_version`` is the version this launcher ships for; the update
     # check compares it against the latest GitHub release of ``repo_url``.

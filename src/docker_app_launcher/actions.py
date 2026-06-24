@@ -26,6 +26,8 @@ from __future__ import annotations
 import contextlib
 import json
 import logging
+import os
+import platform
 import re
 import shutil
 import socket
@@ -244,6 +246,125 @@ def check_docker() -> tuple[bool, str]:
     if result.returncode != 0:
         return False, "Docker is not started."
     return True, "Docker is running."
+
+
+_DOCKER_INSTALL_URLS = {
+    "Windows": "https://docs.docker.com/desktop/install/windows-install/",
+    "Linux": "https://docs.docker.com/engine/install/",
+    "Darwin": "https://docs.docker.com/desktop/install/mac-install/",
+}
+
+
+def _docker_info_rc() -> tuple[int | None, str]:
+    """Run ``docker info``: ``(returncode, stderr)``; ``returncode=None`` on timeout."""
+    try:
+        result = _run(["docker", "info"], timeout=10.0)
+    except FileNotFoundError:
+        return 127, "docker not found"
+    except subprocess.TimeoutExpired:
+        return None, "timeout"
+    return result.returncode, (result.stderr or "")
+
+
+def check_docker_detailed(config: LauncherConfig) -> dict[str, Any]:
+    """Platform-specific Docker diagnostics for the "no Docker" screen.
+
+    Returns a dict with ``platform`` (Linux/Windows/Darwin), ``installed``,
+    ``running`` (bools), ``detail`` (a localized message), ``command`` (a
+    copy-pasteable shell hint, or ``""``), ``install_url``, and ``can_start``
+    (whether a Start-Docker button applies). Never raises - every probe is
+    guarded, so a weird host degrades to "not installed".
+    """
+    system = platform.system()
+    out: dict[str, Any] = {
+        "platform": system,
+        "installed": False,
+        "running": False,
+        "detail": "",
+        "command": "",
+        "install_url": config.docker_install_url or _DOCKER_INSTALL_URLS.get(system, _DOCKER_INSTALL_URLS["Linux"]),
+        "can_start": False,
+    }
+    has_cli = shutil.which("docker") is not None
+
+    if system == "Linux":
+        if not has_cli:
+            out["detail"] = _t(config, "docker_not_installed")
+            out["command"] = "sudo apt install docker.io docker-compose-plugin"
+            return out
+        out["installed"] = True
+        rc, stderr = _docker_info_rc()
+        if rc == 0:
+            out["running"] = True
+            out["detail"] = _t(config, "docker_running")
+        elif rc is None:
+            out["detail"] = _t(config, "docker_no_response")
+            out["command"] = "sudo systemctl restart docker"
+        elif "permission denied" in stderr.lower():
+            out["detail"] = _t(config, "docker_no_permission")
+            out["command"] = "sudo usermod -aG docker $USER"
+        else:
+            out["detail"] = _t(config, "docker_not_running")
+            out["command"] = "sudo systemctl start docker"
+            out["can_start"] = True
+        return out
+
+    # Windows / macOS: Docker Desktop.
+    if system == "Windows":
+        default_path = os.path.expandvars(r"%ProgramFiles%\Docker\Docker\Docker Desktop.exe")
+    else:  # Darwin and any other -> treat as Desktop-style
+        default_path = "/Applications/Docker.app"
+    desktop_path = config.docker_desktop_path or default_path
+
+    if not has_cli:
+        if os.path.exists(desktop_path):
+            out["installed"] = True
+            out["detail"] = _t(config, "docker_no_path")
+            out["can_start"] = True
+        else:
+            out["detail"] = _t(config, "docker_not_installed")
+        return out
+    out["installed"] = True
+    rc, _ = _docker_info_rc()
+    if rc == 0:
+        out["running"] = True
+        out["detail"] = _t(config, "docker_running")
+    elif rc is None:
+        out["detail"] = _t(config, "docker_no_response")
+    else:
+        out["detail"] = _t(config, "docker_stopped")
+        out["can_start"] = True
+    return out
+
+
+def start_docker_daemon() -> tuple[bool, str]:
+    """Linux: try to start the Docker daemon (systemctl, then a graphical pkexec)."""
+    for cmd in (["systemctl", "start", "docker"], ["pkexec", "systemctl", "start", "docker"]):
+        try:
+            result = _run(cmd, timeout=30.0)
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            continue
+        if result.returncode == 0:
+            return True, "Docker daemon started."
+    return False, "Could not start the Docker daemon."
+
+
+def start_docker_desktop(config: LauncherConfig) -> tuple[bool, str]:
+    """Windows / macOS: launch Docker Desktop (no wait). Never raises."""
+    system = platform.system()
+    if system == "Windows":
+        path = config.docker_desktop_path or os.path.expandvars(r"%ProgramFiles%\Docker\Docker\Docker Desktop.exe")
+        if os.path.exists(path):
+            with contextlib.suppress(OSError):
+                subprocess.Popen([path], **subprocess_kwargs())
+                return True, "Docker Desktop starting..."
+    elif system == "Darwin":
+        app = config.docker_desktop_path or "/Applications/Docker.app"
+        if os.path.exists(app):
+            with contextlib.suppress(OSError):
+                subprocess.Popen(["open", app], **subprocess_kwargs())
+                return True, "Docker Desktop starting..."
+    return False, "Docker Desktop not found."
 
 
 def _name_filter_args(config: LauncherConfig) -> list[str]:
@@ -994,6 +1115,14 @@ def open_browser(config: LauncherConfig, port: int | None = None) -> None:
         webbrowser.open(url)
     except OSError as exc:
         logger.warning("could not open browser: %s", exc)
+
+
+def open_url(url: str) -> None:
+    """Open an arbitrary URL (e.g. the Docker install guide). Never raises."""
+    try:
+        webbrowser.open(url)
+    except OSError as exc:
+        logger.warning("could not open url %s: %s", url, exc)
 
 
 # --- Version --------------------------------------------------------------

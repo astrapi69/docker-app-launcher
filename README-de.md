@@ -71,25 +71,26 @@ oder mit Standardwerten belegt.
 
 ## Funktionen
 
-- **Ein dauerhaftes Fenster** — schließt sich nie selbst; nur das X schließt es.
-- **Docker-Prüfung beim Start** — unterscheidet *nicht installiert* / *läuft* / *gestoppt* / *kein Docker*.
-- **Live-Build-Fortschritt** — der Docker-Build wird Zeile für Zeile ins Fenster gestreamt.
-- **Konfigurierbarer Port** — im GUI und per `--port` editierbar, validiert und persistiert (in `launcher.json` und im `.env` neben der Compose-Datei, damit Launcher und Compose nicht auseinanderlaufen).
-- **Live-Port-Wechsel** — das Port-Feld bleibt während des Betriebs editierbar; "Port anwenden" validiert, schreibt `.env` neu und erstellt den Stack in Sekunden neu (kein Rebuild — nur der veröffentlichte Host-Port änderte sich) und prüft dann die Gesundheit auf dem **neuen** Port.
-- **Interne Ports (Experten)** — optionale `internal_ports` / `env_internal_port_keys` erlauben das Umbiegen von Container-internen Ports (voller Bereich 1–65535, z. B. nginx `:80`); ein einklappbarer "Erweiterte Einstellungen"-Bereich (per `show_advanced_ports`) wendet sie mit einem Image-Rebuild + Gesundheitsprüfung an. Standardmäßig leer: keine zusätzlichen `.env`-Schlüssel, keine UI, keine Verhaltensänderung.
-- **Verifizierte Aktionen** — Installation prüft die Gesundheit; Deinstallation listet Container erneut auf.
-- **Install-Manifest + Start-Aufräumen** — findet und entfernt auf Wunsch Reste alter Installationen.
-- **Ausführliches Deinstallieren / Aufräumen** — jeder Schritt mit ✓ / ✗ Ergebnis.
-- **Einzel-Instanz-Schutz** — eine PID-basierte Sperrdatei verweigert einen zweiten Start mit dem Hinweis "läuft bereits", statt ein zweites Fenster zu öffnen.
-- **Update-Prüfung im Hintergrund** — prüft GitHub-Releases (abgeleitet aus `repo_url`) und meldet im Fenster, wenn eine neuere Version existiert. Abschaltbar via `update_check_enabled`; bei Netzwerkfehlern still.
-- **Datei-Logging** — ein rotierendes `launcher.log` plus ein `install.log` pro Lauf im Config-Verzeichnis, sowie `launcher-debug.log` bei `--debug`. Beste-Bemühung: ein nicht beschreibbares Verzeichnis degradiert, statt abzustürzen.
-- **Nebenläufigkeits-sichere Oberfläche** — während einer Aktion sind alle Buttons deaktiviert und das Fenster bleibt im Vordergrund, sodass keine zweite Aktion parallel startet.
-- **Leise unter Windows** — jeder Docker-Subprozess läuft mit `CREATE_NO_WINDOW`, sodass eine Installation keinen Schwarm von Konsolenfenstern mehr aufblitzen lässt (unter Linux/macOS unverändert).
-- **PyInstaller-fertig** — mitgelieferte Spec-Vorlage, Hidden-Imports-Liste und Versions-Injektion zur Build-Zeit für eingefrorene Einzeldatei-Builds.
-- **System-Tray** (optional) — `pip install docker-app-launcher[tray]`.
-- **DE/EN i18n (YAML)** — Strings liegen in Sprachdateien (`i18n/de.yaml`, `i18n/en.yaml`), die beim Start geladen werden; **eine neue Sprache fügt man durch Ablegen einer `<code>.yaml` hinzu**. Deutsch nutzt echte UTF-8-Umlaute. App-spezifische Überschreibungen via `custom_strings`.
-- **Actions-Architektur** — getestet ohne GUI.
-- **CLI ↔ GUI Parität** — beide rufen dieselbe Actions-Schicht auf.
+- Ein dauerhaftes Fenster (schließt sich nie selbst)
+- Echtzeit-Fortschrittsbalken mit Parsing der Docker-Build-Schritte
+- Docker-Prüfung beim Start
+- Live-Build-Fortschritt (Zeile für Zeile gestreamt)
+- Konfigurierbarer Port (GUI + CLI) mit Live-Validierung
+- Interne Experten-Ports (einklappbar)
+- 3 Zustände: nicht installiert / läuft / gestoppt
+- Install-Manifest für präzises Aufräumen
+- Aufräumen beim Start (aktive Volumes ausgeschlossen)
+- System-Tray mit AppIndicator (Linux/Wayland) + Taskleisten-Fallback
+- "Im Hintergrund weiterlaufen"-Button
+- Eigene Fenster- + Tray-Icons
+- Sprachauswahl mit OS-Autoerkennung (11 Sprachen)
+- Single-Instance-Lockfile
+- Persistentes Datei-Logging mit Rotation
+- Ausführliche Deinstallation mit Schritt-für-Schritt-Verifizierung
+- Update-Prüfung über die GitHub-Releases-API
+- DE/EN + 9 weitere Sprachen (YAML-basiert, erweiterbar)
+- Actions-Architektur (testbar ohne GUI)
+- CLI ↔ GUI Parität
 
 ## Eigene Icons
 
@@ -204,6 +205,73 @@ Ohne Manifest:   Muster-basiert — sucht nach Namens-Mustern
 ```
 
 Deshalb wird das Manifest automatisch erstellt und sollte nicht manuell gelöscht werden.
+
+## Fortschrittsbalken
+
+Der Launcher zeigt einen Echtzeit-Fortschrittsbalken während Installation, Start, Aufräumen und Deinstallation.
+
+Bei Docker-Builds wird der Fortschritt aus der Build-Ausgabe geparst (Schritt N/M). Konfiguriere eine Schätzung für den ersten Build:
+
+```json
+{
+  "estimated_build_steps": 38
+}
+```
+
+0 (Standard) bedeutet Auto-Erkennung aus der Docker-Ausgabe.
+
+## Sprachauswahl
+
+Der Launcher erkennt automatisch die Systemsprache. Ein Dropdown erlaubt jederzeit den Wechsel. Unterstützt: Deutsch, English, Ελληνικά, Español, Français, हिन्दी, 日本語, 한국어, Português, Türkçe, Bahasa Indonesia.
+
+```json
+{
+  "locale": "auto"
+}
+```
+
+`"auto"` erkennt die OS-Sprache. Setze einen festen Code (`"de"`, `"en"`, `"ja"`, ...) zum Überschreiben.
+
+## Single-Instance
+
+Verhindert das gleichzeitige Starten mehrerer Instanzen.
+
+```json
+{
+  "single_instance": true
+}
+```
+
+## Logging
+
+Der Launcher schreibt persistente Logs zur Diagnose:
+
+```
+~/.meine-app/
+  launcher.log    # Persistent, rotiert (Standard 5 MB, 3 Backups)
+  install.log     # Pro Installation/Rebuild überschrieben
+```
+
+Mit `--debug`: zusätzlich ein `launcher-debug.log` im aktuellen Verzeichnis.
+
+```json
+{
+  "log_level": "INFO",
+  "log_max_size": 5000000,
+  "log_backup_count": 3
+}
+```
+
+## Aufräum-Sicherheit
+
+Das Aufräumen beim Start schließt aktive Projekt-Volumes automatisch aus. Nur veraltete Artefakte früherer oder alter Installationen werden zum Entfernen angeboten.
+
+Übersprungene Einträge werden explizit protokolliert:
+
+```
+Volume 'meine-app-data' übersprungen (aktives Projekt)
+Volume 'alte-app-data' wird entfernt... ✓
+```
 
 ## Verwendet von
 

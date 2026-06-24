@@ -99,3 +99,5 @@ not_reachable_after: 'Το {app} δεν είναι προσβάσιμο μετά
 error: 'Σφάλμα: {msg}'
 error_word: Σφάλμα
 update_available: 'Διαθέσιμη ενημέρωση: {tag} - {url}'
+step_skip_volume: "Ο τόμος '{name}' παραλείφθηκε (δεν επιλέχθηκε)."
+step_skip_volume_active: "Ο τόμος '{name}' παραλείφθηκε (ενεργό έργο)."

@@ -16,6 +16,7 @@
   "build_timeout": 600,
   "start_timeout": 120,
   "stop_timeout": 30,
+  "estimated_build_steps": 0,
 
   "icon_path": "branding/app-icon.png",
   "tray_icon_path": "",

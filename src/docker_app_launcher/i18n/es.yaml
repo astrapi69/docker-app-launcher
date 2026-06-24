@@ -99,3 +99,5 @@ not_reachable_after: '{app} no es accesible tras {timeout}s ({detail}).'
 error: 'Error: {msg}'
 error_word: Error
 update_available: 'Actualización disponible: {tag} - {url}'
+step_skip_volume: "Volumen '{name}' omitido (no seleccionado)."
+step_skip_volume_active: "Volumen '{name}' omitido (proyecto activo)."

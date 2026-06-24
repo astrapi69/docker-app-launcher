@@ -99,3 +99,5 @@ not_reachable_after: '{app} tidak dapat dijangkau setelah {timeout}d ({detail}).
 error: 'Kesalahan: {msg}'
 error_word: Kesalahan
 update_available: 'Pembaruan tersedia: {tag} - {url}'
+step_skip_volume: "Volume '{name}' dilewati (tidak dipilih)."
+step_skip_volume_active: "Volume '{name}' dilewati (proyek aktif)."

@@ -117,6 +117,11 @@ class LauncherConfig:
     build_timeout: int = 600
     start_timeout: int = 120
     stop_timeout: int = 30
+    # Hint for the build progress bar: the number of build steps to expect. 0 =
+    # auto-detect from the streamed ``docker build`` output (best-effort, the
+    # percentage converges as the build proceeds); set it (e.g. 38) for a smooth
+    # bar from the first step.
+    estimated_build_steps: int = 0
 
     # === Paths ===
     icon_path: str = ""
@@ -141,8 +146,8 @@ class LauncherConfig:
 
     # === Logging ===
     log_level: str = "INFO"
-    log_max_size: int = 1_000_000
-    log_backup_count: int = 2
+    log_max_size: int = 5_000_000
+    log_backup_count: int = 3
 
     # === Links ===
     repo_url: str = ""

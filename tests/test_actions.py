@@ -227,6 +227,34 @@ def _make_repo(config: LauncherConfig) -> None:
     config.compose_path.write_text("services: {}\n")
 
 
+class TestDockerBuildProgress:
+    def _collect(self, lines: list[str], **kw) -> list[tuple[int, str]]:
+        reports: list[tuple[int, str]] = []
+        parser = actions.DockerBuildProgress(lambda pct, label: reports.append((pct, label)), **kw)
+        for line in lines:
+            parser.parse_line(line)
+        return reports
+
+    def test_estimated_total_gives_smooth_percent(self) -> None:
+        reports = self._collect(["#5 [frontend 1/6] FROM node", "#20 [backend 5/9] RUN poetry"], estimated_total=40)
+        assert reports[0][0] == 12  # 5/40
+        assert reports[1][0] == 50  # 20/40
+
+    def test_auto_detect_uses_max_step(self) -> None:
+        reports = self._collect(["#10 [a 1/2] x", "#5 [b 1/1] y"])
+        assert reports[0][0] == 99  # 10/10 -> capped at 99
+        assert reports[1][0] == 50  # 5/10
+
+    def test_cached_lines_count(self) -> None:
+        assert self._collect(["#3 [a] CACHED"], estimated_total=10) == [(30, "#3 [a] CACHED")]
+
+    def test_unknown_line_no_report_no_crash(self) -> None:
+        assert self._collect(["building...", "Sending build context to Docker daemon"], estimated_total=10) == []
+
+    def test_never_exceeds_99(self) -> None:
+        assert self._collect(["#50 [x] y"], estimated_total=10)[0][0] == 99
+
+
 class TestInstall:
     def test_success(self, config, monkeypatch) -> None:
         _make_repo(config)
@@ -298,6 +326,21 @@ class TestInstall:
         steps: list[str] = []
         actions.install(config, on_step=steps.append)
         assert any("Building" in s for s in steps)
+
+    def test_on_progress_reaches_0_and_100_with_indeterminate_health(self, config, monkeypatch) -> None:
+        _make_repo(config)
+        states = iter(["not_installed", "running"])
+        monkeypatch.setattr(actions, "check_docker", lambda: (True, "ok"))
+        monkeypatch.setattr(actions, "get_state", lambda c: next(states))
+        monkeypatch.setattr(actions, "check_port", lambda p, **k: (True, "free"))
+        monkeypatch.setattr(actions, "_stream_compose", lambda c, *a, **k: (0, ""))
+        monkeypatch.setattr(actions, "health_check", lambda c, port=None: (True, "ok"))
+        monkeypatch.setattr(actions, "_run", lambda *a, **k: make_result(stdout=""))
+        pcts: list[int | None] = []
+        actions.install(config, on_progress=lambda pct, label: pcts.append(pct))
+        assert pcts[0] == 0
+        assert pcts[-1] == 100
+        assert None in pcts  # indeterminate during the health check
 
 
 # --- start / stop ---------------------------------------------------------
@@ -789,20 +832,19 @@ class TestCleanup:
         monkeypatch.setattr(actions, "_docker_names", lambda c, kind, pats: volumes if kind == "volume" else [])
 
     def test_find_stale_protects_active_project_volume(self, config, monkeypatch) -> None:
-        # While the install is live (a container exists), its own compose volume
-        # (<project>_*) must NOT be offered; legacy volumes still are.
+        # The active project's own volume (<project>_*) is NEVER offered; legacy
+        # volumes still are - regardless of whether containers currently exist.
         self._stale_volumes_setup(monkeypatch, ["test-app_test-app-data", "bibliogon_bibliogon-data"])
-        monkeypatch.setattr(actions, "_project_container_ids", lambda c, *, running_only: ["c1"])
         stale = actions.find_stale_artifacts(config)
         assert "test-app_test-app-data" not in stale["volumes"]
         assert "bibliogon_bibliogon-data" in stale["volumes"]
 
-    def test_find_stale_lists_project_volume_after_uninstall(self, config, monkeypatch) -> None:
-        # Once the install's containers are gone, its volume is reclaimable -> stale.
+    def test_find_stale_protects_project_volume_even_without_containers(self, config, monkeypatch) -> None:
+        # Unconditional: even with no containers (cleanup runs at startup), the
+        # active project's data volume is not offered for deletion.
         self._stale_volumes_setup(monkeypatch, ["test-app_test-app-data"])
         monkeypatch.setattr(actions, "_project_container_ids", lambda c, *, running_only: [])
-        stale = actions.find_stale_artifacts(config)
-        assert "test-app_test-app-data" in stale["volumes"]
+        assert actions.find_stale_artifacts(config)["volumes"] == []
 
     def test_cleanup_stale_removes_and_reports(self, config, monkeypatch) -> None:
         monkeypatch.setattr(actions, "check_docker", lambda: (True, "ok"))
@@ -826,6 +868,20 @@ class TestCleanup:
         monkeypatch.setattr(actions, "_docker_op", fake_op)
         actions.cleanup_stale(config, {"containers": [], "images": [], "volumes": ["v1"], "configs": []})
         assert not any("volume" in cmd for cmd in removed)
+
+    def test_cleanup_logs_every_skipped_volume(self, config, monkeypatch) -> None:
+        # No silent gaps: unselected volumes AND active-project volumes each get a line.
+        monkeypatch.setattr(actions, "check_docker", lambda: (True, "ok"))
+        monkeypatch.setattr(actions, "_docker_op", lambda cmd, **k: (True, ""))
+        monkeypatch.setattr(actions, "_project_volumes", lambda c: ["test-app_test-app-data"])
+        steps: list[str] = []
+        actions.cleanup_stale(
+            config,
+            {"containers": [], "images": [], "volumes": ["bibliogon_bibliogon-data"], "configs": []},
+            on_step=steps.append,
+        )
+        assert any("bibliogon_bibliogon-data" in s and "not selected" in s for s in steps)
+        assert any("test-app_test-app-data" in s and "active project" in s for s in steps)
 
     def test_cleanup_stale_docker_down(self, config, monkeypatch) -> None:
         monkeypatch.setattr(actions, "check_docker", lambda: (False, "down"))

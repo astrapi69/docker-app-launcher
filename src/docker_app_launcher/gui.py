@@ -111,18 +111,20 @@ def dispatch_action(
     port: int | None = None,
     on_step: actions.ProgressFn | None = None,
     on_output: actions.OutputFn | None = None,
+    on_progress: actions.ProgressPctFn | None = None,
 ) -> tuple[bool, str] | None:
     """Run the action for ``action_id`` through the actions layer.
 
     Returns ``(ok, message)`` for actions that report a result, or ``None`` for
     fire-and-forget ids (open, recheck). ``port`` is only consumed by
-    ``change_port`` (the in-place host-port change). Pure (no Tk) so it is
-    unit-testable by mocking ``actions``.
+    ``change_port`` (the in-place host-port change); ``on_progress`` by the
+    install/start build phases. Pure (no Tk) so it is unit-testable by mocking
+    ``actions``.
     """
     if action_id == "install":
-        return actions.ensure_installed(config, on_step=on_step, on_output=on_output)
+        return actions.ensure_installed(config, on_step=on_step, on_output=on_output, on_progress=on_progress)
     if action_id == "start":
-        return actions.start(config, on_step=on_step, on_output=on_output)
+        return actions.start(config, on_step=on_step, on_output=on_output, on_progress=on_progress)
     if action_id == "change_port":
         if port is None:
             return False, i18n.t("port_invalid", config, min=actions.MIN_PORT, max=actions.MAX_PORT)
@@ -225,7 +227,17 @@ class LauncherApp(tk.Tk):
         self._background_row = tk.Frame(self)
         self._background_row.pack(pady=(2, 0))
 
+        # Progress bar + label above the log: a quick visual for long actions
+        # (install/start build, cleanup), with the scrollable log below for
+        # detail. Hidden until an action reports progress.
+        self._progress_frame = tk.Frame(self)
+        self._progress = ttk.Progressbar(self._progress_frame, mode="determinate", maximum=100)
+        self._progress.pack(fill="x", padx=12, pady=(6, 0))
+        self._progress_label = tk.Label(self._progress_frame, text="", anchor="w", font=("Segoe UI", 8))
+        self._progress_label.pack(fill="x", padx=12)
+
         status_frame = tk.Frame(self)
+        self._status_frame = status_frame
         status_frame.pack(fill="both", expand=True, padx=12, pady=(8, 12))
         scrollbar = tk.Scrollbar(status_frame, orient="vertical")
         scrollbar.pack(side="right", fill="y")
@@ -458,10 +470,38 @@ class LauncherApp(tk.Tk):
             self.after(0, lambda: self._log(label))
 
         def worker() -> None:
-            result = actions.cleanup_stale(self._cfg, stale, on_step=step)
+            result = actions.cleanup_stale(self._cfg, stale, on_step=step, on_progress=self._on_progress)
             self.after(0, lambda: self._on_result("cleanup", result))
 
         threading.Thread(target=worker, daemon=True).start()
+
+    # --- progress bar ---
+
+    def _on_progress(self, percent: int | None, label: str) -> None:
+        """Thread-safe: marshal a progress update onto the Tk thread."""
+        self.after(0, lambda: self._update_progress(percent, label))
+
+    def _update_progress(self, percent: int | None, label: str) -> None:
+        if not self._progress_frame.winfo_ismapped():
+            self._progress_frame.pack(fill="x", before=self._status_frame)
+        self._progress_label.configure(text=label)
+        if percent is None:  # indeterminate: unknown duration (e.g. health check)
+            self._progress.configure(mode="indeterminate")
+            self._progress.start(12)
+        else:
+            self._progress.stop()
+            self._progress.configure(mode="determinate")
+            self._progress["value"] = percent
+            if percent >= 100:
+                self.after(2000, self._hide_progress)
+
+    def _hide_progress(self) -> None:
+        try:
+            self._progress.stop()
+            self._progress["value"] = 0
+            self._progress_frame.pack_forget()
+        except tk.TclError as exc:  # pragma: no cover - WM dependent
+            logger.debug("could not hide progress bar: %s", exc)
 
     # --- actions (threaded) ---
 
@@ -484,7 +524,9 @@ class LauncherApp(tk.Tk):
             self.after(0, functools.partial(self._log, line))
 
         def worker() -> None:
-            result = dispatch_action(action_id, self._cfg, port=port, on_step=step, on_output=output)
+            result = dispatch_action(
+                action_id, self._cfg, port=port, on_step=step, on_output=output, on_progress=self._on_progress
+            )
             self.after(0, lambda: self._on_result(action_id, result))
 
         threading.Thread(target=worker, daemon=True).start()

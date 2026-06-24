@@ -99,3 +99,5 @@ not_reachable_after: '{app} nicht erreichbar nach {timeout}s ({detail}).'
 error: 'Fehler: {msg}'
 error_word: Fehler
 update_available: 'Update verfügbar: {tag} - {url}'
+step_skip_volume: "Volume '{name}' übersprungen (nicht ausgewählt)."
+step_skip_volume_active: "Volume '{name}' übersprungen (aktives Projekt)."

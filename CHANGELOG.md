@@ -6,6 +6,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-06-24
+
+### Added
+
+- **Always-available "Cleanup" button.** The installed states now carry a manual
+  cleanup button on the secondary row - running: `[Open] [Stop] [Uninstall]` /
+  `[Apply port] [Run in background] [Cleanup]`; stopped: `[Start] [Uninstall]` /
+  `[Cleanup]`. It is fully **decoupled from the startup cleanup offer** (which
+  only fires once at launch when leftover artifacts already exist), so cleanup is
+  reachable at any time. Clicking it scans on demand (`find_stale_artifacts`):
+  if artifacts are found it shows the same selection offer; if not it reports
+  "No leftover installation files found." New `cleanup_scanning` / `cleanup_none`
+  strings in all 11 languages.
+
 ## [0.9.0] - 2026-06-24
 
 ### Added

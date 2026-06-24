@@ -29,7 +29,7 @@ def test_menu_labels_localized_en() -> None:
 
 def test_menu_labels_localized_de() -> None:
     labels = tray.menu_labels(_cfg("de"))
-    assert labels["open"] == "Oeffnen"
+    assert labels["open"] == "Öffnen"
     assert labels["quit"] == "Beenden"
 
 

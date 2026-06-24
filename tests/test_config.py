@@ -115,6 +115,12 @@ class TestSerialization:
         assert loaded.app_name == "My App"
         assert loaded.default_port == 9000
 
+    def test_cleanup_search_paths_default_and_round_trip(self, tmp_path: Path) -> None:
+        assert LauncherConfig(app_name="X").resolve().cleanup_search_paths == []
+        path = tmp_path / "cfg.json"
+        LauncherConfig(app_name="X", cleanup_search_paths=["~/.config", "~"]).resolve().to_json(path)
+        assert LauncherConfig.from_json(path).cleanup_search_paths == ["~/.config", "~"]
+
     def test_tray_icon_path_default_and_round_trip(self, tmp_path: Path) -> None:
         assert LauncherConfig(app_name="X").resolve().tray_icon_path == ""
         path = tmp_path / "cfg.json"

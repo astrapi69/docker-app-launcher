@@ -1,0 +1,101 @@
+not_installed: '{app} belum terpasang.'
+running: '{app} berjalan di port {port}.'
+stopped: '{app} terpasang tetapi dihentikan.'
+no_docker: Docker belum dijalankan.
+install: Pasang
+start: Mulai
+stop: Hentikan
+uninstall: Hapus pemasangan
+open_browser: Buka di browser
+run_in_background: Jalankan di latar belakang
+background_tray: Berjalan di system tray. Klik dua kali ikon tray untuk memulihkan.
+background_iconified: Berjalan di latar belakang. Pulihkan jendela dari taskbar.
+closed_minimized: Aplikasi tetap berjalan; jendela diminimalkan.
+apply_port: Terapkan port
+apply: Terapkan
+advanced_settings: Pengaturan lanjutan (ahli)
+advanced_warning: Ubah ini hanya jika Anda tahu apa yang Anda lakukan. Perubahan memerlukan pembangunan ulang (2-5 menit).
+restore_defaults: Pulihkan default
+internal_port_field: 'Port {name} (internal):'
+retry: Periksa lagi
+cleanup: Bersihkan
+skip: Lewati
+tray_open: Buka
+tray_quit: Keluar
+checking_docker: Memeriksa Docker...
+docker_ok: Docker berjalan ✓
+installing: '{app} sedang disiapkan...'
+building: Membangun image (mungkin perlu beberapa menit saat pertama kali)...
+image_built: Image dibangun ✓
+starting: Memulai kontainer...
+container_started: Kontainer dimulai ✓
+updating: Memperbarui image (beberapa menit setelah perubahan kode, beberapa detik jika tidak)...
+checking_health: Memeriksa kesiapan...
+health_ok: Kesiapan dikonfirmasi ✓
+uninstalling: Penghapusan pemasangan dimulai...
+no_containers: Tidak ada kontainer ditemukan ✓
+verify_clean: 'Verifikasi: tidak ada kontainer ditemukan ✓'
+verify_remain: 'Verifikasi: {count} kontainer tersisa ✗'
+ready: Pemasangan selesai. {app} siap.
+already_installed: '{app} sudah terpasang dan berjalan.'
+already_running: '{app} sudah berjalan.'
+start_done: '{app} dimulai.'
+stop_done: '{app} dihentikan.'
+already_stopped: '{app} sudah dihentikan.'
+uninstall_done: Penghapusan pemasangan selesai. Data Anda tetap tersimpan.
+nothing_to_uninstall: Tidak ada yang perlu dihapus (tidak ada kontainer).
+confirm_uninstall: 'Apakah Anda ingin menghapus pemasangan {app}?
+
+  Data Anda tetap tersimpan.'
+cleanup_found: 'Sisa pemasangan sebelumnya ditemukan:'
+cleanup_running: Membersihkan...
+cleanup_done: 'Pembersihan selesai: {count} artefak dihapus, {freed} dibebaskan.'
+cleanup_partial: Pembersihan sebagian gagal ({count} langkah).
+cleanup_skipped: Pembersihan dilewati.
+data_preserved: Data Anda tetap tersimpan.
+step_stop_container: Hentikan kontainer '{name}'
+step_remove_container: Hapus kontainer '{name}'
+step_remove_image: Hapus image '{ref}'
+step_remove_volume: Hapus volume '{name}'
+step_remove_config: Hapus konfigurasi '{path}'
+scan_containers: Mencari kontainer yatim... {count} ditemukan
+scan_images: Mencari image usang... {count} ditemukan
+scan_volumes: Mencari volume yatim... {count} ditemukan
+scan_configs: Mencari sisa konfigurasi... {count} ditemukan
+port_free: Port {port} tersedia.
+port_occupied: Port {port} sedang dipakai.
+port_invalid: Port harus antara {min} dan {max}.
+port_set: Port disetel ke {port}.
+port_restarting: Port diubah. Memulai ulang {app}...
+port_changed: Port diubah menjadi {port}.
+internal_port_unknown: 'Port internal tidak dikenal: {name}.'
+internal_port_set: Port internal {name} disetel ke {port}.
+internal_port_rebuilding: Port internal diubah. Membangun ulang image (ini bisa memakan beberapa menit)...
+internal_port_changed: Port internal {name} diubah menjadi {port}.
+internal_port_confirm: Mengubah port internal memerlukan pembangunan ulang image Docker (2-5 menit). Lanjutkan?
+no_free_port: Tidak ada port yang tersedia.
+free_port_found: 'Port tersedia ditemukan: {port}.'
+docker_unavailable: Docker tidak tersedia (belum dijalankan).
+docker_not_installed: Docker belum terpasang (docker tidak ada di PATH).
+docker_no_response: Docker tidak merespons.
+docker_running: Docker berjalan.
+docker_stopped: Docker belum dijalankan.
+compose_not_found: 'File Compose tidak ditemukan: {path}'
+build_failed: 'Pembangunan Docker gagal:
+
+  {detail}'
+build_timeout: Pembangunan Docker melebihi batas waktu.
+start_failed: 'Gagal memulai:
+
+  {detail}'
+start_timeout: Memulai melebihi batas waktu.
+not_reachable: 'Terpasang, tetapi {app} tidak dapat dijangkau: {detail}'
+container_not_running: Kontainer dibangun tetapi tidak berjalan.
+start_no_container: Perintah mulai dijalankan, tetapi tidak ada kontainer yang berjalan.
+stop_failed: 'Gagal menghentikan: {detail}'
+stop_not_verified: Kontainer masih berjalan setelah perintah hentikan.
+uninstall_partial: 'Sebagian dihapus: {count} kontainer tidak dapat dihapus.'
+not_reachable_after: '{app} tidak dapat dijangkau setelah {timeout}d ({detail}).'
+error: 'Kesalahan: {msg}'
+error_word: Kesalahan
+update_available: 'Pembaruan tersedia: {tag} - {url}'

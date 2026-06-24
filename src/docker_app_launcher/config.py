@@ -25,6 +25,11 @@ from typing import Any
 # users can pass any plain callable.
 Callback = Callable[..., Any]
 
+# The locales shipped as ``i18n/<code>.yaml`` catalogs. ``locale`` may be set to
+# any of these; an unknown locale falls back to English at lookup time. Kept in
+# lock-step with the YAML files by ``test_i18n`` (``available_languages()``).
+SUPPORTED_LOCALES = ["de", "en", "el", "es", "fr", "hi", "ja", "ko", "pt", "tr", "id"]
+
 
 @dataclass
 class LauncherConfig:
@@ -100,7 +105,12 @@ class LauncherConfig:
     # === Cleanup ===
     cleanup_on_start: bool = True
     legacy_names: list[str] = field(default_factory=list)
+    # Explicit config directories offered for removal when they still exist.
     cleanup_configs: list[str] = field(default_factory=list)
+    # Base directories scanned for ``legacy_names`` subdirectories (e.g.
+    # ``~/.config`` -> ``~/.config/<legacy-name>``, ``~`` -> ``~/.<legacy-name>``).
+    # Lets cleanup find leftover config dirs without listing each one explicitly.
+    cleanup_search_paths: list[str] = field(default_factory=list)
 
     # === Tray ===
     tray_enabled: bool = True

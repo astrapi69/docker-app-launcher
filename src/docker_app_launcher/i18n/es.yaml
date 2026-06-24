@@ -1,0 +1,101 @@
+not_installed: '{app} no está instalado.'
+running: '{app} se está ejecutando en el puerto {port}.'
+stopped: '{app} está instalado pero detenido.'
+no_docker: Docker no está iniciado.
+install: Instalar
+start: Iniciar
+stop: Detener
+uninstall: Desinstalar
+open_browser: Abrir en el navegador
+run_in_background: Ejecutar en segundo plano
+background_tray: Ejecutándose en la bandeja del sistema. Haz doble clic en el icono para restaurar.
+background_iconified: Ejecutándose en segundo plano. Restaura la ventana desde la barra de tareas.
+closed_minimized: La aplicación sigue ejecutándose. Ventana minimizada.
+apply_port: Aplicar puerto
+apply: Aplicar
+advanced_settings: Ajustes avanzados (expertos)
+advanced_warning: Cámbialos solo si sabes lo que haces. Un cambio requiere una reconstrucción (2-5 minutos).
+restore_defaults: Restaurar valores predeterminados
+internal_port_field: 'Puerto {name} (interno):'
+retry: Comprobar de nuevo
+cleanup: Limpiar
+skip: Omitir
+tray_open: Abrir
+tray_quit: Salir
+checking_docker: Comprobando Docker...
+docker_ok: Docker se está ejecutando ✓
+installing: 'Configurando {app}...'
+building: Construyendo imagen (puede tardar unos minutos la primera vez)...
+image_built: Imagen construida ✓
+starting: Iniciando contenedor...
+container_started: Contenedor iniciado ✓
+updating: Actualizando imagen (unos minutos tras cambios de código, segundos en otros casos)...
+checking_health: Comprobando disponibilidad...
+health_ok: Disponibilidad confirmada ✓
+uninstalling: Desinstalación iniciada...
+no_containers: No se encontraron contenedores ✓
+verify_clean: 'Verificación: no se encontraron contenedores ✓'
+verify_remain: 'Verificación: quedan {count} contenedor(es) ✗'
+ready: Instalación completada. {app} está listo.
+already_installed: '{app} ya está instalado y en ejecución.'
+already_running: '{app} ya se está ejecutando.'
+start_done: '{app} iniciado.'
+stop_done: '{app} detenido.'
+already_stopped: '{app} ya estaba detenido.'
+uninstall_done: Desinstalación completada. Tus datos se conservan.
+nothing_to_uninstall: Nada que desinstalar (no hay ningún contenedor presente).
+confirm_uninstall: '¿Quieres desinstalar {app}?
+
+  Tus datos se conservan.'
+cleanup_found: 'Se encontraron restos de una instalación anterior:'
+cleanup_running: Limpiando...
+cleanup_done: 'Limpieza completada: {count} artefacto(s) eliminado(s), {freed} liberado(s).'
+cleanup_partial: La limpieza falló parcialmente ({count} paso(s)).
+cleanup_skipped: Limpieza omitida.
+data_preserved: Tus datos se conservaron.
+step_stop_container: Detener contenedor '{name}'
+step_remove_container: Eliminar contenedor '{name}'
+step_remove_image: Eliminar imagen '{ref}'
+step_remove_volume: Eliminar volumen '{name}'
+step_remove_config: Eliminar configuración '{path}'
+scan_containers: Buscando contenedores huérfanos... {count} encontrados
+scan_images: Buscando imágenes obsoletas... {count} encontradas
+scan_volumes: Buscando volúmenes huérfanos... {count} encontrados
+scan_configs: Buscando restos de configuración... {count} encontrados
+port_free: El puerto {port} está libre.
+port_occupied: El puerto {port} está ocupado.
+port_invalid: El puerto debe estar entre {min} y {max}.
+port_set: Puerto establecido en {port}.
+port_restarting: Puerto cambiado. Reiniciando {app}...
+port_changed: Puerto cambiado a {port}.
+internal_port_unknown: 'Puerto interno desconocido: {name}.'
+internal_port_set: Puerto interno {name} establecido en {port}.
+internal_port_rebuilding: Puerto interno cambiado. Reconstruyendo imágenes (esto puede tardar unos minutos)...
+internal_port_changed: Puerto interno {name} cambiado a {port}.
+internal_port_confirm: Cambiar un puerto interno requiere reconstruir las imágenes de Docker (2-5 minutos). ¿Continuar?
+no_free_port: No se encontró ningún puerto libre.
+free_port_found: 'Puerto libre encontrado: {port}.'
+docker_unavailable: Docker no está disponible (no iniciado).
+docker_not_installed: Docker no está instalado (docker no está en el PATH).
+docker_no_response: Docker no responde.
+docker_running: Docker se está ejecutando.
+docker_stopped: Docker no está iniciado.
+compose_not_found: 'Archivo Compose no encontrado: {path}'
+build_failed: 'La construcción de Docker falló:
+
+  {detail}'
+build_timeout: La construcción de Docker superó el tiempo límite.
+start_failed: 'El inicio falló:
+
+  {detail}'
+start_timeout: El inicio superó el tiempo límite.
+not_reachable: 'Instalado, pero {app} no es accesible: {detail}'
+container_not_running: El contenedor se construyó pero no se está ejecutando.
+start_no_container: El comando de inicio se ejecutó, pero no hay ningún contenedor en ejecución.
+stop_failed: 'La detención falló: {detail}'
+stop_not_verified: El contenedor sigue ejecutándose tras el comando de detención.
+uninstall_partial: 'Eliminado parcialmente: no se pudo(ieron) eliminar {count} contenedor(es).'
+not_reachable_after: '{app} no es accesible tras {timeout}s ({detail}).'
+error: 'Error: {msg}'
+error_word: Error
+update_available: 'Actualización disponible: {tag} - {url}'

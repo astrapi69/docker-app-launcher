@@ -93,9 +93,146 @@ Everything is configurable. Only `app_name` is required — the rest is derived
 - **PyInstaller-ready** — a bundled spec template, hidden-imports list, and build-time version injection for shipping frozen single-file builds.
 - **System tray + "Run in background"** (optional) — `pip install docker-app-launcher[tray]`; while running, the window minimizes to the tray (a visible **Run in the background** button and the X both use it). When the tray can't dock it falls back to a taskbar-minimized window, so it never silently closes.
   - **Linux note:** the reliable tray uses pystray's **AppIndicator** backend, which needs `gi` (PyGObject) plus the AppIndicator typelib. The `[tray]` extra pip-installs PyGObject (Linux-only; needs `libgirepository1.0-dev`, `libcairo2-dev`, `pkg-config` to build), and you also need the typelib at runtime — on Ubuntu: `sudo apt install gir1.2-ayatanaappindicator3-0.1`. If you instead rely on the system `python3-gi` (apt), create the venv with `--system-site-packages` so `gi` is importable. Without any of this the launcher still works — it just minimizes to the taskbar. Run with `--debug` to see which backend was selected.
-- **DE / EN i18n** — with per-app custom-string overrides via `custom_strings`.
+- **DE / EN i18n (YAML)** — strings live in per-language YAML files (`i18n/de.yaml`, `i18n/en.yaml`) loaded at startup; **add a language by dropping a `<code>.yaml` file** beside them. German uses real UTF-8 umlauts. Per-app overrides via `custom_strings`.
 - **Actions architecture** — all business logic is GUI-free and unit-tested without a display.
 - **CLI ↔ GUI parity** — both call the exact same actions layer.
+
+## Custom Icons
+
+Configure window and system tray icons:
+
+```python
+launch(LauncherConfig(
+    app_name="My App",
+    icon_path="path/to/app-icon.png",         # Window icon
+    tray_icon_path="path/to/tray-icon.png",   # Tray icon (optional, falls back to icon_path)
+))
+```
+
+```json
+{
+  "icon_path": "branding/my-app-icon.png",
+  "tray_icon_path": "branding/my-app-tray.png"
+}
+```
+
+If no icon is configured, a default icon with the app's initial letter is generated automatically.
+
+Supported formats: PNG (recommended), ICO, BMP. Recommended size: 256x256 (window), 64x64 (tray).
+
+## Cleanup Configuration
+
+Configure which paths are searched for stale artifacts:
+
+```python
+launch(LauncherConfig(
+    app_name="My App",
+    container_name="my-app",
+    legacy_names=["old-app-name", "prototype-v1"],
+    cleanup_configs=[
+        "~/.old-app-name",
+        "~/.config/old-app-name",
+        "~/.local/share/old-app-name",
+    ],
+    cleanup_search_paths=[
+        "~/.config/",
+        "~/.local/share/",
+        "~/",
+    ],
+))
+```
+
+```json
+{
+  "legacy_names": ["old-app-name"],
+  "cleanup_configs": [
+    "~/.old-app-name",
+    "~/.config/old-app-name"
+  ],
+  "cleanup_search_paths": [
+    "~/.config/",
+    "~/.local/share/",
+    "~/"
+  ]
+}
+```
+
+- `legacy_names`: Previous project names to find stale containers/images/volumes.
+- `cleanup_configs`: Explicit config directories to offer for removal.
+- `cleanup_search_paths`: Base directories searched for `legacy_names` subdirectories (`<base>/<name>` and `<base>/.<name>`).
+- Active project volumes are automatically excluded from cleanup.
+- User-data volumes are unchecked by default (opt-in deletion).
+
+## Configuration Paths
+
+All launcher state is stored under `config_dir` (default: `~/.{app_slug}/`):
+
+```
+~/.my-app/
+  launcher.json          # Port, settings, preferences
+  .env                   # Docker Compose port variables
+  install-manifest.json  # Installed containers, images, history
+  launcher.log           # Persistent log (rotated, 5MB max)
+  install.log            # Last install/rebuild log
+  launcher.lock          # Single-instance lockfile
+```
+
+Override the config directory:
+
+```python
+launch(LauncherConfig(
+    config_dir="~/.custom-path/my-app",
+))
+```
+
+## Install Manifest
+
+The launcher automatically maintains an install manifest at `{config_dir}/install-manifest.json`. This file tracks every artifact created during installation, enabling precise cleanup without guesswork.
+
+```json
+{
+  "installed_at": "2026-06-24T14:30:00Z",
+  "updated_at": "2026-06-24T18:15:00Z",
+  "app_name": "My App",
+  "app_version": "1.95.0",
+  "launcher_version": "0.5.0",
+  "port": 8501,
+  "compose_project": "my-app",
+  "compose_file": "/home/user/my-app/docker-compose.prod.yml",
+  "containers": [
+    {"name": "my-app-frontend", "image": "my-app-frontend:latest"},
+    {"name": "my-app-backend", "image": "my-app-backend:latest"}
+  ],
+  "images": [
+    "my-app-frontend:latest",
+    "my-app-backend:latest"
+  ],
+  "volumes": [
+    "my-app-data"
+  ],
+  "install_history": [
+    {"action": "install", "version": "1.94.0", "at": "2026-06-20T10:00:00Z"},
+    {"action": "update", "version": "1.95.0", "at": "2026-06-24T14:30:00Z"}
+  ]
+}
+```
+
+The manifest is:
+- **Written** after every successful install or start (with rebuild).
+- **Updated** with version and timestamp on each start.
+- **Appended** to `install_history` for every install/update/uninstall.
+- **Marked** as uninstalled (not deleted) on deinstallation.
+
+### How cleanup uses the manifest
+
+With a manifest, cleanup knows exactly which containers, images and volumes belong to the current or previous installation. Without a manifest (legacy installs), it falls back to pattern-matching against `container_name` and `legacy_names`.
+
+```
+Cleanup with manifest:    Precise — removes listed artifacts only
+Cleanup without manifest: Pattern-based — searches by name patterns
+```
+
+This is why the manifest is created automatically and should not be deleted manually.
 
 ## Architecture
 

@@ -1,0 +1,101 @@
+not_installed: '{app} はインストールされていません。'
+running: '{app} はポート {port} で実行中です。'
+stopped: '{app} はインストール済みですが停止しています。'
+no_docker: Docker が起動していません。
+install: インストール
+start: 開始
+stop: 停止
+uninstall: アンインストール
+open_browser: ブラウザで開く
+run_in_background: バックグラウンドで実行を続ける
+background_tray: システムトレイで実行中です。トレイアイコンをダブルクリックするとウィンドウを復元できます。
+background_iconified: バックグラウンドで実行中です。タスクバーからウィンドウを復元してください。
+closed_minimized: アプリは実行を続けます。ウィンドウは最小化されました。
+apply_port: ポートを適用
+apply: 適用
+advanced_settings: 詳細設定（上級者向け）
+advanced_warning: 自分が何をしているか分かっている場合のみ変更してください。変更にはリビルドが必要です（2〜5分）。
+restore_defaults: 既定値に戻す
+internal_port_field: '{name} ポート（内部）:'
+retry: 再確認
+cleanup: クリーンアップ
+skip: スキップ
+tray_open: 開く
+tray_quit: 終了
+checking_docker: Docker を確認中...
+docker_ok: Docker は実行中です ✓
+installing: '{app} をセットアップしています...'
+building: イメージをビルド中（初回は数分かかる場合があります）...
+image_built: イメージをビルドしました ✓
+starting: コンテナを起動中...
+container_started: コンテナを起動しました ✓
+updating: イメージを更新中（コード変更後は数分、それ以外は数秒）...
+checking_health: 準備状態を確認中...
+health_ok: 準備が完了しました ✓
+uninstalling: アンインストールを開始しました...
+no_containers: コンテナは見つかりませんでした ✓
+verify_clean: '検証: コンテナは見つかりませんでした ✓'
+verify_remain: '検証: {count} 個のコンテナが残っています ✗'
+ready: インストールが完了しました。{app} の準備が整いました。
+already_installed: '{app} は既にインストールされ実行中です。'
+already_running: '{app} は既に実行中です。'
+start_done: '{app} を開始しました。'
+stop_done: '{app} を停止しました。'
+already_stopped: '{app} は既に停止していました。'
+uninstall_done: アンインストールが完了しました。データは保持されます。
+nothing_to_uninstall: アンインストールするものはありません（コンテナが存在しません）。
+confirm_uninstall: '{app} をアンインストールしますか？
+
+  データは保持されます。'
+cleanup_found: '以前のインストールの残骸が見つかりました:'
+cleanup_running: クリーンアップ中...
+cleanup_done: 'クリーンアップが完了しました: {count} 個のアーティファクトを削除し、{freed} を解放しました。'
+cleanup_partial: クリーンアップが一部失敗しました（{count} ステップ）。
+cleanup_skipped: クリーンアップをスキップしました。
+data_preserved: データは保持されました。
+step_stop_container: コンテナ '{name}' を停止
+step_remove_container: コンテナ '{name}' を削除
+step_remove_image: イメージ '{ref}' を削除
+step_remove_volume: ボリューム '{name}' を削除
+step_remove_config: 設定 '{path}' を削除
+scan_containers: 孤立したコンテナを検索中... {count} 個見つかりました
+scan_images: 古いイメージを検索中... {count} 個見つかりました
+scan_volumes: 孤立したボリュームを検索中... {count} 個見つかりました
+scan_configs: 設定の残骸を検索中... {count} 個見つかりました
+port_free: ポート {port} は空いています。
+port_occupied: ポート {port} は使用中です。
+port_invalid: ポートは {min} から {max} の間でなければなりません。
+port_set: ポートを {port} に設定しました。
+port_restarting: ポートを変更しました。{app} を再起動しています...
+port_changed: ポートを {port} に変更しました。
+internal_port_unknown: '不明な内部ポート: {name}。'
+internal_port_set: 内部ポート {name} を {port} に設定しました。
+internal_port_rebuilding: 内部ポートを変更しました。イメージを再ビルドしています（数分かかる場合があります）...
+internal_port_changed: 内部ポート {name} を {port} に変更しました。
+internal_port_confirm: 内部ポートの変更には Docker イメージの再ビルドが必要です（2〜5分）。続行しますか？
+no_free_port: 空きポートが見つかりません。
+free_port_found: '空きポートが見つかりました: {port}。'
+docker_unavailable: Docker は利用できません（起動していません）。
+docker_not_installed: Docker はインストールされていません（docker が PATH にありません）。
+docker_no_response: Docker が応答していません。
+docker_running: Docker は実行中です。
+docker_stopped: Docker が起動していません。
+compose_not_found: 'Compose ファイルが見つかりません: {path}'
+build_failed: 'Docker ビルドに失敗しました:
+
+  {detail}'
+build_timeout: Docker ビルドがタイムアウトしました。
+start_failed: '開始に失敗しました:
+
+  {detail}'
+start_timeout: 開始がタイムアウトしました。
+not_reachable: 'インストールされましたが、{app} に到達できません: {detail}'
+container_not_running: コンテナはビルドされましたが実行されていません。
+start_no_container: 開始コマンドは実行されましたが、コンテナが実行されていません。
+stop_failed: '停止に失敗しました: {detail}'
+stop_not_verified: 停止コマンドの後もコンテナがまだ実行中です。
+uninstall_partial: '一部削除しました: {count} 個のコンテナを削除できませんでした。'
+not_reachable_after: '{timeout}秒後も {app} に到達できません（{detail}）。'
+error: 'エラー: {msg}'
+error_word: エラー
+update_available: 'アップデートがあります: {tag} - {url}'

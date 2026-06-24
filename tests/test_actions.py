@@ -716,6 +716,7 @@ class TestCleanup:
             actions, "_docker_names", lambda c, kind, pats: ["test-app", "old-app"] if kind == "container" else []
         )
         monkeypatch.setattr(actions, "_image_refs", lambda c, pats: [])
+        monkeypatch.setattr(actions, "_project_container_ids", lambda c, *, running_only: [])
         stale = actions.find_stale_artifacts(config)
         assert stale["containers"] == ["old-app"]
 
@@ -729,8 +730,67 @@ class TestCleanup:
         monkeypatch.setattr(actions, "_docker_names", lambda c, kind, pats: [])
         monkeypatch.setattr(actions, "_image_refs", lambda c, pats: [])
         monkeypatch.setattr(actions, "_running_container_names", lambda c: [])
+        monkeypatch.setattr(actions, "_project_container_ids", lambda c, *, running_only: [])
         stale = actions.find_stale_artifacts(config)
         assert str(legacy) in stale["configs"]
+
+    def test_find_stale_searches_cleanup_search_paths(self, config, tmp_path, monkeypatch) -> None:
+        # cleanup_search_paths scans base dirs for legacy_names subdirs (both
+        # "<base>/<name>" and the dotted "<base>/.<name>").
+        base = tmp_path / "base"
+        (base / ".oldapp").mkdir(parents=True)
+        (base / "oldapp").mkdir()
+        config.legacy_names = ["oldapp"]
+        config.cleanup_search_paths = [str(base)]
+        config.cleanup_configs = []
+        monkeypatch.setattr(
+            actions, "manifest_artifacts", lambda c: {"containers": [], "images": [], "volumes": [], "configs": []}
+        )
+        monkeypatch.setattr(actions, "_docker_names", lambda c, kind, pats: [])
+        monkeypatch.setattr(actions, "_image_refs", lambda c, pats: [])
+        monkeypatch.setattr(actions, "_running_container_names", lambda c: [])
+        monkeypatch.setattr(actions, "_project_container_ids", lambda c, *, running_only: [])
+        stale = actions.find_stale_artifacts(config)
+        assert str(base / ".oldapp") in stale["configs"]
+        assert str(base / "oldapp") in stale["configs"]
+
+    def test_find_stale_search_skips_missing_and_live_config(self, config, tmp_path, monkeypatch) -> None:
+        base = tmp_path / "base"
+        base.mkdir()  # no legacy subdir exists -> nothing found
+        config.legacy_names = ["ghost"]
+        config.cleanup_search_paths = [str(base)]
+        monkeypatch.setattr(
+            actions, "manifest_artifacts", lambda c: {"containers": [], "images": [], "volumes": [], "configs": []}
+        )
+        monkeypatch.setattr(actions, "_docker_names", lambda c, kind, pats: [])
+        monkeypatch.setattr(actions, "_image_refs", lambda c, pats: [])
+        monkeypatch.setattr(actions, "_running_container_names", lambda c: [])
+        monkeypatch.setattr(actions, "_project_container_ids", lambda c, *, running_only: [])
+        assert actions.find_stale_artifacts(config)["configs"] == []
+
+    def _stale_volumes_setup(self, monkeypatch, volumes: list[str]) -> None:
+        monkeypatch.setattr(
+            actions, "manifest_artifacts", lambda c: {"containers": [], "images": [], "volumes": [], "configs": []}
+        )
+        monkeypatch.setattr(actions, "_image_refs", lambda c, pats: [])
+        monkeypatch.setattr(actions, "_running_container_names", lambda c: [])
+        monkeypatch.setattr(actions, "_docker_names", lambda c, kind, pats: volumes if kind == "volume" else [])
+
+    def test_find_stale_protects_active_project_volume(self, config, monkeypatch) -> None:
+        # While the install is live (a container exists), its own compose volume
+        # (<project>_*) must NOT be offered; legacy volumes still are.
+        self._stale_volumes_setup(monkeypatch, ["test-app_test-app-data", "bibliogon_bibliogon-data"])
+        monkeypatch.setattr(actions, "_project_container_ids", lambda c, *, running_only: ["c1"])
+        stale = actions.find_stale_artifacts(config)
+        assert "test-app_test-app-data" not in stale["volumes"]
+        assert "bibliogon_bibliogon-data" in stale["volumes"]
+
+    def test_find_stale_lists_project_volume_after_uninstall(self, config, monkeypatch) -> None:
+        # Once the install's containers are gone, its volume is reclaimable -> stale.
+        self._stale_volumes_setup(monkeypatch, ["test-app_test-app-data"])
+        monkeypatch.setattr(actions, "_project_container_ids", lambda c, *, running_only: [])
+        stale = actions.find_stale_artifacts(config)
+        assert "test-app_test-app-data" in stale["volumes"]
 
     def test_cleanup_stale_removes_and_reports(self, config, monkeypatch) -> None:
         monkeypatch.setattr(actions, "check_docker", lambda: (True, "ok"))

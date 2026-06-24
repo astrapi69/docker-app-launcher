@@ -37,9 +37,18 @@ class TestButtonsForState:
     def test_not_installed_has_install(self) -> None:
         assert ("install", "install") in gui.buttons_for_state("not_installed")
 
-    def test_running_has_open_change_port_stop_uninstall(self) -> None:
+    def test_running_has_open_stop_uninstall(self) -> None:
+        # change_port + run-in-background moved to the secondary row (2-row layout).
         ids = [a for a, _ in gui.buttons_for_state("running")]
-        assert ids == ["open", "change_port", "stop", "uninstall"]
+        assert ids == ["open", "stop", "uninstall"]
+
+    def test_running_secondary_row(self) -> None:
+        ids = [a for a, _ in gui.secondary_buttons_for_state("running")]
+        assert ids == ["change_port", "background"]
+
+    def test_no_secondary_row_when_not_running(self) -> None:
+        assert gui.secondary_buttons_for_state("stopped") == []
+        assert gui.secondary_buttons_for_state("not_installed") == []
 
     def test_stopped_has_start_uninstall(self) -> None:
         ids = [a for a, _ in gui.buttons_for_state("stopped")]

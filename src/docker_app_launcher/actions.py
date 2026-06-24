@@ -1089,15 +1089,40 @@ def _image_refs(config: LauncherConfig, patterns: tuple[str, ...]) -> list[str]:
     return found
 
 
+def _searched_config_dirs(config: LauncherConfig, seen: set[str]) -> list[str]:
+    """Scan ``cleanup_search_paths`` for ``legacy_names`` subdirectories.
+
+    For each base directory and legacy name, both ``<base>/<name>`` and the
+    dotted ``<base>/.<name>`` are checked, so a base of ``~/.config`` finds
+    ``~/.config/<name>`` and a base of ``~`` finds ``~/.<name>``. Already-seen
+    paths (explicit ``cleanup_configs`` and the live config dir) are skipped.
+    """
+    out: list[str] = []
+    for base in config.cleanup_search_paths:
+        base_dir = Path(base).expanduser()
+        for name in config.legacy_names:
+            for candidate in (base_dir / name, base_dir / f".{name}"):
+                resolved = str(candidate)
+                if candidate.exists() and resolved not in seen:
+                    seen.add(resolved)
+                    out.append(resolved)
+    return out
+
+
 def _stale_config_dirs(config: LauncherConfig, active_configs: list[str]) -> list[str]:
-    """Existing ``cleanup_configs`` dirs not referenced by the active manifest."""
-    active = {str(Path(c).expanduser()) for c in active_configs}
-    active.add(str(config.config_path))  # never target the live config dir
+    """Stale config dirs: explicit ``cleanup_configs`` plus ``cleanup_search_paths`` hits.
+
+    Excludes anything the active manifest references and the live config dir.
+    """
+    seen = {str(Path(c).expanduser()) for c in active_configs}
+    seen.add(str(config.config_path))  # never target the live config dir
     out: list[str] = []
     for candidate in config.cleanup_configs:
-        resolved = Path(candidate).expanduser()
-        if resolved.exists() and str(resolved) not in active:
-            out.append(str(resolved))
+        resolved = str(Path(candidate).expanduser())
+        if Path(resolved).exists() and resolved not in seen:
+            seen.add(resolved)
+            out.append(resolved)
+    out.extend(_searched_config_dirs(config, seen))
     return out
 
 
@@ -1107,6 +1132,12 @@ def find_stale_artifacts(config: LauncherConfig) -> dict[str, list[Any]]:
     Manifest-first: the current install's recorded artifacts are EXCLUDED -
     only artifacts beyond it (old versions, legacy names, orphans) are
     returned. Without a manifest, currently-RUNNING containers are protected.
+
+    The active install's own Compose volumes (named ``<compose_project>_*``) are
+    ALSO protected while the install is live (its containers still exist),
+    independent of the manifest - they hold live user data and must never be
+    offered for deletion. Once the install is uninstalled (its containers are
+    gone) the volume becomes reclaimable and shows up as stale again.
     """
     active = manifest_artifacts(config)
     active_containers = set(active["containers"])
@@ -1116,10 +1147,14 @@ def find_stale_artifacts(config: LauncherConfig) -> dict[str, list[Any]]:
         active_containers |= set(_running_container_names(config))
 
     patterns = tuple(config.cleanup_patterns())
+    volumes = [v for v in _docker_names(config, "volume", patterns) if v not in active_volumes]
+    if _project_container_ids(config, running_only=False):
+        project_prefix = f"{config.compose_project}_"
+        volumes = [v for v in volumes if not v.startswith(project_prefix)]
     return {
         "containers": [n for n in _docker_names(config, "container", patterns) if n not in active_containers],
         "images": [r for r in _image_refs(config, patterns) if r not in active_images],
-        "volumes": [v for v in _docker_names(config, "volume", patterns) if v not in active_volumes],
+        "volumes": volumes,
         "configs": _stale_config_dirs(config, active.get("configs", [])),
     }
 

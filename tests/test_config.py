@@ -6,7 +6,56 @@ import json
 from pathlib import Path
 
 from docker_app_launcher import actions, gui
-from docker_app_launcher.config import LauncherConfig, slugify
+from docker_app_launcher.config import (
+    LOCALE_LABELS,
+    SUPPORTED_LOCALES,
+    LauncherConfig,
+    detect_system_locale,
+    locale_for_label,
+    slugify,
+)
+
+
+class TestLocale:
+    def test_detect_maps_de_de_to_de(self, monkeypatch) -> None:
+        import locale
+
+        monkeypatch.setattr(locale, "getlocale", lambda *a: ("de_DE", "UTF-8"))
+        assert detect_system_locale() == "de"
+
+    def test_detect_unknown_falls_back_to_en(self, monkeypatch) -> None:
+        import locale
+
+        monkeypatch.setattr(locale, "getlocale", lambda *a: ("xx_XX", None))
+        monkeypatch.setattr(locale, "getdefaultlocale", lambda *a: (None, None))
+        assert detect_system_locale() == "en"
+
+    def test_resolve_auto_uses_detection(self, monkeypatch) -> None:
+        # The autouse fixture pins detection to "en".
+        cfg = LauncherConfig(app_name="X", locale="auto").resolve()
+        assert cfg.locale == "en"
+
+    def test_resolve_explicit_locale_preserved(self) -> None:
+        assert LauncherConfig(app_name="X", locale="fr").resolve().locale == "fr"
+
+    def test_labels_cover_all_supported(self) -> None:
+        assert set(LOCALE_LABELS) == set(SUPPORTED_LOCALES)
+        assert LOCALE_LABELS["el"] == "Ελληνικά"  # native script, not "Greek"
+
+    def test_locale_for_label_round_trip(self) -> None:
+        assert locale_for_label("Deutsch") == "de"
+        assert locale_for_label("日本語") == "ja"
+        assert locale_for_label("Not a language") is None
+
+
+class TestNewConfigDefaults:
+    def test_defaults(self) -> None:
+        cfg = LauncherConfig(app_name="X")
+        assert cfg.locale == "auto"
+        assert cfg.single_instance is True
+        assert cfg.log_level == "INFO"
+        assert cfg.log_max_size == 1_000_000
+        assert cfg.log_backup_count == 2
 
 
 class TestSlugify:

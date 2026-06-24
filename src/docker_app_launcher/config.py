@@ -30,6 +30,49 @@ Callback = Callable[..., Any]
 # lock-step with the YAML files by ``test_i18n`` (``available_languages()``).
 SUPPORTED_LOCALES = ["de", "en", "el", "es", "fr", "hi", "ja", "ko", "pt", "tr", "id"]
 
+# Native-script display labels for the language picker (a language is shown in
+# its own script - "Ελληνικά", not "Greek").
+LOCALE_LABELS = {
+    "de": "Deutsch",
+    "en": "English",
+    "el": "Ελληνικά",
+    "es": "Español",
+    "fr": "Français",
+    "hi": "हिन्दी",
+    "ja": "日本語",
+    "ko": "한국어",
+    "pt": "Português",
+    "tr": "Türkçe",
+    "id": "Bahasa Indonesia",
+}
+
+
+def locale_for_label(label: str) -> str | None:
+    """Reverse-map a native label (``"Deutsch"``) to its code (``"de"``), or None."""
+    for code, lbl in LOCALE_LABELS.items():
+        if lbl == label:
+            return code
+    return None
+
+
+def detect_system_locale() -> str:
+    """Best-effort detection of the OS UI language as a supported code.
+
+    Maps e.g. ``de_DE`` -> ``de``. Returns ``"en"`` when the system locale is
+    unset, unreadable, or not one of :data:`SUPPORTED_LOCALES`.
+    """
+    import locale as _locale
+
+    try:
+        lang = _locale.getlocale()[0] or _locale.getdefaultlocale()[0]
+    except Exception:  # noqa: BLE001 - locale APIs can raise on odd systems
+        return "en"
+    if lang:
+        code = lang.replace("-", "_").split("_")[0].lower()
+        if code in SUPPORTED_LOCALES:
+            return code
+    return "en"
+
 
 @dataclass
 class LauncherConfig:
@@ -89,7 +132,17 @@ class LauncherConfig:
     window_width: int = 620
     window_height: int = 470
     window_resizable: bool = False
-    locale: str = "en"
+    # ``"auto"`` detects the OS language (resolved by :meth:`resolve`); any
+    # explicit code in :data:`SUPPORTED_LOCALES` overrides it.
+    locale: str = "auto"
+
+    # === Single instance ===
+    single_instance: bool = True
+
+    # === Logging ===
+    log_level: str = "INFO"
+    log_max_size: int = 1_000_000
+    log_backup_count: int = 2
 
     # === Links ===
     repo_url: str = ""
@@ -146,6 +199,8 @@ class LauncherConfig:
             self.config_dir = str(Path.home() / f".{self.app_slug}")
         if not self.releases_url and self.repo_url:
             self.releases_url = f"{self.repo_url.rstrip('/')}/releases/latest"
+        if self.locale == "auto":
+            self.locale = detect_system_locale()
         return self
 
     # --- computed paths / filters (pure) ----------------------------------

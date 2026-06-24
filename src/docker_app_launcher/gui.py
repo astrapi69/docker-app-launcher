@@ -18,10 +18,10 @@ import logging
 import threading
 import tkinter as tk
 from pathlib import Path
-from tkinter import messagebox
+from tkinter import messagebox, ttk
 
 from docker_app_launcher import actions, i18n, tray, update_check
-from docker_app_launcher.config import LauncherConfig
+from docker_app_launcher.config import LOCALE_LABELS, LauncherConfig, locale_for_label
 
 logger = logging.getLogger("docker_app_launcher.gui")
 
@@ -172,6 +172,9 @@ class LauncherApp(tk.Tk):
         super().__init__()
         config.resolve()
         self._cfg = config
+        # Effective UI language: the user's persisted picker choice wins over the
+        # config default (which already resolved "auto" -> system locale).
+        self._cfg.locale = actions.resolve_locale(self._cfg)
         self._debug = debug
         self._tray: tray.TrayController | None = None
 
@@ -195,6 +198,20 @@ class LauncherApp(tk.Tk):
         self._port_indicator = tk.Label(port_row, text="", width=2)
         self._port_indicator.pack(side="left", padx=(6, 0))
         self._port_entry.bind("<KeyRelease>", lambda _e: self._validate_port())
+
+        lang_row = tk.Frame(self)
+        lang_row.pack(pady=(0, 6))
+        tk.Label(lang_row, text="🌐").pack(side="left", padx=(0, 6))
+        self._locale_var = tk.StringVar(value=LOCALE_LABELS.get(self._cfg.locale, self._cfg.locale))
+        locale_combo = ttk.Combobox(
+            lang_row,
+            textvariable=self._locale_var,
+            values=list(LOCALE_LABELS.values()),
+            state="readonly",
+            width=18,
+        )
+        locale_combo.pack(side="left")
+        locale_combo.bind("<<ComboboxSelected>>", self._on_locale_change)
 
         self._internal_vars: dict[str, tk.StringVar] = {}
         if advanced_ports_visible(config):
@@ -290,10 +307,18 @@ class LauncherApp(tk.Tk):
     def _build_advanced_section(self) -> None:
         """Build the collapsed expert section for internal (container) ports."""
         self._advanced_open = False
-        toggle_row = tk.Frame(self)
-        toggle_row.pack(pady=(0, 4))
+        self._advanced_toggle_row = tk.Frame(self)
+        # At first build the button row does not exist yet (natural order); on a
+        # rebuild (language change) it does, so anchor before it to keep position.
+        if hasattr(self, "_button_row"):
+            self._advanced_toggle_row.pack(pady=(0, 4), before=self._button_row)
+        else:
+            self._advanced_toggle_row.pack(pady=(0, 4))
         self._advanced_toggle = tk.Button(
-            toggle_row, text="▶ " + self._t("advanced_settings"), relief="flat", command=self._toggle_advanced
+            self._advanced_toggle_row,
+            text="▶ " + self._t("advanced_settings"),
+            relief="flat",
+            command=self._toggle_advanced,
         )
         self._advanced_toggle.pack()
 
@@ -362,6 +387,28 @@ class LauncherApp(tk.Tk):
             if name in self._internal_vars:
                 self._internal_vars[name].set(str(value))
         self._log(self._t("restore_defaults"))
+
+    # --- language ---
+
+    def _on_locale_change(self, _event: object = None) -> None:
+        """Switch the UI language from the dropdown: persist + re-render in place."""
+        code = locale_for_label(self._locale_var.get())
+        if code is None or code == self._cfg.locale:
+            return
+        self._cfg.locale = actions.set_locale(self._cfg, code)
+        self._reload_ui_strings()
+
+    def _reload_ui_strings(self) -> None:
+        """Re-render every translated label after a language change (no restart)."""
+        self._refresh()  # state heading + primary/secondary button rows
+        if hasattr(self, "_advanced_toggle_row"):
+            was_open = getattr(self, "_advanced_open", False)
+            self._advanced_toggle_row.destroy()
+            self._advanced_frame.destroy()
+            self._internal_vars = {}
+            self._build_advanced_section()
+            if was_open:
+                self._toggle_advanced()
 
     # --- update check ---
 

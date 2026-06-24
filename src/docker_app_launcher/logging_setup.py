@@ -34,24 +34,35 @@ def setup_logging(config: LauncherConfig, *, debug: bool = False) -> None:
     degrades to "fewer sinks", never a crash.
     """
     root = logging.getLogger()
-    root.setLevel(logging.DEBUG if debug else logging.INFO)
+    root.setLevel(logging.DEBUG if debug else _parse_level(config.log_level))
     formatter = logging.Formatter(_FORMAT)
 
     stdout_handler = logging.StreamHandler(sys.stdout)
     stdout_handler.setFormatter(formatter)
     root.addHandler(stdout_handler)
 
-    _add_rotating_file(root, formatter, config.log_path)
+    _add_rotating_file(root, formatter, config.log_path, config.log_max_size, config.log_backup_count)
     _add_truncating_file(root, formatter, config.install_log_path)
 
     if debug:
         _add_debug_file(root, formatter)
 
 
-def _add_rotating_file(root: logging.Logger, formatter: logging.Formatter, path: Path) -> None:
+def _parse_level(name: str) -> int:
+    """Map a ``log_level`` string (``"INFO"``, ``"DEBUG"``, ...) to a level int.
+
+    Falls back to ``INFO`` for an unknown name, so a typo never disables logging.
+    """
+    level = logging.getLevelName(str(name).upper())
+    return level if isinstance(level, int) else logging.INFO
+
+
+def _add_rotating_file(
+    root: logging.Logger, formatter: logging.Formatter, path: Path, max_bytes: int, backup_count: int
+) -> None:
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
-        handler = RotatingFileHandler(str(path), maxBytes=1_000_000, backupCount=2, encoding="utf-8")
+        handler = RotatingFileHandler(str(path), maxBytes=max_bytes, backupCount=backup_count, encoding="utf-8")
         handler.setFormatter(formatter)
         root.addHandler(handler)
     except OSError as exc:

@@ -32,6 +32,14 @@ def reset_root_logging():
 
 
 @pytest.fixture(autouse=True)
+def _force_en_locale(monkeypatch):
+    """Pin ``"auto"`` locale resolution to English so string assertions are
+    host-independent. Tests needing another locale set ``locale=...`` explicitly.
+    """
+    monkeypatch.setattr("docker_app_launcher.config.detect_system_locale", lambda: "en")
+
+
+@pytest.fixture(autouse=True)
 def isolate_home(tmp_path, monkeypatch):
     """Give every test its own HOME so config/manifest writes stay isolated."""
     home = tmp_path / "home"
@@ -51,6 +59,7 @@ def config(tmp_path):
         default_port=8080,
         config_dir=str(tmp_path / ".test-app"),
         install_dir=str(tmp_path / "repo"),
+        locale="en",  # pin so string assertions don't depend on the host locale
     )
     cfg.resolve()
     return cfg

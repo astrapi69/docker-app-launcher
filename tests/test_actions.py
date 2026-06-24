@@ -201,6 +201,18 @@ class TestPortPersistence:
     def test_load_config_missing(self, tmp_path) -> None:
         assert actions.load_config(tmp_path / "no.json") == {}
 
+    def test_set_and_resolve_locale(self, config) -> None:
+        actions.set_locale(config, "fr")
+        assert actions.resolve_locale(config) == "fr"
+
+    def test_resolve_locale_defaults_to_config(self, config) -> None:
+        # the config fixture pins locale="en"
+        assert actions.resolve_locale(config) == "en"
+
+    def test_resolve_locale_unknown_falls_back_en(self, config) -> None:
+        actions.save_config(config.launcher_config_file, {"locale": "zz"})
+        assert actions.resolve_locale(config) == "en"
+
     def test_save_load_round_trip(self, tmp_path) -> None:
         path = tmp_path / "c.json"
         actions.save_config(path, {"port": 1234})

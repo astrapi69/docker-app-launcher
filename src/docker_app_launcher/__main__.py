@@ -113,8 +113,12 @@ def _launch_window(config: LauncherConfig, *, debug: bool) -> int:
 
     A second launch whose lockfile points at a still-running PID is refused
     (the user is told the app is already running) instead of opening a
-    duplicate window.
+    duplicate window. Disabled by ``config.single_instance = False``.
     """
+    if not config.single_instance:
+        from docker_app_launcher.gui import run
+
+        return run(config, debug=debug)
     if lockfile.another_instance_alive(config.lock_path):
         message = i18n.t("already_running", config)
         print(message)

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from docker_app_launcher import actions, gui
 from docker_app_launcher.config import LauncherConfig, slugify
 
 
@@ -162,3 +163,29 @@ class TestSerialization:
         path = tmp_path / "deep" / "nested" / "cfg.json"
         LauncherConfig(app_name="X").resolve().to_json(path)
         assert path.is_file()
+
+
+class TestMinimalConfigSmoke:
+    """An app must run from a minimal config - only ``app_name`` (#6 / #1054).
+
+    Guards the package's "fully configuration-driven, nothing hard-coded"
+    property: defaults resolve to sensible values and the helper layer the GUI +
+    CLI depend on never crashes on an all-defaults config.
+    """
+
+    def test_defaults_resolve_to_sensible_values(self) -> None:
+        cfg = LauncherConfig(app_name="My App").resolve()
+        assert cfg.app_slug == "my-app"
+        assert cfg.container_name == cfg.image_name == cfg.compose_project == "my-app"
+        assert actions.resolve_port(cfg) == cfg.default_port == 8080
+        assert cfg.compose_path.name == "docker-compose.prod.yml"
+        # the pure helper layer must not crash on defaults
+        assert gui.buttons_for_state("not_installed") == [("install", "install")]
+        assert gui.advanced_ports_visible(cfg) is False
+        assert actions._env_port_updates(cfg) == {cfg.env_port_key: 8080}
+
+    def test_custom_values_propagate(self) -> None:
+        cfg = LauncherConfig(app_name="X", container_name="cn", default_port=9090, env_port_key="CUSTOM_PORT").resolve()
+        assert cfg.container_name == "cn"
+        assert actions.resolve_port(cfg) == 9090
+        assert actions._env_port_updates(cfg) == {"CUSTOM_PORT": 9090}

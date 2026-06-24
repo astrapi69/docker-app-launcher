@@ -6,6 +6,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **Confirmed fully configuration-driven; dropped the last app-specific
+  reference (#6).** An audit found the package already config-driven (the
+  "extraction" was completed when the launcher moved into this package); the
+  only app-specific string left was the `adaptive-learner` *example* in
+  `pyinstaller.render_spec`'s docstring, now genericized to `my-app`. Added a
+  minimal-config smoke test that pins the "runs from only `app_name`, all
+  defaults sensible, helper layer never crashes" property.
+
 ## [0.4.0] - 2026-06-24
 
 ### Added

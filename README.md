@@ -7,9 +7,9 @@ no dialog chains.
 [![CI](https://github.com/astrapi69/docker-app-launcher/actions/workflows/ci.yml/badge.svg)](https://github.com/astrapi69/docker-app-launcher/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/docker-app-launcher.svg)](https://pypi.org/project/docker-app-launcher/)
 [![Python](https://img.shields.io/pypi/pyversions/docker-app-launcher.svg)](https://pypi.org/project/docker-app-launcher/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/astrapi69/docker-app-launcher/blob/main/LICENSE)
 
-> 🇩🇪 [Deutsche Version](README-de.md)
+> 🇩🇪 [Deutsche Version](https://github.com/astrapi69/docker-app-launcher/blob/main/README-de.md)
 
 ## Quick Start
 
@@ -105,7 +105,7 @@ Everything is configurable. Only `app_name` is required — the rest is derived
 
 ## Configuration reference
 
-See [LauncherConfig](src/docker_app_launcher/config.py) for the full field list
+See [LauncherConfig](https://github.com/astrapi69/docker-app-launcher/blob/main/src/docker_app_launcher/config.py) for the full field list
 (app identity, network/health, Docker timeouts, paths, GUI, links, cleanup,
 tray, i18n, and lifecycle callbacks).
 
@@ -124,4 +124,4 @@ make fix       # auto-fix lint + format
 
 ## License
 
-[MIT](LICENSE) © Asterios Raptis
+[MIT](https://github.com/astrapi69/docker-app-launcher/blob/main/LICENSE) © Asterios Raptis

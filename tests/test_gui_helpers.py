@@ -171,6 +171,35 @@ class TestSetBusy:
         app._set_busy(True)
 
 
+class TestAdvancedPorts:
+    def _cfg(self) -> LauncherConfig:
+        return LauncherConfig(
+            app_name="X",
+            internal_ports={"backend": 8000, "nginx": 80},
+            env_internal_port_keys={"backend": "APP_BACKEND_PORT", "nginx": "APP_NGINX_PORT"},
+            show_advanced_ports=True,
+        ).resolve()
+
+    def test_visible_only_when_opted_in_and_declared(self) -> None:
+        assert gui.advanced_ports_visible(self._cfg()) is True
+        off = LauncherConfig(app_name="X", show_advanced_ports=False).resolve()
+        assert gui.advanced_ports_visible(off) is False
+        # opted in but nothing declared -> still hidden
+        empty = LauncherConfig(app_name="X", show_advanced_ports=True).resolve()
+        assert gui.advanced_ports_visible(empty) is False
+
+    def test_internal_port_fields_rows(self) -> None:
+        rows = gui.internal_port_fields(self._cfg())
+        names = [name for name, _, _ in rows]
+        assert names == ["backend", "nginx"]  # sorted
+        values = {name: value for name, _, value in rows}
+        assert values == {"backend": 8000, "nginx": 80}
+        assert all(label for _, label, _ in rows)
+
+    def test_default_internal_ports(self) -> None:
+        assert gui.default_internal_ports(self._cfg()) == {"backend": 8000, "nginx": 80}
+
+
 class TestShouldMinimizeToTray:
     def test_running_with_tray(self) -> None:
         assert gui.should_minimize_to_tray("running", tray_available=True, tray_enabled=True) is True

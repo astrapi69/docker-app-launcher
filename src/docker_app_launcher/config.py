@@ -53,6 +53,17 @@ class LauncherConfig:
     browser_path: str = "/"
     env_port_key: str = "APP_PORT"
 
+    # === Internal (container) ports - expert-only ===
+    # ``internal_ports`` maps a logical name (e.g. "backend", "nginx") to its
+    # default in-container port; ``env_internal_port_keys`` maps the same name
+    # to the ``.env`` variable Compose substitutes. Unlike the public host port,
+    # changing an internal port requires an image REBUILD. ``show_advanced_ports``
+    # gates the launcher's collapsed expert section; with the maps empty (the
+    # default) the feature is invisible and inert.
+    internal_ports: dict[str, int] = field(default_factory=dict)
+    env_internal_port_keys: dict[str, str] = field(default_factory=dict)
+    show_advanced_ports: bool = False
+
     # === Docker ===
     compose_file: str = "docker-compose.prod.yml"
     build_timeout: int = 600

@@ -452,6 +452,99 @@ class TestChangePort:
         assert seen["port"] == 9000
 
 
+# --- internal (container) ports -------------------------------------------
+
+
+@pytest.fixture
+def iconfig(config):
+    """A config that declares two internal ports (backend + nginx)."""
+    config.internal_ports = {"backend": 8000, "nginx": 80}
+    config.env_internal_port_keys = {"backend": "APP_BACKEND_PORT", "nginx": "APP_NGINX_PORT"}
+    config.show_advanced_ports = True
+    return config
+
+
+class TestInternalPorts:
+    def test_validate_allows_low_ports(self) -> None:
+        # Internal ports are not host-published, so 80 is valid (unlike a host port).
+        assert actions._validate_internal_port(80)[0] is True
+        assert actions._validate_internal_port(0)[0] is False
+        assert actions._validate_internal_port(70000)[0] is False
+
+    def test_resolve_default_from_config(self, iconfig) -> None:
+        assert actions.resolve_internal_port(iconfig, "backend") == 8000
+        assert actions.resolve_internal_port(iconfig, "nginx") == 80
+
+    def test_resolve_override_wins(self, iconfig) -> None:
+        actions.set_internal_port(iconfig, "backend", 9001)
+        assert actions.resolve_internal_port(iconfig, "backend") == 9001
+
+    def test_resolve_invalid_override_ignored(self, iconfig) -> None:
+        actions.save_config(iconfig.launcher_config_file, {"internal_ports": {"backend": 70000}})
+        assert actions.resolve_internal_port(iconfig, "backend") == 8000
+
+    def test_set_unknown_name_rejected(self, iconfig) -> None:
+        ok, msg = actions.set_internal_port(iconfig, "db", 5432)
+        assert ok is False and "db" in msg
+
+    def test_set_persists_and_writes_env(self, iconfig) -> None:
+        ok, _ = actions.set_internal_port(iconfig, "backend", 9001)
+        assert ok is True
+        env = actions._env_path(iconfig).read_text()
+        assert "APP_BACKEND_PORT=9001" in env
+
+    def test_write_env_ports_writes_all_ports(self, iconfig) -> None:
+        # The .env write self-creates its parent dir, so no repo scaffolding needed.
+        actions._write_env_ports(iconfig)
+        env = actions._env_path(iconfig).read_text()
+        assert f"{iconfig.env_port_key}=" in env
+        assert "APP_BACKEND_PORT=8000" in env
+        assert "APP_NGINX_PORT=80" in env
+
+    def test_change_unknown_name_rejected(self, iconfig, monkeypatch) -> None:
+        monkeypatch.setattr(actions, "check_docker", lambda: (True, "ok"))
+        ok, _ = actions.change_internal_port(iconfig, "db", 5432)
+        assert ok is False
+
+    def test_change_invalid_port_rejected(self, iconfig) -> None:
+        ok, _ = actions.change_internal_port(iconfig, "backend", 0)
+        assert ok is False
+
+    def test_change_not_running_only_persists(self, iconfig, monkeypatch) -> None:
+        monkeypatch.setattr(actions, "check_docker", lambda: (True, "ok"))
+        monkeypatch.setattr(actions, "get_state", lambda c: "stopped")
+        ok, _ = actions.change_internal_port(iconfig, "backend", 9001)
+        assert ok is True
+        assert actions.resolve_internal_port(iconfig, "backend") == 9001
+
+    def test_change_running_rebuilds(self, iconfig, monkeypatch) -> None:
+        # An internal-port change MUST rebuild (up --build -d), not just restart.
+        _make_repo(iconfig)
+        captured: dict[str, tuple[str, ...]] = {}
+        states = iter(["running", "running"])
+        monkeypatch.setattr(actions, "check_docker", lambda: (True, "ok"))
+        monkeypatch.setattr(actions, "get_state", lambda c: next(states))
+        monkeypatch.setattr(actions, "stop", lambda c: (True, "stopped"))
+
+        def fake_stream(c, *args, **kwargs):
+            captured["args"] = args
+            return (0, "")
+
+        monkeypatch.setattr(actions, "_stream_compose", fake_stream)
+        monkeypatch.setattr(actions, "health_check", lambda c, port=None: (True, "ok"))
+        monkeypatch.setattr(actions, "_run", lambda *a, **k: make_result(stdout=""))
+        ok, msg = actions.change_internal_port(iconfig, "backend", 9001)
+        assert ok is True and "9001" in msg
+        assert captured["args"] == ("up", "--build", "-d")
+
+    def test_change_stop_failure_aborts(self, iconfig, monkeypatch) -> None:
+        monkeypatch.setattr(actions, "check_docker", lambda: (True, "ok"))
+        monkeypatch.setattr(actions, "get_state", lambda c: "running")
+        monkeypatch.setattr(actions, "stop", lambda c: (False, "cannot stop"))
+        ok, msg = actions.change_internal_port(iconfig, "backend", 9001)
+        assert ok is False and "cannot stop" in msg
+
+
 # --- uninstall ------------------------------------------------------------
 
 

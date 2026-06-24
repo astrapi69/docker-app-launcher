@@ -47,6 +47,9 @@ logger = logging.getLogger("docker_app_launcher.actions")
 
 MIN_PORT = 1024
 MAX_PORT = 65535
+# Internal (container) ports are not published on the host, so they are not
+# bound by the 1024 floor a host-published port needs (e.g. nginx :80).
+MIN_INTERNAL_PORT = 1
 
 ProgressFn = Callable[[str], None]
 OutputFn = Callable[[str], None]
@@ -215,6 +218,13 @@ def _validate_port(port: object) -> tuple[bool, str]:
     return True, ""
 
 
+def _validate_internal_port(port: object) -> tuple[bool, str]:
+    """Validate an internal (container) port. Allows the full 1-65535 range."""
+    if not isinstance(port, int) or isinstance(port, bool) or not (MIN_INTERNAL_PORT <= port <= MAX_PORT):
+        return False, f"Internal port must be between {MIN_INTERNAL_PORT} and {MAX_PORT}."
+    return True, ""
+
+
 def check_port(port: int, *, host: str = "") -> tuple[bool, str]:
     """Return ``(free, message)``. Validates the range, then probes by BIND.
 
@@ -286,27 +296,52 @@ def _env_path(config: LauncherConfig) -> Path:
     return config.compose_path.parent / ".env"
 
 
-def _write_env_port(config: LauncherConfig, port: int) -> None:
-    """Upsert ``<env_port_key>=<port>`` into the Compose project's ``.env``.
+def _upsert_env_line(text: str, key: str, value: object) -> str:
+    """Return ``text`` with ``key=value`` upserted (replacing one occurrence)."""
+    pattern = re.compile(rf"^\s*{re.escape(key)}\s*=.*$", re.MULTILINE)
+    line = f"{key}={value}"
+    if pattern.search(text):
+        return pattern.sub(line, text, count=1)
+    if text and not text.endswith("\n"):
+        text += "\n"
+    return text + line + "\n"
+
+
+def _write_env(config: LauncherConfig, updates: dict[str, object]) -> None:
+    """Upsert every ``key=value`` in ``updates`` into the Compose project's ``.env``.
 
     Best-effort: a write failure is logged and swallowed so it can never crash a
     port change.
     """
+    if not updates:
+        return
     env_file = _env_path(config)
-    pattern = re.compile(rf"^\s*{re.escape(config.env_port_key)}\s*=.*$", re.MULTILINE)
-    line = f"{config.env_port_key}={port}"
     try:
         text = env_file.read_text(encoding="utf-8") if env_file.is_file() else ""
-        if pattern.search(text):
-            text = pattern.sub(line, text, count=1)
-        else:
-            if text and not text.endswith("\n"):
-                text += "\n"
-            text += line + "\n"
+        for key, value in updates.items():
+            text = _upsert_env_line(text, key, value)
         env_file.parent.mkdir(parents=True, exist_ok=True)
         env_file.write_text(text, encoding="utf-8")
     except OSError as exc:
-        logger.warning("could not write .env port: %s", exc)
+        logger.warning("could not write .env: %s", exc)
+
+
+def _write_env_port(config: LauncherConfig, port: int) -> None:
+    """Upsert only the public host port into ``.env`` (thin wrapper)."""
+    _write_env(config, {config.env_port_key: port})
+
+
+def _env_port_updates(config: LauncherConfig) -> dict[str, object]:
+    """Every port var Compose needs: the public host port + each internal port."""
+    updates: dict[str, object] = {config.env_port_key: resolve_port(config)}
+    for name, key in config.env_internal_port_keys.items():
+        updates[key] = resolve_internal_port(config, name)
+    return updates
+
+
+def _write_env_ports(config: LauncherConfig) -> None:
+    """Write the public host port AND every configured internal port to ``.env``."""
+    _write_env(config, _env_port_updates(config))
 
 
 def resolve_port(config: LauncherConfig, cli_port: int | None = None) -> int:
@@ -331,8 +366,106 @@ def set_port(config: LauncherConfig, port: int) -> tuple[bool, str]:
     data = load_config(config.launcher_config_file)
     data["port"] = port
     save_config(config.launcher_config_file, data)
-    _write_env_port(config, port)
+    _write_env_ports(config)
     return True, _t(config, "port_set", port=port)
+
+
+def resolve_internal_port(config: LauncherConfig, name: str) -> int:
+    """Resolve an internal port: a stored override wins over the config default.
+
+    Returns ``internal_ports[name]`` from the launcher config unless a valid
+    override is stored under ``internal_ports`` in the launcher JSON. Returns
+    ``0`` for an unknown name (no default to fall back to).
+    """
+    stored = load_config(config.launcher_config_file).get("internal_ports")
+    if isinstance(stored, dict):
+        value = stored.get(name)
+        if isinstance(value, int) and not isinstance(value, bool) and _validate_internal_port(value)[0]:
+            return value
+    return config.internal_ports.get(name, 0)
+
+
+def set_internal_port(config: LauncherConfig, name: str, port: int) -> tuple[bool, str]:
+    """Validate and persist an internal port (launcher JSON + ``.env``). No restart."""
+    if name not in config.env_internal_port_keys:
+        return False, _t(config, "internal_port_unknown", name=name)
+    valid, reason = _validate_internal_port(port)
+    if not valid:
+        return False, reason
+    data = load_config(config.launcher_config_file)
+    stored = data.get("internal_ports")
+    if not isinstance(stored, dict):
+        stored = {}
+    stored[name] = port
+    data["internal_ports"] = stored
+    save_config(config.launcher_config_file, data)
+    _write_env_ports(config)
+    return True, _t(config, "internal_port_set", name=name, port=port)
+
+
+def change_internal_port(
+    config: LauncherConfig,
+    name: str,
+    port: int,
+    *,
+    on_step: ProgressFn | None = None,
+    on_output: OutputFn | None = None,
+) -> tuple[bool, str]:
+    """Change an internal container port - this REQUIRES an image rebuild.
+
+    Unlike :func:`change_port` (the public host port, a seconds-fast no-rebuild
+    recreate), an internal port is consumed when the image is built/started, so
+    the chain rebuilds:
+
+    1. validate the name + port and persist (launcher JSON + ``.env``);
+    2. if the stack is running, STOP it, then ``up --build -d`` (minutes - the
+       images are rebuilt with the new internal port);
+    3. health-check on the public port.
+
+    When the stack is not running this only persists (a later build picks it up).
+    Returns ``(ok, message)``.
+    """
+    if name not in config.env_internal_port_keys:
+        return False, _t(config, "internal_port_unknown", name=name)
+    valid, reason = _validate_internal_port(port)
+    if not valid:
+        return False, reason
+    docker_ok, _ = check_docker()
+    if not docker_ok:
+        return False, _t(config, "docker_unavailable")
+
+    was_running = get_state(config) == "running"
+    if was_running:
+        stopped, stop_msg = stop(config)
+        if not stopped:
+            return False, stop_msg
+
+    ok, msg = set_internal_port(config, name, port)
+    if not ok:
+        return False, msg
+    if not was_running:
+        return True, msg
+
+    _notify(on_step, _t(config, "internal_port_rebuilding"))
+    try:
+        rc, tail = _stream_compose(
+            config, "up", "--build", "-d", on_output=on_output, timeout=float(config.build_timeout)
+        )
+    except FileNotFoundError:
+        return False, _t(config, "docker_unavailable")
+    except subprocess.TimeoutExpired:
+        return False, _t(config, "build_timeout")
+    if rc != 0:
+        return False, _t(config, "build_failed", detail=tail)
+    if get_state(config) != "running":
+        return False, _t(config, "start_no_container")
+
+    _notify(on_step, _t(config, "checking_health"))
+    healthy, detail = health_check(config)
+    if not healthy:
+        return False, _t(config, "not_reachable", detail=detail)
+    _record_manifest(config, resolve_port(config), action="internal_port_change")
+    return True, _t(config, "internal_port_changed", name=name, port=port)
 
 
 def change_port(
@@ -467,7 +600,7 @@ def install(
     port_free, _ = check_port(port)
     if not port_free:
         return False, _t(config, "port_occupied", port=port)
-    _write_env_port(config, port)
+    _write_env_ports(config)
     _notify(on_step, _t(config, "docker_ok"))
 
     _notify(on_step, _t(config, "building"))

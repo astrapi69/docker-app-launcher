@@ -1,8 +1,9 @@
 # docker-app-launcher
 
-Configurable desktop launcher for Docker-based applications.
-**One persistent window.** It opens, shows progress, and never closes itself —
-no dialog chains.
+docker-app-launcher is a configurable, cross-platform desktop launcher for
+Docker-based apps - one persistent GUI window that starts your containers,
+streams the build progress line-by-line, and never closes itself.
+Pip-installable, no Electron, Linux/macOS/Windows, 11-language UI.
 
 [![CI](https://github.com/astrapi69/docker-app-launcher/actions/workflows/ci.yml/badge.svg)](https://github.com/astrapi69/docker-app-launcher/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/docker-app-launcher.svg)](https://pypi.org/project/docker-app-launcher/)

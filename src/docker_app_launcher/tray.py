@@ -26,19 +26,37 @@ from docker_app_launcher.config import LauncherConfig
 
 logger = logging.getLogger("docker_app_launcher.tray")
 
+_IMPORT_ERROR: str | None = None
+_TRAY_BACKEND = "none"
+
 try:
     import pystray
     from PIL import Image
 
+    # Force the AppIndicator backend. pystray's auto-selection picks the legacy
+    # X11/Xorg backend on Ubuntu/Wayland, which fires its setup callback but then
+    # silently fails to dock - hiding the window then would strand the user.
+    # AppIndicator (via PyGObject + the AppIndicator typelib, the 'tray' extra)
+    # is the reliable path. Fall back to pystray's auto-selected Icon only when
+    # AppIndicator is unavailable; start() still refuses the unreliable backend.
+    try:
+        from pystray._appindicator import Icon as _TrayIcon
+
+        _TRAY_BACKEND = "appindicator"
+    except Exception:  # noqa: BLE001 - gi / AppIndicator typelib may be missing
+        _TrayIcon = pystray.Icon
+        _TRAY_BACKEND = getattr(_TrayIcon, "__module__", "auto")
     HAS_TRAY = True
-except Exception:  # noqa: BLE001 - importing pystray can fail beyond ImportError
+except Exception as exc:  # noqa: BLE001 - importing pystray can fail beyond ImportError
     # On Linux, importing pystray eagerly selects a backend, which can raise
     # non-ImportError errors when no usable tray is present (headless box, GTK
     # init failure). Any such failure must DISABLE the tray, never crash the
     # launcher on startup.
     pystray = None
     Image = None  # type: ignore[assignment, unused-ignore]
+    _TrayIcon = None  # type: ignore[assignment, unused-ignore]
     HAS_TRAY = False
+    _IMPORT_ERROR = repr(exc)
 
 # pystray backends that do NOT reliably dock on modern Linux desktops. The
 # legacy X11 XEmbed backend fires its setup callback but then silently fails to
@@ -59,6 +77,52 @@ MENU_SPEC: tuple[tuple[str, str], ...] = (
 def tray_available() -> bool:
     """True when ``pystray`` + ``Pillow`` are importable (the ``tray`` extra)."""
     return HAS_TRAY
+
+
+def try_minimize_to_background(root: Any, tray_controller: Any) -> str:
+    """Minimize the launcher to the background, preferring the system tray.
+
+    Returns the mode used so the caller can give the right feedback:
+
+    - ``"tray"`` - ``tray_controller.start()`` docked an icon; the window is
+      withdrawn (it lives in the tray, restored from the tray menu).
+    - ``"iconify"`` - the tray is missing/unreliable/failed (e.g. no
+      AppIndicator on Ubuntu); the window is minimized to the TASKBAR instead,
+      so the user can always click it back. No tray icon in this case.
+
+    ``root`` is the Tk window (duck-typed: ``withdraw`` / ``iconify``), so this
+    stays tkinter-free and unit-testable. ``tray_controller`` may be ``None``
+    (then it always iconifies).
+    """
+    if tray_controller is not None and tray_controller.start():
+        root.withdraw()
+        return "tray"
+    root.iconify()
+    return "iconify"
+
+
+def log_diagnostics(config: LauncherConfig) -> None:
+    """Log tray-availability breadcrumbs, one per step (visible under ``--debug``).
+
+    Answers "why is there no tray icon?" without the user debugging: whether the
+    extra imported, which backend pystray selected (AppIndicator is the reliable
+    one; the legacy X11 backend is refused), and whether the icon file resolves.
+    """
+    if HAS_TRAY:
+        logger.debug("Tray: pystray + Pillow import: ok")
+        if _TRAY_BACKEND == "appindicator":
+            logger.debug("Tray: AppIndicator backend forced: ok (reliable)")
+        elif _TRAY_BACKEND in _UNRELIABLE_BACKENDS:
+            logger.debug("Tray: AppIndicator unavailable; fell back to %s (unreliable) -> taskbar", _TRAY_BACKEND)
+        else:
+            logger.debug("Tray: AppIndicator unavailable; fell back to %s", _TRAY_BACKEND)
+    else:
+        logger.debug("Tray: pystray + Pillow import: FAILED (%s) -> will fall back to taskbar", _IMPORT_ERROR)
+    if not config.icon_path:
+        logger.debug("Tray: icon: none configured")
+    else:
+        found = Path(config.icon_path).expanduser().is_file()
+        logger.debug("Tray: icon %s: %s", config.icon_path, "found" if found else "MISSING")
 
 
 def menu_action_ids() -> list[str]:
@@ -125,12 +189,12 @@ class TrayController:
         image = _load_icon_image(self._config.icon_path)
         if image is None:
             return False
-        backend = getattr(pystray.Icon, "__module__", "")
+        backend = getattr(_TrayIcon, "__module__", "")
         if backend in _UNRELIABLE_BACKENDS:
             logger.info("system tray disabled: backend %s does not dock on modern desktops", backend)
             return False
         tooltip = i18n.t("running", self._config, port=self._port)
-        self._icon = pystray.Icon(self._config.app_slug or "launcher", image, tooltip, self._build_menu())
+        self._icon = _TrayIcon(self._config.app_slug or "launcher", image, tooltip, self._build_menu())
         ready = threading.Event()
 
         def _on_setup(icon: Any) -> None:

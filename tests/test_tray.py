@@ -55,3 +55,52 @@ def test_as_menu_handler_calls_callback() -> None:
     handler = tray._as_menu_handler(lambda: calls.append(1))
     handler(None, None)
     assert calls == [1]
+
+
+class _FakeRoot:
+    """Stand-in Tk window recording which background action was taken."""
+
+    def __init__(self) -> None:
+        self.calls: list[str] = []
+
+    def withdraw(self) -> None:
+        self.calls.append("withdraw")
+
+    def iconify(self) -> None:
+        self.calls.append("iconify")
+
+
+class _FakeController:
+    def __init__(self, *, started: bool) -> None:
+        self._started = started
+
+    def start(self) -> bool:
+        return self._started
+
+
+class TestTryMinimizeToBackground:
+    def test_tray_success_withdraws(self) -> None:
+        root = _FakeRoot()
+        mode = tray.try_minimize_to_background(root, _FakeController(started=True))
+        assert mode == "tray"
+        assert root.calls == ["withdraw"]
+
+    def test_tray_failure_iconifies(self) -> None:
+        # Tray present but start() failed (e.g. no AppIndicator) -> taskbar.
+        root = _FakeRoot()
+        mode = tray.try_minimize_to_background(root, _FakeController(started=False))
+        assert mode == "iconify"
+        assert root.calls == ["iconify"]
+
+    def test_no_controller_iconifies(self) -> None:
+        root = _FakeRoot()
+        mode = tray.try_minimize_to_background(root, None)
+        assert mode == "iconify"
+        assert root.calls == ["iconify"]
+
+
+def test_log_diagnostics_never_raises() -> None:
+    # Diagnostics must be safe with and without a configured icon, tray present
+    # or not (it only logs).
+    tray.log_diagnostics(_cfg())
+    tray.log_diagnostics(LauncherConfig(app_name="X", icon_path="/no/such.png").resolve())

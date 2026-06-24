@@ -200,6 +200,27 @@ class TestAdvancedPorts:
         assert gui.default_internal_ports(self._cfg()) == {"backend": 8000, "nginx": 80}
 
 
+class TestBackgroundButton:
+    @pytest.mark.parametrize(
+        ("state", "expected"),
+        [("running", True), ("stopped", False), ("not_installed", False), ("no_docker", False)],
+    )
+    def test_visible_only_when_running(self, state: str, expected: bool) -> None:
+        assert gui.background_button_visible(state) is expected
+
+
+class TestShouldKeepAliveOnClose:
+    def test_running_and_enabled_keeps_alive(self) -> None:
+        assert gui.should_keep_alive_on_close("running", minimize_enabled=True) is True
+
+    def test_running_but_disabled_quits(self) -> None:
+        assert gui.should_keep_alive_on_close("running", minimize_enabled=False) is False
+
+    def test_not_running_quits(self) -> None:
+        assert gui.should_keep_alive_on_close("stopped", minimize_enabled=True) is False
+        assert gui.should_keep_alive_on_close("not_installed", minimize_enabled=True) is False
+
+
 class TestShouldMinimizeToTray:
     def test_running_with_tray(self) -> None:
         assert gui.should_minimize_to_tray("running", tray_available=True, tray_enabled=True) is True

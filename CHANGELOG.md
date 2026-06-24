@@ -6,6 +6,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Explicit "Run in background" button + reliable Ubuntu tray (#9).** The
+  running window now shows a visible **Run in the background** button instead of
+  relying on the X + an often-broken tray. It (and the X) route through
+  `tray.try_minimize_to_background`: when the system tray docks, the window is
+  hidden to it; when it does not (no AppIndicator on Ubuntu/Wayland), the window
+  is **minimized to the taskbar** instead, with a status hint - never silently
+  killed. The X button now keeps a running app alive (tray, else taskbar) and
+  only closes the launcher when the app is stopped (or the app opted out via
+  `tray_minimize_on_close`). pystray's **AppIndicator backend is now forced**
+  (`pystray._appindicator`) rather than letting it auto-select the legacy X11
+  backend that fires its setup callback but never docks; `PyGObject` is added to
+  the `tray` extra (Linux-only marker). `--debug` logs tray diagnostics
+  (import, backend, icon) so a missing tray needs no user debugging.
+
 ### Changed
 
 - **Confirmed fully configuration-driven; dropped the last app-specific

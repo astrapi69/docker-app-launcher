@@ -133,6 +133,22 @@ def should_minimize_to_tray(state: str, *, tray_available: bool, tray_enabled: b
     return state == "running" and tray_enabled and tray_available
 
 
+def background_button_visible(state: str) -> bool:
+    """Whether the explicit "Run in background" button is shown (running only)."""
+    return state == "running"
+
+
+def should_keep_alive_on_close(state: str, *, minimize_enabled: bool) -> bool:
+    """Whether the X button should keep the launcher alive instead of quitting.
+
+    True while the app is RUNNING and the app opts in (``minimize_enabled``):
+    the window then goes to the tray, or - when the tray is unavailable - is
+    minimized to the taskbar (never silently killed). When the app is not
+    running, or the app opted out, the X quits the launcher.
+    """
+    return state == "running" and minimize_enabled
+
+
 class LauncherApp(tk.Tk):
     """The persistent window. Thin Tk over the helpers above."""
 
@@ -170,6 +186,11 @@ class LauncherApp(tk.Tk):
 
         self._button_row = tk.Frame(self)
         self._button_row.pack(pady=(4, 0))
+
+        # A separate row below the action buttons for the explicit
+        # "Run in background" button (shown only while the app is running).
+        self._background_row = tk.Frame(self)
+        self._background_row.pack(pady=(2, 0))
 
         status_frame = tk.Frame(self)
         status_frame.pack(fill="both", expand=True, padx=12, pady=(8, 12))
@@ -230,6 +251,15 @@ class LauncherApp(tk.Tk):
                 width=18,
                 command=functools.partial(self._on_action, action_id),
             ).pack(side="left", padx=4)
+        for child in self._background_row.winfo_children():
+            child.destroy()
+        if background_button_visible(state):
+            tk.Button(
+                self._background_row,
+                text=self._t("run_in_background"),
+                width=38,
+                command=self._go_background,
+            ).pack()
 
     def _validate_port(self) -> None:
         raw = self._port_var.get().strip()
@@ -458,20 +488,25 @@ class LauncherApp(tk.Tk):
     # --- close / system tray ---
 
     def _on_close(self) -> None:
-        minimize = should_minimize_to_tray(
-            actions.get_state(self._cfg),
-            tray_available=tray.tray_available(),
-            tray_enabled=self._cfg.tray_enabled and self._cfg.tray_minimize_on_close,
-        )
-        if minimize and self._minimize_to_tray():
-            return
-        self._quit()
+        """X button: keep a running app alive (tray/taskbar), else quit.
 
-    def _minimize_to_tray(self) -> bool:
-        port = actions.resolve_port(self._cfg)
-        controller = tray.TrayController(
+        Running + opted-in -> background (tray, or taskbar when the tray is
+        unavailable, with a hint). Not running, or opted out -> close.
+        """
+        keep_alive = should_keep_alive_on_close(
+            actions.get_state(self._cfg),
+            minimize_enabled=self._cfg.tray_enabled and self._cfg.tray_minimize_on_close,
+        )
+        if not keep_alive:
+            self._quit()
+            return
+        self._go_background(via_close=True)
+
+    def _background_controller(self) -> tray.TrayController:
+        """Build a tray controller wired to the window's restore/stop/quit."""
+        return tray.TrayController(
             config=self._cfg,
-            port=port,
+            port=actions.resolve_port(self._cfg),
             labels=tray.menu_labels(self._cfg),
             callbacks={
                 "open": lambda: self.after(0, self._restore_window),
@@ -480,11 +515,23 @@ class LauncherApp(tk.Tk):
                 "quit": lambda: self.after(0, self._quit),
             },
         )
-        if not controller.start():
-            return False
-        self._tray = controller
-        self.withdraw()
-        return True
+
+    def _go_background(self, *, via_close: bool = False) -> None:
+        """Run in the background: prefer the system tray, fall back to the taskbar.
+
+        Used by both the explicit "Run in background" button and the X button
+        (``via_close``). Logs tray diagnostics first (visible under ``--debug``)
+        and gives mode-appropriate feedback in the status area.
+        """
+        tray.log_diagnostics(self._cfg)
+        controller = self._background_controller()
+        mode = tray.try_minimize_to_background(self, controller)
+        if mode == "tray":
+            self._tray = controller
+            if not via_close:
+                self._log(self._t("background_tray"))
+        else:
+            self._log(self._t("closed_minimized") if via_close else self._t("background_iconified"))
 
     def _restore_window(self) -> None:
         self._stop_tray()

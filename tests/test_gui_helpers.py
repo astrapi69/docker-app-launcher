@@ -92,9 +92,7 @@ class _FakeButton:
         self.state = value
 
 
-def _busy_app(
-    monkeypatch: pytest.MonkeyPatch, buttons: list[_FakeButton]
-) -> tuple[gui.LauncherApp, dict[str, Any]]:
+def _busy_app(monkeypatch: pytest.MonkeyPatch, buttons: list[_FakeButton]) -> tuple[gui.LauncherApp, dict[str, Any]]:
     """Build a LauncherApp without a real Tk window, with every Tk-touching
     method stubbed so ``_set_busy`` can be exercised headlessly."""
     app = gui.LauncherApp.__new__(gui.LauncherApp)

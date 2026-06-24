@@ -267,7 +267,8 @@ make fix       # auto-fix lint + format
 
 ## Used by
 
-- [Adaptive Learner](https://github.com/astrapi69/adaptive-learner)
+- [Adaptive Learner](https://github.com/astrapi69/adaptive-learner) — AI-powered language learning platform
+- [Bibliogon](https://github.com/astrapi69/bibliogon) — React-based book authoring platform
 
 ## License
 

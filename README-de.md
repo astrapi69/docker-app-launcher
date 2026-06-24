@@ -205,6 +205,11 @@ Ohne Manifest:   Muster-basiert — sucht nach Namens-Mustern
 
 Deshalb wird das Manifest automatisch erstellt und sollte nicht manuell gelöscht werden.
 
+## Verwendet von
+
+- [Adaptive Learner](https://github.com/astrapi69/adaptive-learner) — KI-gestützte Sprachlernplattform
+- [Bibliogon](https://github.com/astrapi69/bibliogon) — React-basierte Buch-Authoring-Plattform
+
 ## Lizenz
 
 [MIT](LICENSE) © Asterios Raptis

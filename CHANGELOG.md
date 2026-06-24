@@ -6,7 +6,23 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [0.3.0] - 2026-06-24
+### Added
+
+- **Configurable internal (container) ports for experts (#5).** New
+  `LauncherConfig` fields `internal_ports` (logical name -> default container
+  port), `env_internal_port_keys` (name -> `.env` variable Compose substitutes),
+  and `show_advanced_ports`. The `.env` now carries ALL ports (public + every
+  internal key); `set_internal_port` / `resolve_internal_port` persist + resolve
+  them (internal ports allow the full 1-65535 range - e.g. nginx `:80` - since
+  they are not host-published). New `change_internal_port()` action: unlike the
+  public host port's seconds-fast no-rebuild recreate, an internal-port change
+  **rebuilds** the images (Stop -> `.env` -> `up --build -d` -> health-check),
+  with an `internal_port_rebuilding` progress line. The persistent window grows
+  a collapsed **"Advanced settings (experts)"** section (gated by
+  `show_advanced_ports`, hidden + inert by default) with a field + Apply button
+  per internal port (Apply confirms the 2-5 min rebuild first), a warning, and a
+  "Restore defaults" button. With the maps empty (the default) nothing changes:
+  no `.env` keys, no UI, no behaviour shift.
 
 ### Fixed
 

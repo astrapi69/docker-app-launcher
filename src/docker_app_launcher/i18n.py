@@ -42,6 +42,13 @@ STRINGS: dict[str, dict[str, str]] = {
         "uninstall": "Uninstall",
         "open_browser": "Open in browser",
         "apply_port": "Apply port",
+        "apply": "Apply",
+        "advanced_settings": "Advanced settings (experts)",
+        "advanced_warning": (
+            "Only change these if you know what you are doing. A change requires a rebuild (2-5 minutes)."
+        ),
+        "restore_defaults": "Restore defaults",
+        "internal_port_field": "{name} port (internal):",
         "retry": "Check again",
         "cleanup": "Clean up",
         "skip": "Skip",
@@ -95,6 +102,13 @@ STRINGS: dict[str, dict[str, str]] = {
         "port_set": "Port set to {port}.",
         "port_restarting": "Port changed. Restarting {app}...",
         "port_changed": "Port changed to {port}.",
+        "internal_port_unknown": "Unknown internal port: {name}.",
+        "internal_port_set": "Internal port {name} set to {port}.",
+        "internal_port_rebuilding": ("Internal port changed. Rebuilding images (this can take a few minutes)..."),
+        "internal_port_changed": "Internal port {name} changed to {port}.",
+        "internal_port_confirm": (
+            "Changing an internal port requires rebuilding the Docker images (2-5 minutes). Continue?"
+        ),
         "no_free_port": "No free port found.",
         "free_port_found": "Free port found: {port}.",
         # --- docker / errors ---
@@ -133,6 +147,13 @@ STRINGS: dict[str, dict[str, str]] = {
         "uninstall": "Deinstallieren",
         "open_browser": "Im Browser oeffnen",
         "apply_port": "Port uebernehmen",
+        "apply": "Uebernehmen",
+        "advanced_settings": "Erweiterte Einstellungen (nur fuer Experten)",
+        "advanced_warning": (
+            "Nur aendern wenn du weisst was du tust. Eine Aenderung erfordert einen Rebuild (2-5 Minuten)."
+        ),
+        "restore_defaults": "Standardwerte wiederherstellen",
+        "internal_port_field": "{name}-Port (intern):",
         "retry": "Erneut pruefen",
         "cleanup": "Aufraeumen",
         "skip": "Ueberspringen",
@@ -186,6 +207,13 @@ STRINGS: dict[str, dict[str, str]] = {
         "port_set": "Port auf {port} gesetzt.",
         "port_restarting": "Port geaendert. {app} wird neu gestartet...",
         "port_changed": "Port auf {port} geaendert.",
+        "internal_port_unknown": "Unbekannter interner Port: {name}.",
+        "internal_port_set": "Interner Port {name} auf {port} gesetzt.",
+        "internal_port_rebuilding": "Interner Port geaendert. Images werden neu gebaut (kann einige Minuten dauern)...",
+        "internal_port_changed": "Interner Port {name} auf {port} geaendert.",
+        "internal_port_confirm": (
+            "Eine interne Port-Aenderung erfordert einen Rebuild der Docker-Images (2-5 Minuten). Fortfahren?"
+        ),
         "no_free_port": "Kein freier Port gefunden.",
         "free_port_found": "Freier Port gefunden: {port}.",
         # --- docker / errors ---

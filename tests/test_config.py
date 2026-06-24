@@ -114,6 +114,26 @@ class TestSerialization:
         assert loaded.app_name == "My App"
         assert loaded.default_port == 9000
 
+    def test_internal_port_defaults_empty(self) -> None:
+        cfg = LauncherConfig(app_name="X").resolve()
+        assert cfg.internal_ports == {}
+        assert cfg.env_internal_port_keys == {}
+        assert cfg.show_advanced_ports is False
+
+    def test_internal_ports_round_trip(self, tmp_path: Path) -> None:
+        path = tmp_path / "cfg.json"
+        cfg = LauncherConfig(
+            app_name="X",
+            internal_ports={"backend": 8000, "nginx": 80},
+            env_internal_port_keys={"backend": "APP_BACKEND_PORT", "nginx": "APP_NGINX_PORT"},
+            show_advanced_ports=True,
+        ).resolve()
+        cfg.to_json(path)
+        loaded = LauncherConfig.from_json(path)
+        assert loaded.internal_ports == {"backend": 8000, "nginx": 80}
+        assert loaded.env_internal_port_keys == {"backend": "APP_BACKEND_PORT", "nginx": "APP_NGINX_PORT"}
+        assert loaded.show_advanced_ports is True
+
     def test_to_json_excludes_callbacks(self, tmp_path: Path) -> None:
         path = tmp_path / "cfg.json"
         cfg = LauncherConfig(app_name="X", on_error=lambda *a: None).resolve()

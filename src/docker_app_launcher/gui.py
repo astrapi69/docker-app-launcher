@@ -18,6 +18,7 @@ import logging
 import threading
 import tkinter as tk
 from pathlib import Path
+from tkinter import messagebox
 
 from docker_app_launcher import actions, i18n, tray, update_check
 from docker_app_launcher.config import LauncherConfig
@@ -56,6 +57,35 @@ def port_editable(state: str) -> bool:
 def buttons_for_state(state: str) -> list[tuple[str, str]]:
     """Return ``[(action_id, i18n_label_key), ...]`` for ``state``."""
     return list(_BUTTONS.get(state, []))
+
+
+def advanced_ports_visible(config: LauncherConfig) -> bool:
+    """Whether the expert internal-port section is shown.
+
+    Only when the app opts in (``show_advanced_ports``) AND actually declares
+    internal ports to expose (``env_internal_port_keys``); otherwise the section
+    is inert and stays hidden.
+    """
+    return bool(config.show_advanced_ports and config.env_internal_port_keys)
+
+
+def internal_port_fields(config: LauncherConfig) -> list[tuple[str, str, int]]:
+    """Return ``[(name, label, current_value), ...]`` for the expert section.
+
+    One row per declared internal port, label localized via ``internal_port_field``
+    and value resolved (stored override or config default). Sorted by name for a
+    stable layout.
+    """
+    rows: list[tuple[str, str, int]] = []
+    for name in sorted(config.env_internal_port_keys):
+        label = i18n.t("internal_port_field", config, name=name.capitalize())
+        rows.append((name, label, actions.resolve_internal_port(config, name)))
+    return rows
+
+
+def default_internal_ports(config: LauncherConfig) -> dict[str, int]:
+    """The config-default internal ports (what "Restore defaults" repopulates)."""
+    return dict(config.internal_ports)
 
 
 def dispatch_action(
@@ -134,6 +164,10 @@ class LauncherApp(tk.Tk):
         self._port_indicator.pack(side="left", padx=(6, 0))
         self._port_entry.bind("<KeyRelease>", lambda _e: self._validate_port())
 
+        self._internal_vars: dict[str, tk.StringVar] = {}
+        if advanced_ports_visible(config):
+            self._build_advanced_section()
+
         self._button_row = tk.Frame(self)
         self._button_row.pack(pady=(4, 0))
 
@@ -204,6 +238,84 @@ class LauncherApp(tk.Tk):
             return
         free, _ = actions.check_port(int(raw))
         self._port_indicator.configure(text="✓" if free else "✗", fg="#188038" if free else "#c5221f")
+
+    # --- advanced (internal ports, experts) ---
+
+    def _build_advanced_section(self) -> None:
+        """Build the collapsed expert section for internal (container) ports."""
+        self._advanced_open = False
+        toggle_row = tk.Frame(self)
+        toggle_row.pack(pady=(0, 4))
+        self._advanced_toggle = tk.Button(
+            toggle_row, text="▶ " + self._t("advanced_settings"), relief="flat", command=self._toggle_advanced
+        )
+        self._advanced_toggle.pack()
+
+        self._advanced_frame = tk.Frame(self)
+        for name, label, value in internal_port_fields(self._cfg):
+            row = tk.Frame(self._advanced_frame)
+            row.pack(pady=2)
+            tk.Label(row, text=label, width=22, anchor="w").pack(side="left")
+            var = tk.StringVar(value=str(value))
+            self._internal_vars[name] = var
+            tk.Entry(row, textvariable=var, width=8).pack(side="left")
+            tk.Button(row, text=self._t("apply"), command=functools.partial(self._apply_internal_port, name)).pack(
+                side="left", padx=(6, 0)
+            )
+        tk.Label(
+            self._advanced_frame,
+            text="⚠ " + self._t("advanced_warning"),
+            wraplength=440,
+            justify="left",
+            fg="#b06000",
+        ).pack(pady=(4, 2))
+        tk.Button(self._advanced_frame, text=self._t("restore_defaults"), command=self._restore_internal_defaults).pack(
+            pady=(0, 4)
+        )
+
+    def _toggle_advanced(self) -> None:
+        """Expand/collapse the expert section (collapsed by default)."""
+        self._advanced_open = not self._advanced_open
+        arrow = "▼ " if self._advanced_open else "▶ "
+        self._advanced_toggle.configure(text=arrow + self._t("advanced_settings"))
+        if self._advanced_open:
+            self._advanced_frame.pack(pady=(0, 6), before=self._button_row)
+        else:
+            self._advanced_frame.pack_forget()
+
+    def _apply_internal_port(self, name: str) -> None:
+        """Confirm (rebuild warning) then change one internal port."""
+        raw = self._internal_vars[name].get().strip()
+        if not raw.isdigit() or not actions._validate_internal_port(int(raw))[0]:
+            self._log(self._t("port_invalid", min=actions.MIN_INTERNAL_PORT, max=actions.MAX_PORT), tag="err")
+            return
+        if not messagebox.askyesno(self._cfg.app_name, self._t("internal_port_confirm")):
+            return
+        port = int(raw)
+        self._set_busy(True)
+
+        def step(label: str) -> None:
+            self.after(0, lambda: self._log(label))
+
+        def output(line: str) -> None:
+            self.after(0, functools.partial(self._log, line))
+
+        def worker() -> None:
+            result = actions.change_internal_port(self._cfg, name, port, on_step=step, on_output=output)
+            self.after(0, lambda: self._on_result("change_internal_port", result))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _restore_internal_defaults(self) -> None:
+        """Repopulate the internal-port fields with the config defaults (UI only).
+
+        Persisting + rebuilding still happens through each field's Apply button,
+        so this never leaves the running stack half-changed.
+        """
+        for name, value in default_internal_ports(self._cfg).items():
+            if name in self._internal_vars:
+                self._internal_vars[name].set(str(value))
+        self._log(self._t("restore_defaults"))
 
     # --- update check ---
 

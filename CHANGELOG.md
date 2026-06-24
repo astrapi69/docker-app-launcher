@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-06-24
+
 ### Fixed
 
 - **A port change now actually reaches Docker Compose (#3).** `set_port`

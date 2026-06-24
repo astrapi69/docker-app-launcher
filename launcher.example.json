@@ -1,15 +1,67 @@
 {
+  "_comment": "Example configuration - copy to launcher.json and adjust. Only app_name is required; everything else has a sensible default.",
+
   "app_name": "My App",
   "container_name": "my-app",
   "default_port": 8080,
-  "compose_file": "docker-compose.prod.yml",
-  "install_dir": "/opt/my-app",
+
   "health_check_path": "/api/health",
   "health_check_key": "status",
   "health_check_value": "ok",
+  "health_check_timeout": 60,
+  "browser_path": "/",
   "env_port_key": "APP_PORT",
+
+  "compose_file": "docker-compose.prod.yml",
+  "build_timeout": 600,
+  "start_timeout": 120,
+  "stop_timeout": 30,
+
+  "icon_path": "branding/app-icon.png",
+  "tray_icon_path": "",
+  "config_dir": "",
+  "install_dir": "",
+
+  "window_width": 620,
+  "window_height": 470,
+  "locale": "auto",
+
   "repo_url": "https://github.com/owner/repo",
-  "locale": "en",
+  "releases_url": "",
+  "docs_url": "",
+
+  "update_check_enabled": true,
+
+  "single_instance": true,
+
   "tray_enabled": true,
-  "legacy_names": []
+  "tray_minimize_on_close": true,
+
+  "show_advanced_ports": false,
+  "internal_ports": {
+    "backend": 8000,
+    "nginx": 80
+  },
+  "env_internal_port_keys": {
+    "backend": "APP_BACKEND_PORT",
+    "nginx": "APP_NGINX_PORT"
+  },
+
+  "cleanup_on_start": true,
+  "legacy_names": ["old-app-name"],
+  "cleanup_configs": [
+    "~/.old-app-name",
+    "~/.config/old-app-name"
+  ],
+  "cleanup_search_paths": [
+    "~/.config/",
+    "~/.local/share/",
+    "~/"
+  ],
+
+  "log_level": "INFO",
+  "log_max_size": 5000000,
+  "log_backup_count": 3,
+
+  "custom_strings": {}
 }

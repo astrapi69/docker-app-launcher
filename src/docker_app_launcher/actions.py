@@ -40,7 +40,7 @@ from pathlib import Path
 from typing import Any
 
 from docker_app_launcher import __version__, i18n
-from docker_app_launcher.config import LauncherConfig
+from docker_app_launcher.config import SUPPORTED_LOCALES, LauncherConfig, detect_system_locale
 from docker_app_launcher.subprocess_utils import subprocess_kwargs
 
 logger = logging.getLogger("docker_app_launcher.actions")
@@ -368,6 +368,28 @@ def set_port(config: LauncherConfig, port: int) -> tuple[bool, str]:
     save_config(config.launcher_config_file, data)
     _write_env_ports(config)
     return True, _t(config, "port_set", port=port)
+
+
+def resolve_locale(config: LauncherConfig) -> str:
+    """Resolve the effective UI locale (the picker's persisted choice wins).
+
+    Precedence: ``locale`` in the launcher JSON (the user's last choice) ->
+    :attr:`LauncherConfig.locale`. ``"auto"`` (stored or default) resolves to the
+    system locale; an unsupported value falls back to English.
+    """
+    stored = load_config(config.launcher_config_file).get("locale")
+    candidate = stored if isinstance(stored, str) and stored else config.locale
+    if candidate == "auto":
+        candidate = detect_system_locale()
+    return candidate if candidate in SUPPORTED_LOCALES else "en"
+
+
+def set_locale(config: LauncherConfig, locale: str) -> str:
+    """Persist the chosen UI ``locale`` into the launcher JSON; return it."""
+    data = load_config(config.launcher_config_file)
+    data["locale"] = locale
+    save_config(config.launcher_config_file, data)
+    return locale
 
 
 def resolve_internal_port(config: LauncherConfig, name: str) -> int:

@@ -106,6 +106,21 @@ class TestSingleInstance:
         assert rc == 0
         assert "already running" in capsys.readouterr().out.lower()
 
+    def test_single_instance_false_skips_lockfile(self, monkeypatch, tmp_path) -> None:
+        from docker_app_launcher.config import LauncherConfig
+
+        cfg_path = tmp_path / "launcher.json"
+        LauncherConfig(app_name="X", single_instance=False).to_json(cfg_path)
+
+        def boom(*a, **k):
+            raise AssertionError("lockfile must not be consulted when single_instance=False")
+
+        monkeypatch.setattr(lockfile, "another_instance_alive", boom)
+        launched: dict[str, object] = {}
+        monkeypatch.setattr(gui, "run", lambda c, **k: launched.setdefault("v", 0) or 0)
+        rc = __main__.main(["--config", str(cfg_path)])
+        assert rc == 0 and "v" in launched
+
     def test_lock_is_written_during_run_and_cleared_after(self, monkeypatch) -> None:
         from docker_app_launcher.config import LauncherConfig
 

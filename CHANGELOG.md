@@ -6,6 +6,24 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **In-window language picker + system-locale auto-detect.** The window shows a
+  language dropdown (each language in its own script - "Ελληνικά", not "Greek")
+  that switches the UI **live** and persists the choice to the launcher JSON.
+  `locale` now defaults to `"auto"`, which `resolve()` maps to the OS language
+  (`detect_system_locale()`), falling back to English; any explicit code
+  overrides it. New `LOCALE_LABELS`, `locale_for_label()`, and
+  `actions.resolve_locale()` / `set_locale()`.
+- **Configurable single-instance + logging.** New `single_instance` (set
+  `false` to allow multiple windows / skip the lockfile) and `log_level` /
+  `log_max_size` / `log_backup_count` (previously hard-coded) `LauncherConfig`
+  fields, all surfaced in a complete `launcher.example.json`.
+
+### Changed
+
+- `launcher.example.json` now documents every configurable field.
+
 ## [0.6.0] - 2026-06-24
 
 ### Added

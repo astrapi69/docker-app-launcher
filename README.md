@@ -61,18 +61,27 @@ Everything is configurable. Only `app_name` is required — the rest is derived
   "health_check_key": "status",
   "health_check_value": "ok",
   "repo_url": "https://github.com/owner/repo",
-  "app_version": "0.2.2",
+  "app_version": "0.4.0",
   "update_check_enabled": true,
+  "internal_ports": { "nginx": 80 },
+  "env_internal_port_keys": { "nginx": "NGINX_PORT" },
+  "show_advanced_ports": true,
   "locale": "en"
 }
 ```
+
+> `internal_ports`, `env_internal_port_keys`, and `show_advanced_ports` are
+> optional expert fields — omit them and the launcher behaves exactly as before
+> (single host port, no advanced panel).
 
 ## Features
 
 - **One persistent window** — never closes itself; only the X closes it.
 - **Docker check on startup** — distinguishes *not installed* / *running* / *stopped* / *no Docker*.
 - **Live build progress** — the Docker build is streamed line-by-line into the window.
-- **Configurable port** — editable in the GUI and via `--port`, validated and persisted (to `launcher.json` and `.env`).
+- **Configurable port** — editable in the GUI and via `--port`, validated and persisted (to `launcher.json` and the `.env` next to the compose file, so the launcher and Compose can't disagree).
+- **Live port changes** — the port field stays editable while the app runs; "Apply port" validates, rewrites `.env`, and recreates the stack in seconds (no rebuild — only the published host port changed), then health-checks on the **new** port.
+- **Advanced internal ports** (experts) — optional `internal_ports` / `env_internal_port_keys` let you remap in-container ports (full 1–65535 range, e.g. nginx `:80`); a collapsed "Advanced settings" panel (gated by `show_advanced_ports`) applies them with an image rebuild + health check. Empty by default: no extra `.env` keys, no UI, no behaviour change.
 - **Verified actions** — install runs a health check; uninstall re-lists the containers to confirm they are gone.
 - **Install manifest + startup cleanup** — finds and offers to remove stale leftovers of older installs.
 - **Verbose uninstall / cleanup** — every step reported with a ✓ / ✗ result.

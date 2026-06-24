@@ -56,18 +56,27 @@ oder mit Standardwerten belegt.
   "install_dir": "/opt/meine-app",
   "health_check_path": "/api/health",
   "repo_url": "https://github.com/owner/repo",
-  "app_version": "0.2.2",
+  "app_version": "0.4.0",
   "update_check_enabled": true,
+  "internal_ports": { "nginx": 80 },
+  "env_internal_port_keys": { "nginx": "NGINX_PORT" },
+  "show_advanced_ports": true,
   "locale": "de"
 }
 ```
+
+> `internal_ports`, `env_internal_port_keys` und `show_advanced_ports` sind
+> optionale Experten-Felder — ohne sie verhaelt sich der Launcher wie zuvor
+> (ein Host-Port, kein Experten-Bereich).
 
 ## Funktionen
 
 - **Ein dauerhaftes Fenster** — schliesst sich nie selbst; nur das X schliesst es.
 - **Docker-Pruefung beim Start** — unterscheidet *nicht installiert* / *laeuft* / *gestoppt* / *kein Docker*.
 - **Live-Build-Fortschritt** — der Docker-Build wird Zeile fuer Zeile ins Fenster gestreamt.
-- **Konfigurierbarer Port** — im GUI und per `--port` editierbar, validiert und persistiert (in `launcher.json` und `.env`).
+- **Konfigurierbarer Port** — im GUI und per `--port` editierbar, validiert und persistiert (in `launcher.json` und im `.env` neben der Compose-Datei, damit Launcher und Compose nicht auseinanderlaufen).
+- **Live-Port-Wechsel** — das Port-Feld bleibt waehrend des Betriebs editierbar; "Port anwenden" validiert, schreibt `.env` neu und erstellt den Stack in Sekunden neu (kein Rebuild — nur der veroeffentlichte Host-Port aenderte sich) und prueft dann die Gesundheit auf dem **neuen** Port.
+- **Interne Ports (Experten)** — optionale `internal_ports` / `env_internal_port_keys` erlauben das Umbiegen von Container-internen Ports (voller Bereich 1–65535, z. B. nginx `:80`); ein einklappbarer "Erweiterte Einstellungen"-Bereich (per `show_advanced_ports`) wendet sie mit einem Image-Rebuild + Gesundheitspruefung an. Standardmaessig leer: keine zusaetzlichen `.env`-Schluessel, keine UI, keine Verhaltensaenderung.
 - **Verifizierte Aktionen** — Installation prueft die Gesundheit; Deinstallation listet Container erneut auf.
 - **Install-Manifest + Start-Aufraeumen** — findet und entfernt auf Wunsch Reste alter Installationen.
 - **Ausfuehrliches Deinstallieren / Aufraeumen** — jeder Schritt mit ✓ / ✗ Ergebnis.

@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-06-24
+
 ### Added
 
 - **Platform-specific Docker diagnostics + guided start.** When Docker is down,

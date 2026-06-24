@@ -33,9 +33,16 @@ launch(LauncherConfig(
 
 ```bash
 docker-app-launcher --config launcher.json   # open the window
+docker-app-launcher --version                 # print the launcher version and exit
+docker-app-launcher --check                   # is Docker running?
 docker-app-launcher --status                  # print state and exit
 docker-app-launcher --install --port 9000     # build + start headless
-docker-app-launcher --check                   # is Docker running?
+docker-app-launcher --start                   # start the stopped app
+docker-app-launcher --stop                    # stop the running app
+docker-app-launcher --uninstall               # remove containers/images
+docker-app-launcher --cleanup                 # remove stale leftovers
+docker-app-launcher --open                    # open the app in the browser
+docker-app-launcher --debug ...               # verbose logging to stdout + launcher-debug.log
 ```
 
 ### launcher.json
@@ -54,6 +61,8 @@ Everything is configurable. Only `app_name` is required — the rest is derived
   "health_check_key": "status",
   "health_check_value": "ok",
   "repo_url": "https://github.com/owner/repo",
+  "app_version": "0.2.2",
+  "update_check_enabled": true,
   "locale": "en"
 }
 ```
@@ -67,6 +76,12 @@ Everything is configurable. Only `app_name` is required — the rest is derived
 - **Verified actions** — install runs a health check; uninstall re-lists the containers to confirm they are gone.
 - **Install manifest + startup cleanup** — finds and offers to remove stale leftovers of older installs.
 - **Verbose uninstall / cleanup** — every step reported with a ✓ / ✗ result.
+- **Single-instance guard** — a PID-based lockfile refuses a second launch with an "already running" notice instead of opening a duplicate window.
+- **Background update check** — checks GitHub Releases (derived from `repo_url`) and notes in-window when a newer release exists. Opt-out via `update_check_enabled`; silent on any network error.
+- **File logging** — a rotated `launcher.log` plus a per-run `install.log` under the config dir, and a `launcher-debug.log` on `--debug`. Best-effort: an unwritable dir degrades gracefully rather than crashing.
+- **Concurrency-safe UI** — every button is disabled for the full duration of an action and the window is held on top, so a second action can't be launched in parallel.
+- **Quiet on Windows** — every Docker subprocess runs with `CREATE_NO_WINDOW`, so an install no longer flashes a swarm of console windows (no change on Linux/macOS).
+- **PyInstaller-ready** — a bundled spec template, hidden-imports list, and build-time version injection for shipping frozen single-file builds.
 - **System tray** (optional) — `pip install docker-app-launcher[tray]`; the window minimizes to the tray while running.
 - **DE / EN i18n** — with per-app custom-string overrides via `custom_strings`.
 - **Actions architecture** — all business logic is GUI-free and unit-tested without a display.
@@ -76,12 +91,17 @@ Everything is configurable. Only `app_name` is required — the rest is derived
 
 | Module        | Responsibility                                              |
 |---------------|-------------------------------------------------------------|
-| `config.py`   | `LauncherConfig` dataclass — the single source of truth.    |
-| `actions.py`  | All business logic. No `tkinter`. Fully testable.           |
-| `gui.py`      | `LauncherApp(tk.Tk)` — a thin window over the actions.       |
-| `tray.py`     | Optional system tray (pystray + Pillow).                     |
-| `i18n.py`     | DE/EN strings with custom-string overrides.                  |
-| `__main__.py` | CLI entry point + GUI router.                                |
+| `config.py`         | `LauncherConfig` dataclass — the single source of truth.    |
+| `actions.py`        | All business logic. No `tkinter`. Fully testable.           |
+| `gui.py`            | `LauncherApp(tk.Tk)` — a thin window over the actions.       |
+| `tray.py`           | Optional system tray (pystray + Pillow).                     |
+| `i18n.py`           | DE/EN strings with custom-string overrides.                  |
+| `lockfile.py`       | PID-based single-instance guard.                            |
+| `update_check.py`   | Background GitHub Releases update check.                    |
+| `logging_setup.py`  | Rotated file logging (`launcher.log` / `install.log`).      |
+| `subprocess_utils.py` | Windows `CREATE_NO_WINDOW` kwargs for all subprocesses.   |
+| `pyinstaller/`      | Spec template + helpers for frozen builds.                  |
+| `__main__.py`       | CLI entry point + GUI router.                                |
 
 ## Configuration reference
 

@@ -6,6 +6,29 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **A port change now actually reaches Docker Compose (#3).** `set_port`
+  persisted the new port to the launcher JSON and tried to mirror it into
+  `.env`, but `_env_path` returned `None` whenever `install_dir` was empty, so
+  the `.env` write was a silent no-op. The launcher then resolved the new port
+  from its own JSON (for the health check + browser open) while Compose kept
+  reading the old `.env` and republished the old port - so the app was
+  unreachable on the port the launcher opened. `.env` is now written next to the
+  compose file (`compose_path.parent`, which is `install_dir` when set and the
+  CWD otherwise - exactly where Compose reads it), so the launcher and Compose
+  can no longer disagree.
+
+### Added
+
+- **`actions.change_port()` - a verified, in-place host-port change.** Validate
+  -> persist (launcher JSON + `.env`) -> if the stack is running, Stop and
+  recreate with `up -d` (deliberately NOT `--build`: only the published host
+  port changed, so the restart is seconds, not the minutes a rebuild costs) ->
+  health-check on the **new** port. The persistent window now keeps the port
+  field editable while running and adds an "Apply port" button that routes to
+  it, with a "Port changed. Restarting..." progress line.
+
 ## [0.2.2] - 2026-06-23
 
 ### Fixed

@@ -26,6 +26,7 @@ from __future__ import annotations
 import contextlib
 import json
 import logging
+import re
 import shutil
 import socket
 import subprocess
@@ -270,22 +271,28 @@ def save_config(path: Path, config: dict[str, Any]) -> None:
     path.write_text(json.dumps(config, indent=2, sort_keys=True), encoding="utf-8")
 
 
-def _env_path(config: LauncherConfig) -> Path | None:
-    if not config.install_dir:
-        return None
-    return Path(config.install_dir).expanduser() / ".env"
+def _env_path(config: LauncherConfig) -> Path:
+    """Path of the ``.env`` file Docker Compose reads for this project.
+
+    Compose loads ``.env`` from the project directory - the directory holding
+    the compose file, which is ``install_dir`` when set and the current working
+    directory otherwise (mirrors :attr:`LauncherConfig.compose_path`). Writing
+    the port HERE, rather than only when ``install_dir`` is set, is what makes a
+    port change actually reach Compose: otherwise :func:`set_port` would update
+    only the launcher's own JSON and the running stack would keep publishing the
+    old port (the launcher and Compose then disagree, and the app is unreachable
+    on the launcher's port).
+    """
+    return config.compose_path.parent / ".env"
 
 
 def _write_env_port(config: LauncherConfig, port: int) -> None:
-    """Upsert ``<env_port_key>=<port>`` into the install dir's ``.env``.
+    """Upsert ``<env_port_key>=<port>`` into the Compose project's ``.env``.
 
-    Best-effort: skipped when there is no ``install_dir`` or the write fails.
+    Best-effort: a write failure is logged and swallowed so it can never crash a
+    port change.
     """
     env_file = _env_path(config)
-    if env_file is None:
-        return
-    import re
-
     pattern = re.compile(rf"^\s*{re.escape(config.env_port_key)}\s*=.*$", re.MULTILINE)
     line = f"{config.env_port_key}={port}"
     try:
@@ -326,6 +333,68 @@ def set_port(config: LauncherConfig, port: int) -> tuple[bool, str]:
     save_config(config.launcher_config_file, data)
     _write_env_port(config, port)
     return True, _t(config, "port_set", port=port)
+
+
+def change_port(
+    config: LauncherConfig,
+    port: int,
+    *,
+    on_step: ProgressFn | None = None,
+    on_output: OutputFn | None = None,
+) -> tuple[bool, str]:
+    """Change the host port and make a RUNNING stack actually serve on it.
+
+    This is the missing half of :func:`set_port`: persisting the port is not
+    enough, because a running container keeps its old published port until it is
+    recreated. The chain:
+
+    1. validate and persist the port (launcher JSON + ``.env``);
+    2. if the stack is running, STOP it, then recreate with ``up -d`` - and
+       deliberately NOT ``up --build -d``: only the published HOST port changed,
+       the images are untouched, so the restart takes seconds rather than the
+       minutes a rebuild would cost;
+    3. health-check on the NEW port and report reachability.
+
+    When the stack is not running this only persists the port (a later
+    start/install picks it up). Returns ``(ok, message)``.
+    """
+    valid, reason = _validate_port(port)
+    if not valid:
+        return False, reason
+    docker_ok, _ = check_docker()
+    if not docker_ok:
+        return False, _t(config, "docker_unavailable")
+
+    was_running = get_state(config) == "running"
+    if was_running:
+        stopped, stop_msg = stop(config)
+        if not stopped:
+            return False, stop_msg
+
+    ok, msg = set_port(config, port)
+    if not ok:
+        return False, msg
+    if not was_running:
+        return True, msg
+
+    _notify(on_step, _t(config, "port_restarting"))
+    try:
+        rc, tail = _stream_compose(config, "up", "-d", on_output=on_output, timeout=float(config.start_timeout))
+    except FileNotFoundError:
+        return False, _t(config, "docker_unavailable")
+    except subprocess.TimeoutExpired:
+        return False, _t(config, "start_timeout")
+    if rc != 0:
+        return False, _t(config, "start_failed", detail=tail)
+    if get_state(config) != "running":
+        return False, _t(config, "start_no_container")
+
+    _notify(on_step, _t(config, "checking_health"))
+    healthy, detail = health_check(config, port)
+    if not healthy:
+        return False, _t(config, "not_reachable", detail=detail)
+    _record_manifest(config, port, action="port_change")
+    return True, _t(config, "port_changed", port=port)
 
 
 # --- Lifecycle (install / start / stop / uninstall) -----------------------

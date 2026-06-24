@@ -93,7 +93,7 @@ Everything is configurable. Only `app_name` is required — the rest is derived
 - **PyInstaller-ready** — a bundled spec template, hidden-imports list, and build-time version injection for shipping frozen single-file builds.
 - **System tray + "Run in background"** (optional) — `pip install docker-app-launcher[tray]`; while running, the window minimizes to the tray (a visible **Run in the background** button and the X both use it). When the tray can't dock it falls back to a taskbar-minimized window, so it never silently closes.
   - **Linux note:** the reliable tray uses pystray's **AppIndicator** backend, which needs `gi` (PyGObject) plus the AppIndicator typelib. The `[tray]` extra pip-installs PyGObject (Linux-only; needs `libgirepository1.0-dev`, `libcairo2-dev`, `pkg-config` to build), and you also need the typelib at runtime — on Ubuntu: `sudo apt install gir1.2-ayatanaappindicator3-0.1`. If you instead rely on the system `python3-gi` (apt), create the venv with `--system-site-packages` so `gi` is importable. Without any of this the launcher still works — it just minimizes to the taskbar. Run with `--debug` to see which backend was selected.
-- **DE / EN i18n** — with per-app custom-string overrides via `custom_strings`.
+- **DE / EN i18n (YAML)** — strings live in per-language YAML files (`i18n/de.yaml`, `i18n/en.yaml`) loaded at startup; **add a language by dropping a `<code>.yaml` file** beside them. German uses real UTF-8 umlauts. Per-app overrides via `custom_strings`.
 - **Actions architecture** — all business logic is GUI-free and unit-tested without a display.
 - **CLI ↔ GUI parity** — both call the exact same actions layer.
 

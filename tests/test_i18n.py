@@ -49,6 +49,41 @@ class TestCustomStrings:
         assert i18n.t("install", cfg) == "Installieren"
 
 
+class TestGermanUmlauts:
+    """German UI strings must use real UTF-8 umlauts, not ASCII transliterations."""
+
+    # Tokens that betray a missed umlaut written as an ASCII transliteration.
+    # Each is specific enough that it never appears in a correct German word here.
+    TRANSLITERATIONS = (
+        "laeuft",
+        "oeffnen",
+        "uebernehmen",
+        "fuer",
+        "pruefen",
+        "aendern",
+        "aenderung",
+        "geaendert",
+        "verfuegbar",
+        "ueber",
+        "uebersprungen",
+        "aufraeumen",
+        "ueberspringen",
+        "moechtest",
+        "fruehere",
+        "bestaetigt",
+        "weisst",
+    )
+
+    def test_no_transliterations_remain(self) -> None:
+        joined = " ".join(i18n.STRINGS["de"].values()).lower()
+        present = sorted({t for t in self.TRANSLITERATIONS if t in joined})
+        assert present == [], f"ASCII transliterations remain in DE strings: {present}"
+
+    def test_de_uses_real_umlauts(self) -> None:
+        joined = "".join(i18n.STRINGS["de"].values())
+        assert any(ch in joined for ch in "äöüß")
+
+
 class TestParity:
     def test_de_has_every_en_key(self) -> None:
         missing = set(i18n.STRINGS["en"]) - set(i18n.STRINGS["de"])

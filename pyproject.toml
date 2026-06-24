@@ -22,7 +22,7 @@ classifiers = [
     "Topic :: System :: Installation/Setup",
     "Typing :: Typed",
 ]
-dependencies = []
+dependencies = ["pyyaml>=6.0"]
 
 [project.optional-dependencies]
 # PyGObject powers pystray's AppIndicator backend (the reliable Linux tray);
@@ -121,7 +121,7 @@ show_missing = true
 skip_covered = false
 
 [tool.codespell]
-# i18n.py is a bilingual (EN/DE) string catalog and README-de.md is the German
-# README; German words there are not typos.
-skip = "poetry.lock,.git,src/docker_app_launcher/i18n.py,README-de.md"
-ignore-words-list = "oeffnen,uebersprungen,ueberspringen,datas"
+# de.yaml is the German string catalog and README-de.md is the German README;
+# German words there are not typos.
+skip = "poetry.lock,.git,src/docker_app_launcher/i18n/de.yaml,README-de.md"
+ignore-words-list = "datas"

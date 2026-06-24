@@ -1,0 +1,101 @@
+not_installed: '{app} is not installed.'
+running: '{app} is running on port {port}.'
+stopped: '{app} is installed but stopped.'
+no_docker: Docker is not started.
+install: Install
+start: Start
+stop: Stop
+uninstall: Uninstall
+open_browser: Open in browser
+run_in_background: Run in the background
+background_tray: Running in the system tray. Double-click the tray icon to restore.
+background_iconified: Running in the background. Restore the window from the taskbar.
+closed_minimized: App keeps running; window minimized.
+apply_port: Apply port
+apply: Apply
+advanced_settings: Advanced settings (experts)
+advanced_warning: Only change these if you know what you are doing. A change requires a rebuild (2-5 minutes).
+restore_defaults: Restore defaults
+internal_port_field: '{name} port (internal):'
+retry: Check again
+cleanup: Clean up
+skip: Skip
+tray_open: Open
+tray_quit: Quit
+checking_docker: Checking Docker...
+docker_ok: Docker is running ✓
+installing: '{app} is being set up...'
+building: Building image (may take a few minutes the first time)...
+image_built: Image built ✓
+starting: Starting container...
+container_started: Container started ✓
+updating: Updating image (a few minutes after code changes, seconds otherwise)...
+checking_health: Checking readiness...
+health_ok: Readiness confirmed ✓
+uninstalling: Uninstall started...
+no_containers: No containers found ✓
+verify_clean: 'Verification: no containers found ✓'
+verify_remain: 'Verification: {count} container(s) remain ✗'
+ready: Installation complete. {app} is ready.
+already_installed: '{app} is already installed and running.'
+already_running: '{app} is already running.'
+start_done: '{app} started.'
+stop_done: '{app} stopped.'
+already_stopped: '{app} was already stopped.'
+uninstall_done: Uninstall complete. Your data is preserved.
+nothing_to_uninstall: Nothing to uninstall (no container present).
+confirm_uninstall: 'Do you want to uninstall {app}?
+
+  Your data is preserved.'
+cleanup_found: 'Earlier installation leftovers found:'
+cleanup_running: Cleaning up...
+cleanup_done: 'Cleanup complete: {count} artifact(s) removed, {freed} freed.'
+cleanup_partial: Cleanup partially failed ({count} step(s)).
+cleanup_skipped: Cleanup skipped.
+data_preserved: Your data was preserved.
+step_stop_container: Stop container '{name}'
+step_remove_container: Remove container '{name}'
+step_remove_image: Remove image '{ref}'
+step_remove_volume: Remove volume '{name}'
+step_remove_config: Remove config '{path}'
+scan_containers: Searching orphaned containers... {count} found
+scan_images: Searching stale images... {count} found
+scan_volumes: Searching orphaned volumes... {count} found
+scan_configs: Searching config leftovers... {count} found
+port_free: Port {port} is free.
+port_occupied: Port {port} is occupied.
+port_invalid: Port must be between {min} and {max}.
+port_set: Port set to {port}.
+port_restarting: Port changed. Restarting {app}...
+port_changed: Port changed to {port}.
+internal_port_unknown: 'Unknown internal port: {name}.'
+internal_port_set: Internal port {name} set to {port}.
+internal_port_rebuilding: Internal port changed. Rebuilding images (this can take a few minutes)...
+internal_port_changed: Internal port {name} changed to {port}.
+internal_port_confirm: Changing an internal port requires rebuilding the Docker images (2-5 minutes). Continue?
+no_free_port: No free port found.
+free_port_found: 'Free port found: {port}.'
+docker_unavailable: Docker is not available (not started).
+docker_not_installed: Docker is not installed (docker not in PATH).
+docker_no_response: Docker is not responding.
+docker_running: Docker is running.
+docker_stopped: Docker is not started.
+compose_not_found: 'Compose file not found: {path}'
+build_failed: 'Docker build failed:
+
+  {detail}'
+build_timeout: Docker build timed out.
+start_failed: 'Start failed:
+
+  {detail}'
+start_timeout: Start timed out.
+not_reachable: 'Installed, but {app} is not reachable: {detail}'
+container_not_running: Container was built but is not running.
+start_no_container: Start command ran, but no container is running.
+stop_failed: 'Stop failed: {detail}'
+stop_not_verified: Container still running after the stop command.
+uninstall_partial: 'Partially removed: {count} container(s) could not be removed.'
+not_reachable_after: '{app} not reachable after {timeout}s ({detail}).'
+error: 'Error: {msg}'
+error_word: Error
+update_available: 'Update available: {tag} - {url}'

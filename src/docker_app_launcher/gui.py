@@ -39,7 +39,15 @@ _BUTTONS: dict[str, list[tuple[str, str]]] = {
     "no_docker": [("recheck", "retry")],
     "not_installed": [("install", "install")],
     "stopped": [("start", "start"), ("uninstall", "uninstall")],
-    "running": [("open", "open_browser"), ("change_port", "apply_port"), ("stop", "stop"), ("uninstall", "uninstall")],
+    "running": [("open", "open_browser"), ("stop", "stop"), ("uninstall", "uninstall")],
+}
+
+# Secondary actions rendered on a SECOND row so the primary row never overflows
+# the fixed-width window (the running state would otherwise pack 5 buttons into
+# one row and clip "Uninstall"). ``background`` is wired to the run-in-background
+# handler; the rest route through the normal action dispatch.
+_SECONDARY_BUTTONS: dict[str, list[tuple[str, str]]] = {
+    "running": [("change_port", "apply_port"), ("background", "run_in_background")],
 }
 
 
@@ -55,8 +63,16 @@ def port_editable(state: str) -> bool:
 
 
 def buttons_for_state(state: str) -> list[tuple[str, str]]:
-    """Return ``[(action_id, i18n_label_key), ...]`` for ``state``."""
+    """Return the PRIMARY-row ``[(action_id, i18n_label_key), ...]`` for ``state``."""
     return list(_BUTTONS.get(state, []))
+
+
+def secondary_buttons_for_state(state: str) -> list[tuple[str, str]]:
+    """Return the SECOND-row ``[(action_id, i18n_label_key), ...]`` for ``state``.
+
+    Keeps the primary row short enough to fit the fixed-width window.
+    """
+    return list(_SECONDARY_BUTTONS.get(state, []))
 
 
 def advanced_ports_visible(config: LauncherConfig) -> bool:
@@ -253,13 +269,13 @@ class LauncherApp(tk.Tk):
             ).pack(side="left", padx=4)
         for child in self._background_row.winfo_children():
             child.destroy()
-        if background_button_visible(state):
-            tk.Button(
-                self._background_row,
-                text=self._t("run_in_background"),
-                width=38,
-                command=self._go_background,
-            ).pack()
+        for action_id, label_key in secondary_buttons_for_state(state):
+            command = (
+                self._go_background if action_id == "background" else functools.partial(self._on_action, action_id)
+            )
+            tk.Button(self._background_row, text=self._t(label_key), width=22, command=command).pack(
+                side="left", padx=4
+            )
 
     def _validate_port(self) -> None:
         raw = self._port_var.get().strip()

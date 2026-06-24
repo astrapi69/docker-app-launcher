@@ -6,6 +6,32 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Cleanup no longer offers the active install's own data volume (#11).** A
+  running install's Compose volume (`<compose_project>_*`, e.g.
+  `myapp_myapp-data`) was listed as a stale artifact and offered for deletion -
+  live user data. While the install is live (its containers still exist), its
+  own project volumes are now excluded from the stale results regardless of the
+  manifest; after uninstall the volume is reclaimable and shows up again. Legacy
+  volumes (e.g. an old `bibliogon_*`) are unaffected.
+- **German UI strings use real UTF-8 umlauts.** The DE catalog carried ASCII
+  transliterations (`laeuft`, `oeffnen`, `fuer`, `Aenderung`, `weisst`, ...);
+  they are now `läuft`, `öffnen`, `für`, `Änderung`, `weißt`, etc. A test guards
+  against transliterations regressing.
+
+### Changed
+
+- **i18n moved from a Python dict to per-language YAML files.** Strings now live
+  in `i18n/de.yaml` + `i18n/en.yaml` (flat keys, loaded once at startup);
+  **adding a language is dropping a `<code>.yaml` file** beside them. The public
+  API is unchanged - `t("key", config, **kwargs)`, `STRINGS`,
+  `available_languages()` - so every call site and test is untouched. Adds a
+  single runtime dependency, `pyyaml>=6.0`.
+- **Two-row button layout in the running window.** The primary row keeps
+  Open / Stop / Uninstall; "Apply port" and "Run in the background" move to a
+  second row, so the fixed-width window no longer clips a 5th button.
+
 ## [0.5.0] - 2026-06-24
 
 ### Added

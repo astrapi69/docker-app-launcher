@@ -87,7 +87,7 @@ oder mit Standardwerten belegt.
 - **Leise unter Windows** — jeder Docker-Subprozess laeuft mit `CREATE_NO_WINDOW`, sodass eine Installation keinen Schwarm von Konsolenfenstern mehr aufblitzen laesst (unter Linux/macOS unveraendert).
 - **PyInstaller-fertig** — mitgelieferte Spec-Vorlage, Hidden-Imports-Liste und Versions-Injektion zur Build-Zeit fuer eingefrorene Einzeldatei-Builds.
 - **System-Tray** (optional) — `pip install docker-app-launcher[tray]`.
-- **DE/EN i18n** — mit App-spezifischen Ueberschreibungen via `custom_strings`.
+- **DE/EN i18n (YAML)** — Strings liegen in Sprachdateien (`i18n/de.yaml`, `i18n/en.yaml`), die beim Start geladen werden; **eine neue Sprache fügt man durch Ablegen einer `<code>.yaml` hinzu**. Deutsch nutzt echte UTF-8-Umlaute. App-spezifische Überschreibungen via `custom_strings`.
 - **Actions-Architektur** — getestet ohne GUI.
 - **CLI ↔ GUI Paritaet** — beide rufen dieselbe Actions-Schicht auf.
 

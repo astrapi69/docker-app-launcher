@@ -1107,6 +1107,12 @@ def find_stale_artifacts(config: LauncherConfig) -> dict[str, list[Any]]:
     Manifest-first: the current install's recorded artifacts are EXCLUDED -
     only artifacts beyond it (old versions, legacy names, orphans) are
     returned. Without a manifest, currently-RUNNING containers are protected.
+
+    The active install's own Compose volumes (named ``<compose_project>_*``) are
+    ALSO protected while the install is live (its containers still exist),
+    independent of the manifest - they hold live user data and must never be
+    offered for deletion. Once the install is uninstalled (its containers are
+    gone) the volume becomes reclaimable and shows up as stale again.
     """
     active = manifest_artifacts(config)
     active_containers = set(active["containers"])
@@ -1116,10 +1122,14 @@ def find_stale_artifacts(config: LauncherConfig) -> dict[str, list[Any]]:
         active_containers |= set(_running_container_names(config))
 
     patterns = tuple(config.cleanup_patterns())
+    volumes = [v for v in _docker_names(config, "volume", patterns) if v not in active_volumes]
+    if _project_container_ids(config, running_only=False):
+        project_prefix = f"{config.compose_project}_"
+        volumes = [v for v in volumes if not v.startswith(project_prefix)]
     return {
         "containers": [n for n in _docker_names(config, "container", patterns) if n not in active_containers],
         "images": [r for r in _image_refs(config, patterns) if r not in active_images],
-        "volumes": [v for v in _docker_names(config, "volume", patterns) if v not in active_volumes],
+        "volumes": volumes,
         "configs": _stale_config_dirs(config, active.get("configs", [])),
     }
 

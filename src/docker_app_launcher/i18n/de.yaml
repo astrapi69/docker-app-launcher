@@ -1,0 +1,101 @@
+not_installed: '{app} ist nicht installiert.'
+running: '{app} läuft auf Port {port}.'
+stopped: '{app} ist installiert, aber gestoppt.'
+no_docker: Docker ist nicht gestartet.
+install: Installieren
+start: Starten
+stop: Stoppen
+uninstall: Deinstallieren
+open_browser: Im Browser öffnen
+run_in_background: Im Hintergrund weiterlaufen
+background_tray: Läuft im System-Tray. Doppelklick auf das Tray-Icon stellt das Fenster wieder her.
+background_iconified: Läuft im Hintergrund. Fenster über die Taskleiste wiederherstellen.
+closed_minimized: App läuft weiter. Fenster minimiert.
+apply_port: Port übernehmen
+apply: Übernehmen
+advanced_settings: Erweiterte Einstellungen (nur für Experten)
+advanced_warning: Nur ändern wenn du weißt was du tust. Eine Änderung erfordert einen Rebuild (2-5 Minuten).
+restore_defaults: Standardwerte wiederherstellen
+internal_port_field: '{name}-Port (intern):'
+retry: Erneut prüfen
+cleanup: Aufräumen
+skip: Überspringen
+tray_open: Öffnen
+tray_quit: Beenden
+checking_docker: Docker prüfen...
+docker_ok: Docker läuft ✓
+installing: '{app} wird eingerichtet...'
+building: Image bauen (kann beim ersten Mal einige Minuten dauern)...
+image_built: Image gebaut ✓
+starting: Container starten...
+container_started: Container gestartet ✓
+updating: Image wird aktualisiert (nach Code-Änderungen einige Minuten, sonst Sekunden)...
+checking_health: Bereitschaft prüfen...
+health_ok: Bereitschaft bestätigt ✓
+uninstalling: Deinstallation gestartet...
+no_containers: Keine Container gefunden ✓
+verify_clean: 'Verifizierung: keine Container gefunden ✓'
+verify_remain: 'Verifizierung: {count} Container verbleiben ✗'
+ready: Installation abgeschlossen. {app} ist bereit.
+already_installed: '{app} ist bereits installiert und läuft.'
+already_running: '{app} läuft bereits.'
+start_done: '{app} gestartet.'
+stop_done: '{app} gestoppt.'
+already_stopped: '{app} war bereits gestoppt.'
+uninstall_done: Deinstallation abgeschlossen. Deine Daten bleiben erhalten.
+nothing_to_uninstall: Nichts zu deinstallieren (kein Container vorhanden).
+confirm_uninstall: 'Möchtest du {app} deinstallieren?
+
+  Deine Daten bleiben erhalten.'
+cleanup_found: 'Frühere Installationsreste gefunden:'
+cleanup_running: Aufräumen...
+cleanup_done: 'Aufräumen abgeschlossen: {count} Artefakt(e) entfernt, {freed} freigegeben.'
+cleanup_partial: Aufräumen teilweise fehlgeschlagen ({count} Schritt(e)).
+cleanup_skipped: Aufräumen übersprungen.
+data_preserved: Deine Daten wurden beibehalten.
+step_stop_container: Container '{name}' stoppen
+step_remove_container: Container '{name}' entfernen
+step_remove_image: Image '{ref}' entfernen
+step_remove_volume: Volume '{name}' entfernen
+step_remove_config: Konfiguration '{path}' entfernen
+scan_containers: Suche verwaiste Container... {count} gefunden
+scan_images: Suche veraltete Images... {count} gefunden
+scan_volumes: Suche verwaiste Volumes... {count} gefunden
+scan_configs: Suche Config-Reste... {count} gefunden
+port_free: Port {port} ist frei.
+port_occupied: Port {port} ist belegt.
+port_invalid: Port muss zwischen {min} und {max} liegen.
+port_set: Port auf {port} gesetzt.
+port_restarting: Port geändert. {app} wird neu gestartet...
+port_changed: Port auf {port} geändert.
+internal_port_unknown: 'Unbekannter interner Port: {name}.'
+internal_port_set: Interner Port {name} auf {port} gesetzt.
+internal_port_rebuilding: Interner Port geändert. Images werden neu gebaut (kann einige Minuten dauern)...
+internal_port_changed: Interner Port {name} auf {port} geändert.
+internal_port_confirm: Eine interne Port-Änderung erfordert einen Rebuild der Docker-Images (2-5 Minuten). Fortfahren?
+no_free_port: Kein freier Port gefunden.
+free_port_found: 'Freier Port gefunden: {port}.'
+docker_unavailable: Docker ist nicht verfügbar (nicht gestartet).
+docker_not_installed: Docker ist nicht installiert (docker nicht im PATH).
+docker_no_response: Docker antwortet nicht.
+docker_running: Docker läuft.
+docker_stopped: Docker Desktop ist nicht gestartet.
+compose_not_found: 'Compose-Datei nicht gefunden: {path}'
+build_failed: 'Docker-Build fehlgeschlagen:
+
+  {detail}'
+build_timeout: Docker-Build hat das Zeitlimit überschritten.
+start_failed: 'Start fehlgeschlagen:
+
+  {detail}'
+start_timeout: Start hat das Zeitlimit überschritten.
+not_reachable: 'Installiert, aber {app} ist nicht erreichbar: {detail}'
+container_not_running: Container wurde gebaut, läuft aber nicht.
+start_no_container: Start-Befehl lief, aber kein Container läuft.
+stop_failed: 'Stoppen fehlgeschlagen: {detail}'
+stop_not_verified: Container läuft nach dem Stop-Befehl noch.
+uninstall_partial: 'Teilweise entfernt: {count} Container konnte(n) nicht entfernt werden.'
+not_reachable_after: '{app} nicht erreichbar nach {timeout}s ({detail}).'
+error: 'Fehler: {msg}'
+error_word: Fehler
+update_available: 'Update verfügbar: {tag} - {url}'

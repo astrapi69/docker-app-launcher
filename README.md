@@ -91,7 +91,8 @@ Everything is configurable. Only `app_name` is required — the rest is derived
 - **Concurrency-safe UI** — every button is disabled for the full duration of an action and the window is held on top, so a second action can't be launched in parallel.
 - **Quiet on Windows** — every Docker subprocess runs with `CREATE_NO_WINDOW`, so an install no longer flashes a swarm of console windows (no change on Linux/macOS).
 - **PyInstaller-ready** — a bundled spec template, hidden-imports list, and build-time version injection for shipping frozen single-file builds.
-- **System tray** (optional) — `pip install docker-app-launcher[tray]`; the window minimizes to the tray while running.
+- **System tray + "Run in background"** (optional) — `pip install docker-app-launcher[tray]`; while running, the window minimizes to the tray (a visible **Run in the background** button and the X both use it). When the tray can't dock it falls back to a taskbar-minimized window, so it never silently closes.
+  - **Linux note:** the reliable tray uses pystray's **AppIndicator** backend, which needs `gi` (PyGObject) plus the AppIndicator typelib. The `[tray]` extra pip-installs PyGObject (Linux-only; needs `libgirepository1.0-dev`, `libcairo2-dev`, `pkg-config` to build), and you also need the typelib at runtime — on Ubuntu: `sudo apt install gir1.2-ayatanaappindicator3-0.1`. If you instead rely on the system `python3-gi` (apt), create the venv with `--system-site-packages` so `gi` is importable. Without any of this the launcher still works — it just minimizes to the taskbar. Run with `--debug` to see which backend was selected.
 - **DE / EN i18n** — with per-app custom-string overrides via `custom_strings`.
 - **Actions architecture** — all business logic is GUI-free and unit-tested without a display.
 - **CLI ↔ GUI parity** — both call the exact same actions layer.

@@ -106,3 +106,5 @@ docker_no_permission: "Docker est installé, mais vous n'avez pas la permission.
 docker_no_path: "Docker Desktop est installé mais pas dans le PATH."
 start_docker: "Démarrer Docker"
 open_install_guide: "Ouvrir le guide d'installation"
+log_copy: "Copier le journal"
+log_copied: "Copié !"

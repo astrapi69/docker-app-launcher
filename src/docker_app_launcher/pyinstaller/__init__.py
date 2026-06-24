@@ -7,9 +7,9 @@ template with its own values::
     from docker_app_launcher.pyinstaller import render_spec
 
     spec_text = render_spec(
-        app_slug="adaptive-learner",
+        app_slug="my-app",
         entry_script="run_launcher.py",
-        icon_path="adaptive-learner.png",
+        icon_path="my-app.png",
         config_json="launcher.json",
     )
 

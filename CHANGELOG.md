@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-06-24
+
 ### Added
 
 - **11 UI languages.** The i18n catalog ships `de`, `en`, `el`, `es`, `fr`,

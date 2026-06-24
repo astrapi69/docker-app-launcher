@@ -1,0 +1,101 @@
+not_installed: '{app} kurulu değil.'
+running: '{app} {port} numaralı bağlantı noktasında çalışıyor.'
+stopped: '{app} kurulu ancak durdurulmuş.'
+no_docker: Docker başlatılmadı.
+install: Kur
+start: Başlat
+stop: Durdur
+uninstall: Kaldır
+open_browser: Tarayıcıda aç
+run_in_background: Arka planda çalıştır
+background_tray: Sistem tepsisinde çalışıyor. Pencereyi geri yüklemek için tepsi simgesine çift tıklayın.
+background_iconified: Arka planda çalışıyor. Pencereyi görev çubuğundan geri yükleyin.
+closed_minimized: Uygulama çalışmaya devam ediyor; pencere küçültüldü.
+apply_port: Bağlantı noktasını uygula
+apply: Uygula
+advanced_settings: Gelişmiş ayarlar (uzmanlar)
+advanced_warning: Bunları yalnızca ne yaptığınızı biliyorsanız değiştirin. Bir değişiklik yeniden derleme gerektirir (2-5 dakika).
+restore_defaults: Varsayılanları geri yükle
+internal_port_field: '{name} bağlantı noktası (dahili):'
+retry: Tekrar kontrol et
+cleanup: Temizle
+skip: Atla
+tray_open: Aç
+tray_quit: Çık
+checking_docker: Docker kontrol ediliyor...
+docker_ok: Docker çalışıyor ✓
+installing: '{app} kuruluyor...'
+building: İmaj derleniyor (ilk seferde birkaç dakika sürebilir)...
+image_built: İmaj derlendi ✓
+starting: Konteyner başlatılıyor...
+container_started: Konteyner başlatıldı ✓
+updating: İmaj güncelleniyor (kod değişikliklerinden sonra birkaç dakika, aksi halde saniyeler)...
+checking_health: Hazırlık kontrol ediliyor...
+health_ok: Hazırlık doğrulandı ✓
+uninstalling: Kaldırma işlemi başlatıldı...
+no_containers: Konteyner bulunamadı ✓
+verify_clean: 'Doğrulama: konteyner bulunamadı ✓'
+verify_remain: 'Doğrulama: {count} konteyner kaldı ✗'
+ready: Kurulum tamamlandı. {app} hazır.
+already_installed: '{app} zaten kurulu ve çalışıyor.'
+already_running: '{app} zaten çalışıyor.'
+start_done: '{app} başlatıldı.'
+stop_done: '{app} durduruldu.'
+already_stopped: '{app} zaten durdurulmuştu.'
+uninstall_done: Kaldırma tamamlandı. Verileriniz korunur.
+nothing_to_uninstall: Kaldırılacak bir şey yok (konteyner mevcut değil).
+confirm_uninstall: '{app} uygulamasını kaldırmak istiyor musunuz?
+
+  Verileriniz korunur.'
+cleanup_found: 'Önceki kurulum kalıntıları bulundu:'
+cleanup_running: Temizleniyor...
+cleanup_done: 'Temizlik tamamlandı: {count} yapıt kaldırıldı, {freed} boşaltıldı.'
+cleanup_partial: Temizlik kısmen başarısız oldu ({count} adım).
+cleanup_skipped: Temizlik atlandı.
+data_preserved: Verileriniz korundu.
+step_stop_container: '''{name}'' konteynerini durdur'
+step_remove_container: '''{name}'' konteynerini kaldır'
+step_remove_image: '''{ref}'' imajını kaldır'
+step_remove_volume: '''{name}'' birimini kaldır'
+step_remove_config: '''{path}'' yapılandırmasını kaldır'
+scan_containers: Sahipsiz konteynerler aranıyor... {count} bulundu
+scan_images: Eski imajlar aranıyor... {count} bulundu
+scan_volumes: Sahipsiz birimler aranıyor... {count} bulundu
+scan_configs: Yapılandırma kalıntıları aranıyor... {count} bulundu
+port_free: '{port} bağlantı noktası boş.'
+port_occupied: '{port} bağlantı noktası dolu.'
+port_invalid: Bağlantı noktası {min} ile {max} arasında olmalıdır.
+port_set: Bağlantı noktası {port} olarak ayarlandı.
+port_restarting: Bağlantı noktası değiştirildi. {app} yeniden başlatılıyor...
+port_changed: Bağlantı noktası {port} olarak değiştirildi.
+internal_port_unknown: 'Bilinmeyen dahili bağlantı noktası: {name}.'
+internal_port_set: '{name} dahili bağlantı noktası {port} olarak ayarlandı.'
+internal_port_rebuilding: Dahili bağlantı noktası değiştirildi. İmajlar yeniden derleniyor (bu birkaç dakika sürebilir)...
+internal_port_changed: '{name} dahili bağlantı noktası {port} olarak değiştirildi.'
+internal_port_confirm: Dahili bir bağlantı noktasını değiştirmek Docker imajlarının yeniden derlenmesini gerektirir (2-5 dakika). Devam edilsin mi?
+no_free_port: Boş bağlantı noktası bulunamadı.
+free_port_found: 'Boş bağlantı noktası bulundu: {port}.'
+docker_unavailable: Docker kullanılamıyor (başlatılmadı).
+docker_not_installed: Docker kurulu değil (docker PATH içinde yok).
+docker_no_response: Docker yanıt vermiyor.
+docker_running: Docker çalışıyor.
+docker_stopped: Docker başlatılmadı.
+compose_not_found: 'Compose dosyası bulunamadı: {path}'
+build_failed: 'Docker derlemesi başarısız oldu:
+
+  {detail}'
+build_timeout: Docker derlemesi zaman aşımına uğradı.
+start_failed: 'Başlatma başarısız oldu:
+
+  {detail}'
+start_timeout: Başlatma zaman aşımına uğradı.
+not_reachable: 'Kuruldu, ancak {app} erişilebilir değil: {detail}'
+container_not_running: Konteyner derlendi ancak çalışmıyor.
+start_no_container: Başlatma komutu çalıştı, ancak hiçbir konteyner çalışmıyor.
+stop_failed: 'Durdurma başarısız oldu: {detail}'
+stop_not_verified: Durdurma komutundan sonra konteyner hâlâ çalışıyor.
+uninstall_partial: 'Kısmen kaldırıldı: {count} konteyner kaldırılamadı.'
+not_reachable_after: '{app} {timeout}sn sonra erişilebilir değil ({detail}).'
+error: 'Hata: {msg}'
+error_word: Hata
+update_available: 'Güncelleme mevcut: {tag} - {url}'

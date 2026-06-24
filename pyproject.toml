@@ -121,7 +121,7 @@ show_missing = true
 skip_covered = false
 
 [tool.codespell]
-# de.yaml is the German string catalog and README-de.md is the German README;
-# German words there are not typos.
-skip = "poetry.lock,.git,src/docker_app_launcher/i18n/de.yaml,README-de.md"
+# The i18n/ YAML files are translated string catalogs (11 languages) and
+# README-de.md is the German README; non-English words there are not typos.
+skip = "poetry.lock,.git,src/docker_app_launcher/i18n,README-de.md"
 ignore-words-list = "datas"

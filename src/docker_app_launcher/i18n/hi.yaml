@@ -1,0 +1,101 @@
+not_installed: '{app} इंस्टॉल नहीं है।'
+running: '{app} पोर्ट {port} पर चल रहा है।'
+stopped: '{app} इंस्टॉल है, लेकिन रुका हुआ है।'
+no_docker: Docker शुरू नहीं हुआ है।
+install: इंस्टॉल करें
+start: शुरू करें
+stop: रोकें
+uninstall: अनइंस्टॉल करें
+open_browser: ब्राउज़र में खोलें
+run_in_background: बैकग्राउंड में चलाते रहें
+background_tray: सिस्टम ट्रे में चल रहा है। विंडो को पुनर्स्थापित करने के लिए ट्रे आइकन पर डबल-क्लिक करें।
+background_iconified: बैकग्राउंड में चल रहा है। टास्कबार से विंडो पुनर्स्थापित करें।
+closed_minimized: ऐप चलता रहता है; विंडो छोटी की गई।
+apply_port: पोर्ट लागू करें
+apply: लागू करें
+advanced_settings: उन्नत सेटिंग्स (विशेषज्ञ)
+advanced_warning: इन्हें तभी बदलें जब आप जानते हों कि आप क्या कर रहे हैं। बदलाव के लिए रीबिल्ड आवश्यक है (2-5 मिनट)।
+restore_defaults: डिफ़ॉल्ट पुनर्स्थापित करें
+internal_port_field: '{name} पोर्ट (आंतरिक):'
+retry: फिर से जाँचें
+cleanup: साफ़ करें
+skip: छोड़ें
+tray_open: खोलें
+tray_quit: बंद करें
+checking_docker: Docker की जाँच हो रही है...
+docker_ok: Docker चल रहा है ✓
+installing: '{app} सेट किया जा रहा है...'
+building: इमेज बनाई जा रही है (पहली बार कुछ मिनट लग सकते हैं)...
+image_built: इमेज बन गई ✓
+starting: कंटेनर शुरू हो रहा है...
+container_started: कंटेनर शुरू हुआ ✓
+updating: इमेज अपडेट हो रही है (कोड बदलाव के बाद कुछ मिनट, अन्यथा कुछ सेकंड)...
+checking_health: तैयारी की जाँच हो रही है...
+health_ok: तैयारी की पुष्टि हुई ✓
+uninstalling: अनइंस्टॉल शुरू हुआ...
+no_containers: कोई कंटेनर नहीं मिला ✓
+verify_clean: 'सत्यापन: कोई कंटेनर नहीं मिला ✓'
+verify_remain: 'सत्यापन: {count} कंटेनर शेष हैं ✗'
+ready: इंस्टॉलेशन पूरा हुआ। {app} तैयार है।
+already_installed: '{app} पहले से इंस्टॉल है और चल रहा है।'
+already_running: '{app} पहले से चल रहा है।'
+start_done: '{app} शुरू हुआ।'
+stop_done: '{app} रोका गया।'
+already_stopped: '{app} पहले से रुका हुआ था।'
+uninstall_done: अनइंस्टॉल पूरा हुआ। आपका डेटा सुरक्षित है।
+nothing_to_uninstall: अनइंस्टॉल करने के लिए कुछ नहीं (कोई कंटेनर मौजूद नहीं)।
+confirm_uninstall: 'क्या आप {app} को अनइंस्टॉल करना चाहते हैं?
+
+  आपका डेटा सुरक्षित रहेगा।'
+cleanup_found: 'पिछले इंस्टॉलेशन के अवशेष मिले:'
+cleanup_running: साफ़ किया जा रहा है...
+cleanup_done: 'सफ़ाई पूरी हुई: {count} आर्टिफैक्ट हटाए गए, {freed} खाली हुआ।'
+cleanup_partial: सफ़ाई आंशिक रूप से विफल रही ({count} चरण)।
+cleanup_skipped: सफ़ाई छोड़ी गई।
+data_preserved: आपका डेटा सुरक्षित रखा गया।
+step_stop_container: कंटेनर '{name}' रोकें
+step_remove_container: कंटेनर '{name}' हटाएँ
+step_remove_image: इमेज '{ref}' हटाएँ
+step_remove_volume: वॉल्यूम '{name}' हटाएँ
+step_remove_config: कॉन्फ़िग '{path}' हटाएँ
+scan_containers: अनाथ कंटेनर खोजे जा रहे हैं... {count} मिले
+scan_images: पुरानी इमेज खोजी जा रही हैं... {count} मिलीं
+scan_volumes: अनाथ वॉल्यूम खोजे जा रहे हैं... {count} मिले
+scan_configs: कॉन्फ़िग अवशेष खोजे जा रहे हैं... {count} मिले
+port_free: पोर्ट {port} खाली है।
+port_occupied: पोर्ट {port} व्यस्त है।
+port_invalid: पोर्ट {min} और {max} के बीच होना चाहिए।
+port_set: पोर्ट {port} पर सेट किया गया।
+port_restarting: पोर्ट बदला गया। {app} फिर से शुरू हो रहा है...
+port_changed: पोर्ट {port} पर बदला गया।
+internal_port_unknown: 'अज्ञात आंतरिक पोर्ट: {name}।'
+internal_port_set: आंतरिक पोर्ट {name} {port} पर सेट किया गया।
+internal_port_rebuilding: आंतरिक पोर्ट बदला गया। इमेज फिर से बनाई जा रही हैं (इसमें कुछ मिनट लग सकते हैं)...
+internal_port_changed: आंतरिक पोर्ट {name} {port} पर बदला गया।
+internal_port_confirm: आंतरिक पोर्ट बदलने के लिए Docker इमेज को फिर से बनाना आवश्यक है (2-5 मिनट)। जारी रखें?
+no_free_port: कोई खाली पोर्ट नहीं मिला।
+free_port_found: 'खाली पोर्ट मिला: {port}।'
+docker_unavailable: Docker उपलब्ध नहीं है (शुरू नहीं हुआ)।
+docker_not_installed: Docker इंस्टॉल नहीं है (docker PATH में नहीं है)।
+docker_no_response: Docker प्रतिक्रिया नहीं दे रहा।
+docker_running: Docker चल रहा है।
+docker_stopped: Docker शुरू नहीं हुआ है।
+compose_not_found: 'Compose फ़ाइल नहीं मिली: {path}'
+build_failed: 'Docker बिल्ड विफल रहा:
+
+  {detail}'
+build_timeout: Docker बिल्ड का समय समाप्त हो गया।
+start_failed: 'शुरू करना विफल रहा:
+
+  {detail}'
+start_timeout: शुरू करने का समय समाप्त हो गया।
+not_reachable: 'इंस्टॉल हो गया, लेकिन {app} तक नहीं पहुँचा जा सका: {detail}'
+container_not_running: कंटेनर बन गया लेकिन चल नहीं रहा।
+start_no_container: शुरू कमांड चली, लेकिन कोई कंटेनर नहीं चल रहा।
+stop_failed: 'रोकना विफल रहा: {detail}'
+stop_not_verified: स्टॉप कमांड के बाद भी कंटेनर चल रहा है।
+uninstall_partial: 'आंशिक रूप से हटाया गया: {count} कंटेनर नहीं हटाए जा सके।'
+not_reachable_after: '{timeout}s के बाद {app} तक नहीं पहुँचा जा सका ({detail})।'
+error: 'त्रुटि: {msg}'
+error_word: त्रुटि
+update_available: 'अपडेट उपलब्ध: {tag} - {url}'

@@ -1089,15 +1089,40 @@ def _image_refs(config: LauncherConfig, patterns: tuple[str, ...]) -> list[str]:
     return found
 
 
+def _searched_config_dirs(config: LauncherConfig, seen: set[str]) -> list[str]:
+    """Scan ``cleanup_search_paths`` for ``legacy_names`` subdirectories.
+
+    For each base directory and legacy name, both ``<base>/<name>`` and the
+    dotted ``<base>/.<name>`` are checked, so a base of ``~/.config`` finds
+    ``~/.config/<name>`` and a base of ``~`` finds ``~/.<name>``. Already-seen
+    paths (explicit ``cleanup_configs`` and the live config dir) are skipped.
+    """
+    out: list[str] = []
+    for base in config.cleanup_search_paths:
+        base_dir = Path(base).expanduser()
+        for name in config.legacy_names:
+            for candidate in (base_dir / name, base_dir / f".{name}"):
+                resolved = str(candidate)
+                if candidate.exists() and resolved not in seen:
+                    seen.add(resolved)
+                    out.append(resolved)
+    return out
+
+
 def _stale_config_dirs(config: LauncherConfig, active_configs: list[str]) -> list[str]:
-    """Existing ``cleanup_configs`` dirs not referenced by the active manifest."""
-    active = {str(Path(c).expanduser()) for c in active_configs}
-    active.add(str(config.config_path))  # never target the live config dir
+    """Stale config dirs: explicit ``cleanup_configs`` plus ``cleanup_search_paths`` hits.
+
+    Excludes anything the active manifest references and the live config dir.
+    """
+    seen = {str(Path(c).expanduser()) for c in active_configs}
+    seen.add(str(config.config_path))  # never target the live config dir
     out: list[str] = []
     for candidate in config.cleanup_configs:
-        resolved = Path(candidate).expanduser()
-        if resolved.exists() and str(resolved) not in active:
-            out.append(str(resolved))
+        resolved = str(Path(candidate).expanduser())
+        if Path(resolved).exists() and resolved not in seen:
+            seen.add(resolved)
+            out.append(resolved)
+    out.extend(_searched_config_dirs(config, seen))
     return out
 
 

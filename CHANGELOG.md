@@ -6,6 +6,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **11 UI languages.** The i18n catalog ships `de`, `en`, `el`, `es`, `fr`,
+  `hi`, `ja`, `ko`, `pt`, `tr`, `id` as `i18n/<code>.yaml`. `config.locale`
+  accepts any of them (`SUPPORTED_LOCALES`); an unknown locale falls back to
+  English. Parity + placeholder-integrity tests cover every locale. (The 9 new
+  languages are AI-translated and would benefit from native review.)
+- **`cleanup_search_paths`** config field — base directories scanned for
+  `legacy_names` subdirectories (`<base>/<name>` and `<base>/.<name>`), so
+  cleanup finds leftover config dirs without listing each one explicitly.
+- **README docs** (EN + DE) for custom icons, cleanup configuration,
+  configuration paths, and the install manifest.
+
 ### Fixed
 
 - **Cleanup no longer offers the active install's own data volume (#11).** A

@@ -734,6 +734,40 @@ class TestCleanup:
         stale = actions.find_stale_artifacts(config)
         assert str(legacy) in stale["configs"]
 
+    def test_find_stale_searches_cleanup_search_paths(self, config, tmp_path, monkeypatch) -> None:
+        # cleanup_search_paths scans base dirs for legacy_names subdirs (both
+        # "<base>/<name>" and the dotted "<base>/.<name>").
+        base = tmp_path / "base"
+        (base / ".oldapp").mkdir(parents=True)
+        (base / "oldapp").mkdir()
+        config.legacy_names = ["oldapp"]
+        config.cleanup_search_paths = [str(base)]
+        config.cleanup_configs = []
+        monkeypatch.setattr(
+            actions, "manifest_artifacts", lambda c: {"containers": [], "images": [], "volumes": [], "configs": []}
+        )
+        monkeypatch.setattr(actions, "_docker_names", lambda c, kind, pats: [])
+        monkeypatch.setattr(actions, "_image_refs", lambda c, pats: [])
+        monkeypatch.setattr(actions, "_running_container_names", lambda c: [])
+        monkeypatch.setattr(actions, "_project_container_ids", lambda c, *, running_only: [])
+        stale = actions.find_stale_artifacts(config)
+        assert str(base / ".oldapp") in stale["configs"]
+        assert str(base / "oldapp") in stale["configs"]
+
+    def test_find_stale_search_skips_missing_and_live_config(self, config, tmp_path, monkeypatch) -> None:
+        base = tmp_path / "base"
+        base.mkdir()  # no legacy subdir exists -> nothing found
+        config.legacy_names = ["ghost"]
+        config.cleanup_search_paths = [str(base)]
+        monkeypatch.setattr(
+            actions, "manifest_artifacts", lambda c: {"containers": [], "images": [], "volumes": [], "configs": []}
+        )
+        monkeypatch.setattr(actions, "_docker_names", lambda c, kind, pats: [])
+        monkeypatch.setattr(actions, "_image_refs", lambda c, pats: [])
+        monkeypatch.setattr(actions, "_running_container_names", lambda c: [])
+        monkeypatch.setattr(actions, "_project_container_ids", lambda c, *, running_only: [])
+        assert actions.find_stale_artifacts(config)["configs"] == []
+
     def _stale_volumes_setup(self, monkeypatch, volumes: list[str]) -> None:
         monkeypatch.setattr(
             actions, "manifest_artifacts", lambda c: {"containers": [], "images": [], "volumes": [], "configs": []}

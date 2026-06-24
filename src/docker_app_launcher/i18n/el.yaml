@@ -1,0 +1,101 @@
+not_installed: 'Το {app} δεν είναι εγκατεστημένο.'
+running: 'Το {app} εκτελείται στη θύρα {port}.'
+stopped: 'Το {app} είναι εγκατεστημένο αλλά σταματημένο.'
+no_docker: Το Docker δεν έχει ξεκινήσει.
+install: Εγκατάσταση
+start: Έναρξη
+stop: Διακοπή
+uninstall: Απεγκατάσταση
+open_browser: Άνοιγμα στο πρόγραμμα περιήγησης
+run_in_background: Εκτέλεση στο παρασκήνιο
+background_tray: Εκτελείται στην περιοχή ειδοποιήσεων. Κάντε διπλό κλικ στο εικονίδιο για επαναφορά.
+background_iconified: Εκτελείται στο παρασκήνιο. Επαναφέρετε το παράθυρο από τη γραμμή εργασιών.
+closed_minimized: Η εφαρμογή συνεχίζει να εκτελείται. Το παράθυρο ελαχιστοποιήθηκε.
+apply_port: Εφαρμογή θύρας
+apply: Εφαρμογή
+advanced_settings: Σύνθετες ρυθμίσεις (για ειδικούς)
+advanced_warning: Αλλάξτε τα μόνο αν ξέρετε τι κάνετε. Μια αλλαγή απαιτεί επανακατασκευή (2-5 λεπτά).
+restore_defaults: Επαναφορά προεπιλογών
+internal_port_field: 'Θύρα {name} (εσωτερική):'
+retry: Έλεγχος ξανά
+cleanup: Εκκαθάριση
+skip: Παράλειψη
+tray_open: Άνοιγμα
+tray_quit: Έξοδος
+checking_docker: Έλεγχος Docker...
+docker_ok: Το Docker εκτελείται ✓
+installing: 'Το {app} ρυθμίζεται...'
+building: Κατασκευή image (μπορεί να διαρκέσει μερικά λεπτά την πρώτη φορά)...
+image_built: Το image κατασκευάστηκε ✓
+starting: Εκκίνηση container...
+container_started: Το container ξεκίνησε ✓
+updating: Ενημέρωση image (μερικά λεπτά μετά από αλλαγές κώδικα, αλλιώς δευτερόλεπτα)...
+checking_health: Έλεγχος ετοιμότητας...
+health_ok: Η ετοιμότητα επιβεβαιώθηκε ✓
+uninstalling: Η απεγκατάσταση ξεκίνησε...
+no_containers: Δεν βρέθηκαν containers ✓
+verify_clean: 'Επαλήθευση: δεν βρέθηκαν containers ✓'
+verify_remain: 'Επαλήθευση: {count} container(s) απομένουν ✗'
+ready: Η εγκατάσταση ολοκληρώθηκε. Το {app} είναι έτοιμο.
+already_installed: 'Το {app} είναι ήδη εγκατεστημένο και εκτελείται.'
+already_running: 'Το {app} εκτελείται ήδη.'
+start_done: 'Το {app} ξεκίνησε.'
+stop_done: 'Το {app} σταμάτησε.'
+already_stopped: 'Το {app} είχε ήδη σταματήσει.'
+uninstall_done: Η απεγκατάσταση ολοκληρώθηκε. Τα δεδομένα σας διατηρούνται.
+nothing_to_uninstall: Δεν υπάρχει τίποτα για απεγκατάσταση (δεν υπάρχει container).
+confirm_uninstall: 'Θέλετε να απεγκαταστήσετε το {app};
+
+  Τα δεδομένα σας διατηρούνται.'
+cleanup_found: 'Βρέθηκαν υπολείμματα προηγούμενης εγκατάστασης:'
+cleanup_running: Εκκαθάριση...
+cleanup_done: 'Η εκκαθάριση ολοκληρώθηκε: {count} αντικείμενο(α) αφαιρέθηκαν, {freed} ελευθερώθηκαν.'
+cleanup_partial: Η εκκαθάριση απέτυχε εν μέρει ({count} βήμα(τα)).
+cleanup_skipped: Η εκκαθάριση παραλείφθηκε.
+data_preserved: Τα δεδομένα σας διατηρήθηκαν.
+step_stop_container: Διακοπή container '{name}'
+step_remove_container: Αφαίρεση container '{name}'
+step_remove_image: Αφαίρεση image '{ref}'
+step_remove_volume: Αφαίρεση volume '{name}'
+step_remove_config: Αφαίρεση ρύθμισης '{path}'
+scan_containers: Αναζήτηση ορφανών containers... {count} βρέθηκαν
+scan_images: Αναζήτηση παρωχημένων images... {count} βρέθηκαν
+scan_volumes: Αναζήτηση ορφανών volumes... {count} βρέθηκαν
+scan_configs: Αναζήτηση υπολειμμάτων ρυθμίσεων... {count} βρέθηκαν
+port_free: Η θύρα {port} είναι ελεύθερη.
+port_occupied: Η θύρα {port} είναι κατειλημμένη.
+port_invalid: Η θύρα πρέπει να είναι μεταξύ {min} και {max}.
+port_set: Η θύρα ορίστηκε σε {port}.
+port_restarting: Η θύρα άλλαξε. Επανεκκίνηση {app}...
+port_changed: Η θύρα άλλαξε σε {port}.
+internal_port_unknown: 'Άγνωστη εσωτερική θύρα: {name}.'
+internal_port_set: Η εσωτερική θύρα {name} ορίστηκε σε {port}.
+internal_port_rebuilding: Η εσωτερική θύρα άλλαξε. Επανακατασκευή των images (μπορεί να διαρκέσει μερικά λεπτά)...
+internal_port_changed: Η εσωτερική θύρα {name} άλλαξε σε {port}.
+internal_port_confirm: Η αλλαγή μιας εσωτερικής θύρας απαιτεί επανακατασκευή των Docker images (2-5 λεπτά). Συνέχεια;
+no_free_port: Δεν βρέθηκε ελεύθερη θύρα.
+free_port_found: 'Βρέθηκε ελεύθερη θύρα: {port}.'
+docker_unavailable: Το Docker δεν είναι διαθέσιμο (δεν έχει ξεκινήσει).
+docker_not_installed: Το Docker δεν είναι εγκατεστημένο (το docker δεν είναι στο PATH).
+docker_no_response: Το Docker δεν αποκρίνεται.
+docker_running: Το Docker εκτελείται.
+docker_stopped: Το Docker δεν έχει ξεκινήσει.
+compose_not_found: 'Το αρχείο Compose δεν βρέθηκε: {path}'
+build_failed: 'Η κατασκευή Docker απέτυχε:
+
+  {detail}'
+build_timeout: Η κατασκευή Docker υπερέβη το χρονικό όριο.
+start_failed: 'Η έναρξη απέτυχε:
+
+  {detail}'
+start_timeout: Η έναρξη υπερέβη το χρονικό όριο.
+not_reachable: 'Εγκαταστάθηκε, αλλά το {app} δεν είναι προσβάσιμο: {detail}'
+container_not_running: Το container κατασκευάστηκε αλλά δεν εκτελείται.
+start_no_container: Η εντολή έναρξης εκτελέστηκε, αλλά κανένα container δεν εκτελείται.
+stop_failed: 'Η διακοπή απέτυχε: {detail}'
+stop_not_verified: Το container εξακολουθεί να εκτελείται μετά την εντολή διακοπής.
+uninstall_partial: 'Αφαιρέθηκε εν μέρει: {count} container(s) δεν μπόρεσαν να αφαιρεθούν.'
+not_reachable_after: 'Το {app} δεν είναι προσβάσιμο μετά από {timeout}s ({detail}).'
+error: 'Σφάλμα: {msg}'
+error_word: Σφάλμα
+update_available: 'Διαθέσιμη ενημέρωση: {tag} - {url}'

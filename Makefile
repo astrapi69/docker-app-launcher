@@ -91,6 +91,59 @@ test-xml: ## Run tests with XML coverage (for CI)
 	poetry run pytest -q --maxfail=1 --disable-warnings --cov=$(PKG) --cov-report=xml
 
 # ---------------------------------------------------------------------------
+# Manual Launcher Testing
+# ---------------------------------------------------------------------------
+
+# Which config the launcher-* targets drive. Override per invocation, e.g.
+#   make launcher-test TEST_CONFIG=test-configs/bibliogon.json
+TEST_CONFIG ?= test-configs/adaptive-learner.json
+
+.PHONY: launcher-test
+launcher-test: ## Start launcher GUI with $(TEST_CONFIG) (debug)
+	poetry run docker-app-launcher --config $(TEST_CONFIG) --debug
+
+.PHONY: launcher-status
+launcher-status: ## Print app state with $(TEST_CONFIG) and exit
+	poetry run docker-app-launcher --config $(TEST_CONFIG) --status
+
+.PHONY: launcher-check
+launcher-check: ## Check Docker availability with $(TEST_CONFIG) and exit
+	poetry run docker-app-launcher --config $(TEST_CONFIG) --check
+
+.PHONY: launcher-stop
+launcher-stop: ## Stop the app defined by $(TEST_CONFIG)
+	poetry run docker-app-launcher --config $(TEST_CONFIG) --stop
+
+.PHONY: launcher-cleanup
+launcher-cleanup: ## Remove stale leftovers for $(TEST_CONFIG)
+	poetry run docker-app-launcher --config $(TEST_CONFIG) --cleanup
+
+.PHONY: launcher-version
+launcher-version: ## Print the launcher version
+	poetry run docker-app-launcher --version
+
+.PHONY: launcher-test-al
+launcher-test-al: ## Manual GUI test with the Adaptive Learner config
+	$(MAKE) launcher-test TEST_CONFIG=test-configs/adaptive-learner.json
+
+.PHONY: launcher-test-bibliogon
+launcher-test-bibliogon: ## Manual GUI test with the Bibliogon config
+	$(MAKE) launcher-test TEST_CONFIG=test-configs/bibliogon.json
+
+.PHONY: launcher-test-minimal
+launcher-test-minimal: ## Manual GUI test with the minimal (defaults-only) config
+	$(MAKE) launcher-test TEST_CONFIG=test-configs/minimal.json
+
+.PHONY: smoke
+smoke: ## Smoke test: version + each test-config parses and --check runs
+	@echo "=== Smoke Test ==="
+	poetry run docker-app-launcher --version
+	poetry run docker-app-launcher --config test-configs/minimal.json --check || true
+	poetry run docker-app-launcher --config test-configs/adaptive-learner.json --check || true
+	poetry run docker-app-launcher --config test-configs/bibliogon.json --check || true
+	@echo "=== Smoke OK ==="
+
+# ---------------------------------------------------------------------------
 # CI
 # ---------------------------------------------------------------------------
 

@@ -1,0 +1,11 @@
+{
+  "app_name": "Bibliogon",
+  "container_name": "bibliogon",
+  "default_port": 7880,
+  "health_check_path": "/api/health",
+  "browser_path": "/",
+  "repo_url": "https://github.com/astrapi69/bibliogon",
+  "locale": "auto",
+  "legacy_names": [],
+  "tray_enabled": true
+}

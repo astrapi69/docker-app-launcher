@@ -135,7 +135,7 @@ class LauncherConfig:
 
     # === GUI ===
     window_width: int = 620
-    window_height: int = 470
+    window_height: int = 520
     window_resizable: bool = False
     # ``"auto"`` detects the OS language (resolved by :meth:`resolve`); any
     # explicit code in :data:`SUPPORTED_LOCALES` overrides it.

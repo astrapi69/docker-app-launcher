@@ -5,12 +5,12 @@ Stand: 25.06.2026
 
 ---
 
-## Ueberblick
+## Überblick
 
 docker-app-launcher ist ein konfigurierbarer Desktop-Launcher
-fuer Docker-basierte Anwendungen. Ein persistentes Fenster
+für Docker-basierte Anwendungen. Ein persistentes Fenster
 das Container verwaltet, Build-Fortschritt streamt und sich
-nie von selbst schliesst.
+nie von selbst schließt.
 
 Kernprinzip: **3 Zeilen pro App.**
 
@@ -36,12 +36,12 @@ launch(LauncherConfig(
 └──────────────┬──────────────────────────┘
                │
 ┌──────────────▼──────────────────────────┐
-│              GUI (duenn)                │
+│              GUI (dünn)                │
 │  gui.py: LauncherApp(tk.Tk)            │
 │  - Zeigt Ergebnisse                    │
 │  - Ruft nur actions auf                │
 │  - Hat KEINE Business-Logik            │
-│  - Ein Fenster, schliesst sich nie     │
+│  - Ein Fenster, schließt sich nie     │
 └──────────────┬──────────────────────────┘
                │ ruft auf
 ┌──────────────▼──────────────────────────┐
@@ -74,11 +74,11 @@ Zwei Exporte. Mehr braucht kein Consumer.
 
 **`__main__.py`** — CLI + GUI Router
 ```python
-# CLI-Modus: Kommando ausfuehren, beenden
+# CLI-Modus: Kommando ausführen, beenden
 docker-app-launcher --status
 docker-app-launcher --install --port 9000
 
-# GUI-Modus: Fenster oeffnen (kein CLI-Flag)
+# GUI-Modus: Fenster öffnen (kein CLI-Flag)
 docker-app-launcher
 docker-app-launcher --config launcher.json --debug
 ```
@@ -86,23 +86,23 @@ docker-app-launcher --config launcher.json --debug
 Entscheidungslogik:
 ```
 CLI-Flag vorhanden?
-├─ Ja → Action ausfuehren → print → exit
+├─ Ja → Action ausführen → print → exit
 └─ Nein → LauncherApp(config) → mainloop
 ```
 
 ### Schicht 2: GUI (gui.py)
 
 **LauncherApp** erbt von `tk.Tk`.
-EIN Fenster. Oeffnet sich. Schliesst sich NIE von selbst.
+EIN Fenster. Öffnet sich. Schließt sich NIE von selbst.
 
 Aufgaben:
 - Zustand anzeigen (Text + Buttons aktualisieren)
 - User-Input entgegennehmen (Klicks, Port-Eingabe)
-- Actions in Threads ausfuehren (blocking → non-blocking)
-- Ergebnisse ueber `self.after()` in den Tk-Thread marshallen
+- Actions in Threads ausführen (blocking → non-blocking)
+- Ergebnisse über `self.after()` in den Tk-Thread marshallen
 
 NICHT Aufgaben:
-- Docker-Befehle ausfuehren
+- Docker-Befehle ausführen
 - Port validieren
 - Health-Checks machen
 - Dateien lesen/schreiben
@@ -112,7 +112,7 @@ class LauncherApp(tk.Tk):
     def _on_action(self, action_name, action_fn, *args):
         self._disable_buttons()
         threading.Thread(target=worker, daemon=True).start()
-        # Ergebnis ueber self.after() → _on_action_result()
+        # Ergebnis über self.after() → _on_action_result()
 ```
 
 ### Schicht 3: Actions (actions.py)
@@ -138,10 +138,10 @@ def read_manifest(config) -> dict | None
 def ensure_installed(config, ...) -> tuple[bool, str]
 ```
 
-Callback-Pattern fuer Streaming:
+Callback-Pattern für Streaming:
 ```python
 def install(config, on_step=None, on_output=None, on_progress=None):
-    if on_step: on_step("Docker pruefen...")
+    if on_step: on_step("Docker prüfen...")
     ok, msg = check_docker()
     if on_step: on_step("Image bauen...")
     for line in _stream_command(cmd):
@@ -149,7 +149,7 @@ def install(config, on_step=None, on_output=None, on_progress=None):
         if on_progress: on_progress(percent, label)
 ```
 
-GUI uebergibt Callbacks die in den Tk-Thread marshallen:
+GUI übergibt Callbacks die in den Tk-Thread marshallen:
 ```python
 # GUI:
 actions.install(
@@ -163,7 +163,7 @@ actions.install(
 ### Schicht 4: Infrastruktur
 
 **config.py** — LauncherConfig Dataclass
-Einzige Wahrheitsquelle fuer ALLE Konfiguration.
+Einzige Wahrheitsquelle für ALLE Konfiguration.
 Nichts im Code ist hardcoded.
 
 **i18n/** — YAML Sprachdateien (11 Sprachen)
@@ -197,7 +197,7 @@ launcher-debug.log (bei --debug).
 │  [Hauptaktion 3] [Log kopieren]     │
 │                                     │
 │  ┌─── Log-Bereich (scrollbar) ───┐  │
-│  │ Docker pruefen... ✓           │  │
+│  │ Docker prüfen... ✓           │  │
 │  │ Image bauen...                │  │
 │  │ #5 [frontend 2/6] COPY ...   │  │
 │  └───────────────────────────────┘  │
@@ -244,10 +244,10 @@ launcher-debug.log (bei --debug).
 | Starten | disabled | disabled | **enabled** | disabled |
 | Stoppen | disabled | disabled | disabled | **enabled** |
 | Deinstallieren | disabled | disabled | **enabled** | **enabled** |
-| Im Browser oeffnen | disabled | disabled | disabled | **enabled** |
+| Im Browser öffnen | disabled | disabled | disabled | **enabled** |
 | Log kopieren | disabled | **enabled** | **enabled** | **enabled** |
-| Port uebernehmen | disabled | disabled | **enabled** | **enabled** |
-| Aufraeumen | disabled | **enabled** | **enabled** | **enabled** |
+| Port übernehmen | disabled | disabled | **enabled** | **enabled** |
+| Aufräumen | disabled | **enabled** | **enabled** | **enabled** |
 | Im Hintergrund | disabled | disabled | disabled | **enabled** |
 
 Buttons werden NIE versteckt. Nur enabled/disabled.
@@ -264,7 +264,7 @@ Alles konfigurierbar. Nichts hardcoded.
 ```python
 @dataclass
 class LauncherConfig:
-    # App-Identitaet
+    # App-Identität
     app_name: str
     container_name: str
     app_slug: str              # auto: kebab-case von app_name
@@ -296,7 +296,7 @@ class LauncherConfig:
 
     # GUI
     window_width: int = 620
-    window_height: int = 470
+    window_height: int = 520
     locale: str = "auto"       # auto = OS-Erkennung
 
     # Links
@@ -351,12 +351,12 @@ config = LauncherConfig.from_json("launcher.json")
 config = LauncherConfig(app_name="My App", ...)
 
 # Auto-Resolve
-config.resolve()  # Fuellt Defaults aus app_name
+config.resolve()  # Füllt Defaults aus app_name
 ```
 
-### Prioritaet
+### Priorität
 
-1. Expliziter Wert im Code (hoechste)
+1. Expliziter Wert im Code (höchste)
 2. launcher.json
 3. CLI-Flag (--port, --debug)
 4. Computed Default (resolve())
@@ -365,25 +365,25 @@ config.resolve()  # Fuellt Defaults aus app_name
 
 ## Port-Management
 
-### Oeffentlicher Port (kein Rebuild)
+### Öffentlicher Port (kein Rebuild)
 
 ```
-User aendert Port 8501 → 9000:
+User ändert Port 8501 → 9000:
 1. Validieren (1024-65535, nicht belegt)
 2. launcher.json aktualisieren
 3. .env aktualisieren (APP_PORT=9000)
 4. Stop Container
 5. Start Container (compose up -d, KEIN --build)
 6. Health-Check auf Port 9000
-7. Browser oeffnet Port 9000
+7. Browser öffnet Port 9000
 Dauer: ~5 Sekunden
 ```
 
-### Interner Port (Rebuild noetig)
+### Interner Port (Rebuild nötig)
 
 ```
-User aendert Backend-Port 8000 → 8001:
-1. Warnung: "Rebuild noetig, 2-5 Minuten"
+User ändert Backend-Port 8000 → 8001:
+1. Warnung: "Rebuild nötig, 2-5 Minuten"
 2. .env aktualisieren (APP_BACKEND_PORT=8001)
 3. Stop Container
 4. Build + Start (compose up --build -d)
@@ -401,7 +401,7 @@ APP_NGINX_PORT=80
 
 docker-compose.yml liest alle Ports aus .env.
 Launcher schreibt .env VOR dem Start.
-Kein Port-Mismatch moeglich.
+Kein Port-Mismatch möglich.
 
 ---
 
@@ -421,16 +421,16 @@ Kein Port-Mismatch moeglich.
 ```
 
 Geschrieben nach jedem Install/Start.
-Ermoeglicht praezises Cleanup ohne Raten.
+Ermöglicht präzises Cleanup ohne Raten.
 
 ### Cleanup-Flow
 
 ```
 1. find_stale_artifacts(config)
-   ├─ Manifest vorhanden? → praezise Liste
+   ├─ Manifest vorhanden? → präzise Liste
    └─ Kein Manifest? → Pattern-basierte Suche
 2. Aktive Projekt-Volumes AUSFILTERN
-3. User waehlt (Daten-Volumes default AUS)
+3. User wählt (Daten-Volumes default AUS)
 4. cleanup_stale(config, selected, on_step)
    └─ Jeden Schritt einzeln loggen mit ✓/✗
 5. Summary: "X Artefakte, Y MB freigegeben"
@@ -467,21 +467,21 @@ except ImportError:
 ### Fallback-Kette
 
 ```
-Tray verfuegbar + App laeuft?
+Tray verfügbar + App läuft?
 ├─ Ja → withdraw() → Tray-Icon
-│       Doppelklick → Fenster zurueck
-│       Menu: Oeffnen / Browser / Stoppen / Beenden
+│       Doppelklick → Fenster zurück
+│       Menu: Öffnen / Browser / Stoppen / Beenden
 └─ Nein → iconify() → Taskbar
-          Klick auf Taskbar → Fenster zurueck
+          Klick auf Taskbar → Fenster zurück
 ```
 
 ### X-Button Verhalten
 
-| App-Status | Tray verfuegbar | X-Button Aktion |
+| App-Status | Tray verfügbar | X-Button Aktion |
 |------------|-----------------|-----------------|
-| Laeuft | Ja | → Tray |
-| Laeuft | Nein | → Taskbar + Hinweis |
-| Nicht laeuft | Egal | → Schliessen |
+| Läuft | Ja | → Tray |
+| Läuft | Nein | → Taskbar + Hinweis |
+| Nicht läuft | Egal | → Schließen |
 
 ---
 
@@ -495,12 +495,12 @@ i18n/
   en.yaml    # Englisch (Fallback)
   el.yaml    # Griechisch
   es.yaml    # Spanisch
-  fr.yaml    # Franzoesisch
+  fr.yaml    # Französisch
   hi.yaml    # Hindi
   ja.yaml    # Japanisch
   ko.yaml    # Koreanisch
   pt.yaml    # Portugiesisch
-  tr.yaml    # Tuerkisch
+  tr.yaml    # Türkisch
   id.yaml    # Indonesisch
 ```
 
@@ -513,11 +513,11 @@ install: "Installieren"
 cleanup_done: "Aufräumen abgeschlossen. {count} Artefakte entfernt."
 ```
 
-### Aufloesung
+### Auflösung
 
 ```
-1. Custom Strings (config.custom_strings) → hoechste Prio
-2. YAML Datei fuer config.locale
+1. Custom Strings (config.custom_strings) → höchste Prio
+2. YAML Datei für config.locale
 3. en.yaml als Fallback
 4. Key selbst als letzter Fallback
 ```
@@ -528,14 +528,14 @@ cleanup_done: "Aufräumen abgeschlossen. {count} Artefakte entfernt."
 locale.getdefaultlocale() → "de_DE" → "de"
 ```
 
-Dropdown im GUI fuer manuellen Wechsel.
+Dropdown im GUI für manuellen Wechsel.
 Sprachen in nativer Schrift: "Deutsch", "Ελληνικά", "日本語".
 
 ---
 
 ## Docker-Check (Plattform-spezifisch)
 
-| Plattform | Pruefung | Start-Aktion |
+| Plattform | Prüfung | Start-Aktion |
 |-----------|----------|-------------|
 | Linux | docker binary + systemd daemon + docker-Gruppe | systemctl start docker (pkexec) |
 | Windows | docker binary + Docker Desktop Pfad + daemon | Docker Desktop.exe starten |
@@ -580,15 +580,15 @@ Fallback: estimated_build_steps aus Config.
 
 | Action | CLI | GUI |
 |--------|-----|-----|
-| Docker pruefen | --check | Automatisch |
+| Docker prüfen | --check | Automatisch |
 | Status | --status | Automatisch |
 | Installieren | --install | [Installieren] |
 | Starten | --start | [Starten] |
 | Stoppen | --stop | [Stoppen] |
 | Deinstallieren | --uninstall | [Deinstallieren] |
-| Browser oeffnen | --open | [Im Browser oeffnen] |
+| Browser öffnen | --open | [Im Browser öffnen] |
 | Port setzen | --port 9000 | Port-Feld |
-| Aufraeumen | --cleanup | [Aufräumen] |
+| Aufräumen | --cleanup | [Aufräumen] |
 | Version | --version | Im Titel |
 | Debug | --debug | Log-Dateien |
 
@@ -653,7 +653,7 @@ docker-app-launcher-build --config launcher.json --output dist/
 
 | App | Config | Beschreibung |
 |-----|--------|-------------|
-| Adaptive Learner | launcher.json | KI-gestuetzte Sprachlern-App |
+| Adaptive Learner | launcher.json | KI-gestützte Sprachlern-App |
 | Bibliogon | launcher.json | React-basierte Buch-Authoring-Plattform |
 
 ---
@@ -670,35 +670,35 @@ docker-app-launcher-build --config launcher.json --output dist/
 | Integration | 10+ | pytest |
 | **Gesamt** | **318+** | **pytest** |
 
-Keine Tk-Abhaengigkeit in Tests.
-Docker gemockt. tmp_path fuer Config.
+Keine Tk-Abhängigkeit in Tests.
+Docker gemockt. tmp_path für Config.
 
 ---
 
 ## Release-Prozess
 
-1. Code-Aenderung → PR gegen main
+1. Code-Änderung → PR gegen main
 2. CI gruen (Tests + Lint + Typecheck)
 3. Version bump in pyproject.toml
 4. CHANGELOG.md aktualisieren
 5. Tag pushen → CI published automatisch zu PyPI
 6. Consumer (AL, Bibliogon) Version bumpen
 
-Kein Release fuer Docs-only Aenderungen.
+Kein Release für Docs-only Änderungen.
 
 ---
 
 ## Design-Entscheidungen
 
-| Entscheidung | Begruendung |
+| Entscheidung | Begründung |
 |-------------|-------------|
-| Ein Fenster, nie schliessen | 15+ PRs und ein halber Tag Debugging mit Dialog-Ketten |
-| Actions pure, GUI duenn | Testbarkeit ohne Display/Docker |
+| Ein Fenster, nie schließen | 15+ PRs und ein halber Tag Debugging mit Dialog-Ketten |
+| Actions pure, GUI dünn | Testbarkeit ohne Display/Docker |
 | Callbacks statt Returns | Streaming, Fortschrittsanzeige |
 | YAML i18n statt Python dict | Skalierbar auf neue Sprachen ohne Code |
 | AppIndicator forcen | Xorg-Backend funktioniert nicht auf Wayland |
 | Flache Keys | Kein Umbau der Call-Sites |
-| Buttons disablen statt verstecken | User sieht immer alle Moeglichkeiten |
+| Buttons disablen statt verstecken | User sieht immer alle Möglichkeiten |
 | .env neben compose-file | Docker liest .env relativ zum Compose-Pfad |
-| Manifest fuer Cleanup | Praezises Aufraumen ohne Raten |
+| Manifest für Cleanup | Präzises Aufraumen ohne Raten |
 | estimated_build_steps | Progressbar auch ohne Parser-Treffer |

@@ -30,43 +30,77 @@ class TestPortEditable:
         assert gui.port_editable(state) is expected
 
 
-class TestButtonsForState:
-    def test_no_docker_has_recheck(self) -> None:
-        assert gui.buttons_for_state("no_docker") == [("recheck", "retry")]
+class TestButtonStates:
+    """Every button is always visible; only its enabled flag changes per state."""
 
-    def test_not_installed_has_install(self) -> None:
-        assert ("install", "install") in gui.buttons_for_state("not_installed")
+    def test_no_docker_disables_everything(self) -> None:
+        for name in gui.PRIMARY_BUTTONS + gui.SECONDARY_BUTTONS:
+            assert gui.button_enabled("no_docker", name) is False
 
-    def test_running_has_open_stop_uninstall(self) -> None:
-        # change_port + run-in-background moved to the secondary row (2-row layout).
-        ids = [a for a, _ in gui.buttons_for_state("running")]
-        assert ids == ["open", "stop", "uninstall"]
+    def test_not_installed(self) -> None:
+        for name in ("install", "copy_log", "cleanup"):
+            assert gui.button_enabled("not_installed", name) is True
+        for name in ("start", "stop", "uninstall", "open_browser", "apply_port", "background"):
+            assert gui.button_enabled("not_installed", name) is False
 
-    def test_running_secondary_row(self) -> None:
-        # Cleanup is always available in the installed states (running/stopped).
-        ids = [a for a, _ in gui.secondary_buttons_for_state("running")]
-        assert ids == ["change_port", "background", "cleanup"]
+    def test_stopped(self) -> None:
+        for name in ("start", "uninstall", "apply_port", "copy_log", "cleanup"):
+            assert gui.button_enabled("stopped", name) is True
+        for name in ("install", "stop", "open_browser", "background"):
+            assert gui.button_enabled("stopped", name) is False
 
-    def test_stopped_secondary_row_has_cleanup(self) -> None:
-        ids = [a for a, _ in gui.secondary_buttons_for_state("stopped")]
-        assert ids == ["cleanup"]
+    def test_running(self) -> None:
+        for name in ("open_browser", "stop", "uninstall", "apply_port", "copy_log", "cleanup", "background"):
+            assert gui.button_enabled("running", name) is True
+        for name in ("install", "start"):
+            assert gui.button_enabled("running", name) is False
 
-    def test_not_installed_secondary_row_has_cleanup(self) -> None:
-        # Stale volumes/images/configs can linger even before an install.
-        ids = [a for a, _ in gui.secondary_buttons_for_state("not_installed")]
-        assert ids == ["cleanup"]
+    def test_unknown_state_all_disabled(self) -> None:
+        assert gui.button_enabled("weird", "install") is False
 
-    def test_no_secondary_row_for_no_docker(self) -> None:
-        # The no-docker screen is the "start Docker" help; a Docker-backed
-        # cleanup scan cannot run without the daemon, so no second row there.
-        assert gui.secondary_buttons_for_state("no_docker") == []
+    def test_apply_port_and_copy_log_are_primary(self) -> None:
+        assert "apply_port" in gui.PRIMARY_BUTTONS
+        assert "copy_log" in gui.PRIMARY_BUTTONS
 
-    def test_stopped_has_start_uninstall(self) -> None:
-        ids = [a for a, _ in gui.buttons_for_state("stopped")]
-        assert ids == ["start", "uninstall"]
+    def test_secondary_is_cleanup_then_background(self) -> None:
+        assert gui.SECONDARY_BUTTONS == ["cleanup", "background"]
 
-    def test_unknown_state_empty(self) -> None:
-        assert gui.buttons_for_state("weird") == []
+
+class TestDisabledReason:
+    def test_enabled_button_has_no_reason(self) -> None:
+        assert gui.disabled_reason_key("install", "not_installed") == ""
+
+    def test_no_docker_needs_docker(self) -> None:
+        assert gui.disabled_reason_key("install", "no_docker") == "tooltip_needs_docker"
+
+    def test_install_already_installed(self) -> None:
+        assert gui.disabled_reason_key("install", "running") == "tooltip_already_installed"
+
+    def test_start_already_running_vs_not_installed(self) -> None:
+        assert gui.disabled_reason_key("start", "running") == "tooltip_already_running"
+        assert gui.disabled_reason_key("start", "not_installed") == "tooltip_not_installed"
+
+    def test_stop_not_running_when_stopped(self) -> None:
+        assert gui.disabled_reason_key("stop", "stopped") == "tooltip_not_running"
+
+    def test_background_only_running(self) -> None:
+        assert gui.disabled_reason_key("background", "stopped") == "tooltip_only_running"
+
+    def test_copy_log_no_log(self) -> None:
+        assert gui.disabled_reason_key("copy_log", "no_docker") == "tooltip_no_log"
+
+    def test_all_reason_keys_exist_in_every_locale(self) -> None:
+        from docker_app_launcher import i18n
+
+        reasons = {
+            gui.disabled_reason_key(name, state)
+            for state in ("no_docker", "not_installed", "stopped", "running")
+            for name in gui.PRIMARY_BUTTONS + gui.SECONDARY_BUTTONS
+        }
+        reasons.discard("")
+        for lang in i18n.available_languages():
+            for key in reasons:
+                assert key in i18n.STRINGS[lang], f"{key} missing in {lang}"
 
 
 class TestDispatchAction:
@@ -220,15 +254,6 @@ class TestAdvancedPorts:
         assert gui.default_internal_ports(self._cfg()) == {"backend": 8000, "nginx": 80}
 
 
-class TestBackgroundButton:
-    @pytest.mark.parametrize(
-        ("state", "expected"),
-        [("running", True), ("stopped", False), ("not_installed", False), ("no_docker", False)],
-    )
-    def test_visible_only_when_running(self, state: str, expected: bool) -> None:
-        assert gui.background_button_visible(state) is expected
-
-
 class TestShouldKeepAliveOnClose:
     def test_running_and_enabled_keeps_alive(self) -> None:
         assert gui.should_keep_alive_on_close("running", minimize_enabled=True) is True
@@ -335,27 +360,6 @@ class _ImmediateThread:
     def start(self) -> None:
         if self._target is not None:
             self._target()
-
-
-class TestSecondaryCommand:
-    def test_cleanup_routes_to_manual_cleanup(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        app = gui.LauncherApp.__new__(gui.LauncherApp)
-        sentinel = object()
-        monkeypatch.setattr(app, "_run_manual_cleanup", lambda: sentinel)
-        assert app._secondary_command("cleanup")() is sentinel
-
-    def test_background_routes_to_go_background(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        app = gui.LauncherApp.__new__(gui.LauncherApp)
-        sentinel = object()
-        monkeypatch.setattr(app, "_go_background", lambda: sentinel)
-        assert app._secondary_command("background")() is sentinel
-
-    def test_other_action_routes_to_on_action(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        app = gui.LauncherApp.__new__(gui.LauncherApp)
-        seen: list[str] = []
-        monkeypatch.setattr(app, "_on_action", lambda action_id: seen.append(action_id))
-        app._secondary_command("change_port")()
-        assert seen == ["change_port"]
 
 
 def _cleanup_app(monkeypatch: pytest.MonkeyPatch) -> tuple[gui.LauncherApp, dict[str, Any]]:

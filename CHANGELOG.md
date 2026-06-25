@@ -6,6 +6,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-06-25
+
+### Changed
+
+- **"Cleanup" button now available in every Docker-available state.** Previously
+  only the running/stopped states carried the manual cleanup button; it now also
+  appears in `not_installed`, because stale volumes, images, and configs can
+  linger even before an install - not_installed: `[Install]` / `[Cleanup]`. The
+  `no_docker` state is intentionally excluded (its screen is the "start Docker"
+  help, and a Docker-backed cleanup scan cannot run without the daemon).
+
 ## [0.10.0] - 2026-06-24
 
 ### Added

@@ -51,8 +51,14 @@ class TestButtonsForState:
         ids = [a for a, _ in gui.secondary_buttons_for_state("stopped")]
         assert ids == ["cleanup"]
 
-    def test_no_secondary_row_when_not_installed_or_no_docker(self) -> None:
-        assert gui.secondary_buttons_for_state("not_installed") == []
+    def test_not_installed_secondary_row_has_cleanup(self) -> None:
+        # Stale volumes/images/configs can linger even before an install.
+        ids = [a for a, _ in gui.secondary_buttons_for_state("not_installed")]
+        assert ids == ["cleanup"]
+
+    def test_no_secondary_row_for_no_docker(self) -> None:
+        # The no-docker screen is the "start Docker" help; a Docker-backed
+        # cleanup scan cannot run without the daemon, so no second row there.
         assert gui.secondary_buttons_for_state("no_docker") == []
 
     def test_stopped_has_start_uninstall(self) -> None:

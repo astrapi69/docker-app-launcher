@@ -6,6 +6,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-06-25
+
+### Fixed
+
+- **Clipped background-button label.** Shortened `run_in_background` to a concise
+  "in background" noun phrase in all 11 languages (e.g. `Im Hintergrund
+  weiterlaufen` -> `Im Hintergrund`); the long label was clipped at the button
+  width in several locales.
+- **Unbalanced primary grid.** The lone Copy-log button now sits in the right
+  column (under Apply port) instead of dangling alone on the left.
+
 ## [0.12.0] - 2026-06-25
 
 ### Changed

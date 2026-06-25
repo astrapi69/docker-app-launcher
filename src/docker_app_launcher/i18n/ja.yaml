@@ -7,7 +7,7 @@ start: 開始
 stop: 停止
 uninstall: アンインストール
 open_browser: ブラウザで開く
-run_in_background: バックグラウンドで実行を続ける
+run_in_background: バックグラウンド
 background_tray: システムトレイで実行中です。トレイアイコンをダブルクリックするとウィンドウを復元できます。
 background_iconified: バックグラウンドで実行中です。タスクバーからウィンドウを復元してください。
 closed_minimized: アプリは実行を続けます。ウィンドウは最小化されました。

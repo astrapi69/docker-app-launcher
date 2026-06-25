@@ -7,7 +7,7 @@ start: Başlat
 stop: Durdur
 uninstall: Kaldır
 open_browser: Tarayıcıda aç
-run_in_background: Arka planda çalıştır
+run_in_background: Arka planda
 background_tray: Sistem tepsisinde çalışıyor. Pencereyi geri yüklemek için tepsi simgesine çift tıklayın.
 background_iconified: Arka planda çalışıyor. Pencereyi görev çubuğundan geri yükleyin.
 closed_minimized: Uygulama çalışmaya devam ediyor; pencere küçültüldü.

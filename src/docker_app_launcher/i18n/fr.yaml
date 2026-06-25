@@ -7,7 +7,7 @@ start: Démarrer
 stop: Arrêter
 uninstall: Désinstaller
 open_browser: Ouvrir dans le navigateur
-run_in_background: Exécuter en arrière-plan
+run_in_background: En arrière-plan
 background_tray: S'exécute dans la zone de notification. Double-cliquez sur l'icône pour restaurer.
 background_iconified: S'exécute en arrière-plan. Restaurez la fenêtre depuis la barre des tâches.
 closed_minimized: L'application continue de fonctionner. Fenêtre réduite.

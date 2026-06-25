@@ -7,7 +7,7 @@ start: 시작
 stop: 중지
 uninstall: 제거
 open_browser: 브라우저에서 열기
-run_in_background: 백그라운드에서 계속 실행
+run_in_background: 백그라운드에서
 background_tray: 시스템 트레이에서 실행 중입니다. 트레이 아이콘을 더블클릭하면 창을 복원합니다.
 background_iconified: 백그라운드에서 실행 중입니다. 작업 표시줄에서 창을 복원하세요.
 closed_minimized: 앱이 계속 실행됩니다. 창이 최소화되었습니다.

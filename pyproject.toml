@@ -1,6 +1,6 @@
 [project]
 name = "docker-app-launcher"
-version = "0.12.0"
+version = "0.12.1"
 description = "Configurable desktop launcher for Docker-based applications"
 authors = [{ name = "Asterios Raptis", email = "aster.raptis@gmail.com" }]
 readme = "README.md"

@@ -47,10 +47,14 @@ _BUTTONS: dict[str, list[tuple[str, str]]] = {
 # the fixed-width window (the running state would otherwise pack 5 buttons into
 # one row and clip "Uninstall"). ``background`` is wired to the run-in-background
 # handler and ``cleanup`` to the on-demand cleanup scan; the rest route through
-# the normal action dispatch. ``cleanup`` is ALWAYS present in the installed
-# states (running/stopped) - it is independent of the startup cleanup offer,
-# which only fires once at launch when leftover artifacts already exist.
+# the normal action dispatch. ``cleanup`` is present in EVERY Docker-available
+# state (not_installed/stopped/running) - stale volumes, images, and configs can
+# linger even before an install - and is independent of the startup cleanup
+# offer, which only fires once at launch when leftover artifacts already exist.
+# (``no_docker`` has no second row: its screen is the "start Docker" help, and a
+# Docker-backed cleanup scan cannot run without the daemon.)
 _SECONDARY_BUTTONS: dict[str, list[tuple[str, str]]] = {
+    "not_installed": [("cleanup", "cleanup")],
     "running": [("change_port", "apply_port"), ("background", "run_in_background"), ("cleanup", "cleanup")],
     "stopped": [("cleanup", "cleanup")],
 }

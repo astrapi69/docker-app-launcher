@@ -7,7 +7,7 @@ start: Starten
 stop: Stoppen
 uninstall: Deinstallieren
 open_browser: Im Browser öffnen
-run_in_background: Im Hintergrund weiterlaufen
+run_in_background: Im Hintergrund
 background_tray: Läuft im System-Tray. Doppelklick auf das Tray-Icon stellt das Fenster wieder her.
 background_iconified: Läuft im Hintergrund. Fenster über die Taskleiste wiederherstellen.
 closed_minimized: App läuft weiter. Fenster minimiert.

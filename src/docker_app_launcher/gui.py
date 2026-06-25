@@ -42,12 +42,25 @@ _STATE_KEYS = {
     "stopped": "stopped",
 }
 
-# Primary actions, in their fixed two-column grid order (row = i // 2):
+# Primary actions, laid out in a fixed two-column grid:
 #   [Install]    [Open browser]
 #   [Start]      [Stop]
 #   [Uninstall]  [Apply port]
-#   [Copy log]
+#                [Copy log]
 PRIMARY_BUTTONS = ["install", "open_browser", "start", "stop", "uninstall", "apply_port", "copy_log"]
+
+# Explicit (row, column) per primary button. The lone Copy-log button sits in
+# the RIGHT column (under Apply port) so the grid stays balanced instead of a
+# single button dangling on the left.
+PRIMARY_GRID = {
+    "install": (0, 0),
+    "open_browser": (0, 1),
+    "start": (1, 0),
+    "stop": (1, 1),
+    "uninstall": (2, 0),
+    "apply_port": (2, 1),
+    "copy_log": (3, 1),
+}
 
 # Secondary actions, rendered in a single row BELOW the log under a separator.
 SECONDARY_BUTTONS = ["cleanup", "background"]
@@ -368,9 +381,10 @@ class LauncherApp(tk.Tk):
         # disabled per state in ``_update_button_states``.
         self._primary_frame = tk.Frame(self)
         self._primary_frame.pack(pady=(6, 0))
-        for index, name in enumerate(PRIMARY_BUTTONS):
+        for name in PRIMARY_BUTTONS:
+            row, column = PRIMARY_GRID[name]
             self._make_button(self._primary_frame, name, button_handlers[name]).grid(
-                row=index // 2, column=index % 2, padx=4, pady=2
+                row=row, column=column, padx=4, pady=2
             )
         # The copy-log button keeps a named alias for the "Copied!" feedback flip.
         self._copy_log_btn = self._buttons["copy_log"]

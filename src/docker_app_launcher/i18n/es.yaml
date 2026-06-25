@@ -7,7 +7,7 @@ start: Iniciar
 stop: Detener
 uninstall: Desinstalar
 open_browser: Abrir en el navegador
-run_in_background: Ejecutar en segundo plano
+run_in_background: En segundo plano
 background_tray: Ejecutándose en la bandeja del sistema. Haz doble clic en el icono para restaurar.
 background_iconified: Ejecutándose en segundo plano. Restaura la ventana desde la barra de tareas.
 closed_minimized: La aplicación sigue ejecutándose. Ventana minimizada.

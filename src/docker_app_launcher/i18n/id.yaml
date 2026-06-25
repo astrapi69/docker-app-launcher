@@ -7,7 +7,7 @@ start: Mulai
 stop: Hentikan
 uninstall: Hapus pemasangan
 open_browser: Buka di browser
-run_in_background: Jalankan di latar belakang
+run_in_background: Di latar belakang
 background_tray: Berjalan di system tray. Klik dua kali ikon tray untuk memulihkan.
 background_iconified: Berjalan di latar belakang. Pulihkan jendela dari taskbar.
 closed_minimized: Aplikasi tetap berjalan; jendela diminimalkan.

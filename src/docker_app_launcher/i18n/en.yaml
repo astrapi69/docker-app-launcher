@@ -7,7 +7,7 @@ start: Start
 stop: Stop
 uninstall: Uninstall
 open_browser: Open in browser
-run_in_background: Run in the background
+run_in_background: In background
 background_tray: Running in the system tray. Double-click the tray icon to restore.
 background_iconified: Running in the background. Restore the window from the taskbar.
 closed_minimized: App keeps running; window minimized.

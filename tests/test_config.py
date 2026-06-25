@@ -242,7 +242,7 @@ class TestMinimalConfigSmoke:
         assert actions.resolve_port(cfg) == cfg.default_port == 8080
         assert cfg.compose_path.name == "docker-compose.prod.yml"
         # the pure helper layer must not crash on defaults
-        assert gui.buttons_for_state("not_installed") == [("install", "install")]
+        assert gui.button_enabled("not_installed", "install") is True
         assert gui.advanced_ports_visible(cfg) is False
         assert actions._env_port_updates(cfg) == {cfg.env_port_key: 8080}
 

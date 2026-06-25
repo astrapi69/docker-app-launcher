@@ -6,7 +6,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [0.11.0] - 2026-06-25
+## [0.12.0] - 2026-06-25
+
+### Changed
+
+- **Window relayout + button state pattern.** Every button is now ALWAYS visible
+  and only enabled/disabled per state (never hidden/removed), with a tooltip on a
+  disabled button explaining why. The primary actions sit in a fixed two-column
+  grid above the log (`[Install] [Open browser]` / `[Start] [Stop]` /
+  `[Uninstall] [Apply port]` / `[Copy log]`); the log area below is text +
+  scrollbar only (the copy-log button moved up into the grid); a separator
+  divides the log from the secondary row `[Cleanup] [Run in background]` at the
+  bottom. Per-state enablement is a single `BUTTON_STATES` table; the `no_docker`
+  state greys everything and shows the Docker-help panel. New `tooltip_*` reason
+  strings in all 11 languages. Default window height 470 -> 520 for the taller
+  grid.
 
 ### Changed
 

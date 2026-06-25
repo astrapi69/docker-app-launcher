@@ -6,9 +6,17 @@ install / start / stop / uninstall / cleanup all happen in-place, streaming
 their progress into the scrollable status area.
 
 The Tk layer is intentionally thin. All behaviour lives in :mod:`actions`, and
-the pure helpers below (:func:`port_editable`, :func:`buttons_for_state`,
-:func:`dispatch_action`, :func:`should_minimize_to_tray`) carry the decisions
-so they are unit-testable without a display.
+the pure helpers below (:func:`port_editable`, :func:`button_enabled`,
+:func:`disabled_reason_key`, :func:`dispatch_action`,
+:func:`should_minimize_to_tray`) carry the decisions so they are unit-testable
+without a display.
+
+Button model (state pattern): every button exists for the whole lifetime of the
+window and is ALWAYS visible. A button is never hidden or removed - only
+enabled or disabled per the current app state via :data:`BUTTON_STATES`, with a
+tooltip on a disabled button explaining why. The primary actions sit in a
+two-column grid above the log; the secondary actions (cleanup / background /
+apply-port) sit below the log under a separator.
 """
 
 from __future__ import annotations
@@ -34,29 +42,80 @@ _STATE_KEYS = {
     "stopped": "stopped",
 }
 
-# state -> [(action_id, i18n_label_key), ...]. The X is the only way to close
-# the window, so there is no cancel/close button anywhere.
-_BUTTONS: dict[str, list[tuple[str, str]]] = {
-    "no_docker": [("recheck", "retry")],
-    "not_installed": [("install", "install")],
-    "stopped": [("start", "start"), ("uninstall", "uninstall")],
-    "running": [("open", "open_browser"), ("stop", "stop"), ("uninstall", "uninstall")],
+# Primary actions, in their fixed two-column grid order (row = i // 2):
+#   [Install]    [Open browser]
+#   [Start]      [Stop]
+#   [Uninstall]  [Apply port]
+#   [Copy log]
+PRIMARY_BUTTONS = ["install", "open_browser", "start", "stop", "uninstall", "apply_port", "copy_log"]
+
+# Secondary actions, rendered in a single row BELOW the log under a separator.
+SECONDARY_BUTTONS = ["cleanup", "background"]
+
+# button name -> i18n label key.
+BUTTON_LABELS = {
+    "install": "install",
+    "start": "start",
+    "open_browser": "open_browser",
+    "stop": "stop",
+    "uninstall": "uninstall",
+    "copy_log": "log_copy",
+    "cleanup": "cleanup",
+    "background": "run_in_background",
+    "apply_port": "apply_port",
 }
 
-# Secondary actions rendered on a SECOND row so the primary row never overflows
-# the fixed-width window (the running state would otherwise pack 5 buttons into
-# one row and clip "Uninstall"). ``background`` is wired to the run-in-background
-# handler and ``cleanup`` to the on-demand cleanup scan; the rest route through
-# the normal action dispatch. ``cleanup`` is present in EVERY Docker-available
-# state (not_installed/stopped/running) - stale volumes, images, and configs can
-# linger even before an install - and is independent of the startup cleanup
-# offer, which only fires once at launch when leftover artifacts already exist.
-# (``no_docker`` has no second row: its screen is the "start Docker" help, and a
-# Docker-backed cleanup scan cannot run without the daemon.)
-_SECONDARY_BUTTONS: dict[str, list[tuple[str, str]]] = {
-    "not_installed": [("cleanup", "cleanup")],
-    "running": [("change_port", "apply_port"), ("background", "run_in_background"), ("cleanup", "cleanup")],
-    "stopped": [("cleanup", "cleanup")],
+# The X is the only way to close the window, so there is no cancel/close button.
+# Every button is always visible; this table decides enabled vs disabled per
+# state. ``no_docker`` disables everything (the docker-help panel takes over);
+# ``cleanup`` + ``copy_log`` are enabled whenever Docker is up (stale artifacts
+# can linger even before an install, and the log can already carry output);
+# ``background`` only while running.
+BUTTON_STATES: dict[str, dict[str, bool]] = {
+    "no_docker": {
+        "install": False,
+        "open_browser": False,
+        "start": False,
+        "stop": False,
+        "uninstall": False,
+        "apply_port": False,
+        "copy_log": False,
+        "cleanup": False,
+        "background": False,
+    },
+    "not_installed": {
+        "install": True,
+        "open_browser": False,
+        "start": False,
+        "stop": False,
+        "uninstall": False,
+        "apply_port": False,
+        "copy_log": True,
+        "cleanup": True,
+        "background": False,
+    },
+    "stopped": {
+        "install": False,
+        "open_browser": False,
+        "start": True,
+        "stop": False,
+        "uninstall": True,
+        "apply_port": True,
+        "copy_log": True,
+        "cleanup": True,
+        "background": False,
+    },
+    "running": {
+        "install": False,
+        "open_browser": True,
+        "start": False,
+        "stop": True,
+        "uninstall": True,
+        "apply_port": True,
+        "copy_log": True,
+        "cleanup": True,
+        "background": True,
+    },
 }
 
 
@@ -71,17 +130,36 @@ def port_editable(state: str) -> bool:
     return state != "no_docker"
 
 
-def buttons_for_state(state: str) -> list[tuple[str, str]]:
-    """Return the PRIMARY-row ``[(action_id, i18n_label_key), ...]`` for ``state``."""
-    return list(_BUTTONS.get(state, []))
+def button_enabled(state: str, name: str) -> bool:
+    """Whether the button ``name`` is enabled in ``state`` (default disabled)."""
+    return BUTTON_STATES.get(state, {}).get(name, False)
 
 
-def secondary_buttons_for_state(state: str) -> list[tuple[str, str]]:
-    """Return the SECOND-row ``[(action_id, i18n_label_key), ...]`` for ``state``.
+def disabled_reason_key(name: str, state: str) -> str:
+    """The i18n key explaining WHY ``name`` is disabled in ``state`` (tooltip).
 
-    Keeps the primary row short enough to fit the fixed-width window.
+    Returns ``""`` when the button is enabled (no tooltip needed). Pure, so the
+    tooltip wording is unit-testable without a display.
     """
-    return list(_SECONDARY_BUTTONS.get(state, []))
+    if button_enabled(state, name):
+        return ""
+    if name == "copy_log":
+        return "tooltip_no_log"
+    if state == "no_docker":
+        return "tooltip_needs_docker"
+    if name == "install":
+        return "tooltip_already_installed"
+    if name == "start":
+        return "tooltip_already_running" if state == "running" else "tooltip_not_installed"
+    if name == "stop":
+        return "tooltip_not_running" if state == "stopped" else "tooltip_not_installed"
+    if name == "open_browser":
+        return "tooltip_not_running" if state == "stopped" else "tooltip_not_installed"
+    if name == "background":
+        return "tooltip_only_running"
+    # uninstall / apply_port are only disabled in not_installed (and no_docker,
+    # handled above).
+    return "tooltip_not_installed"
 
 
 def advanced_ports_visible(config: LauncherConfig) -> bool:
@@ -160,11 +238,6 @@ def should_minimize_to_tray(state: str, *, tray_available: bool, tray_enabled: b
     return state == "running" and tray_enabled and tray_available
 
 
-def background_button_visible(state: str) -> bool:
-    """Whether the explicit "Run in background" button is shown (running only)."""
-    return state == "running"
-
-
 def should_keep_alive_on_close(state: str, *, minimize_enabled: bool) -> bool:
     """Whether the X button should keep the launcher alive instead of quitting.
 
@@ -174,6 +247,61 @@ def should_keep_alive_on_close(state: str, *, minimize_enabled: bool) -> bool:
     running, or the app opted out, the X quits the launcher.
     """
     return state == "running" and minimize_enabled
+
+
+class _Tooltip:
+    """A hover tooltip for one widget, with dynamically settable text.
+
+    The tooltip only appears while the text is non-empty, so the same instance
+    can be attached to a button once and switched on (disabled, with a reason)
+    or off (enabled) as the app state changes.
+    """
+
+    def __init__(self, widget: tk.Widget) -> None:
+        self._widget = widget
+        self._text = ""
+        self._tip: tk.Toplevel | None = None
+        widget.bind("<Enter>", self._show, add="+")
+        widget.bind("<Leave>", self._hide, add="+")
+
+    def set_text(self, text: str) -> None:
+        """Set the tooltip text; an empty string disables the tooltip."""
+        self._text = text or ""
+        if not self._text:
+            self._hide()
+
+    def _show(self, _event: object = None) -> None:
+        if not self._text or self._tip is not None:
+            return
+        try:
+            x = self._widget.winfo_rootx() + 12
+            y = self._widget.winfo_rooty() + self._widget.winfo_height() + 4
+            self._tip = tk.Toplevel(self._widget)
+            self._tip.wm_overrideredirect(True)
+            self._tip.wm_geometry(f"+{x}+{y}")
+            tk.Label(
+                self._tip,
+                text=self._text,
+                justify="left",
+                background="#333333",
+                foreground="#ffffff",
+                relief="solid",
+                borderwidth=1,
+                padx=6,
+                pady=3,
+                font=("Segoe UI", 8),
+            ).pack()
+        except tk.TclError as exc:  # pragma: no cover - WM dependent
+            logger.debug("could not show tooltip: %s", exc)
+            self._tip = None
+
+    def _hide(self, _event: object = None) -> None:
+        if self._tip is not None:
+            try:
+                self._tip.destroy()
+            except tk.TclError as exc:  # pragma: no cover - WM dependent
+                logger.debug("could not hide tooltip: %s", exc)
+            self._tip = None
 
 
 class LauncherApp(tk.Tk):
@@ -188,6 +316,8 @@ class LauncherApp(tk.Tk):
         self._cfg.locale = actions.resolve_locale(self._cfg)
         self._debug = debug
         self._tray: tray.TrayController | None = None
+        self._buttons: dict[str, tk.Button] = {}
+        self._tooltips: dict[str, _Tooltip] = {}
 
         self.title(config.app_name)
         self.geometry(f"{config.window_width}x{config.window_height}")
@@ -228,13 +358,22 @@ class LauncherApp(tk.Tk):
         if advanced_ports_visible(config):
             self._build_advanced_section()
 
-        self._button_row = tk.Frame(self)
-        self._button_row.pack(pady=(4, 0))
+        button_handlers = self._build_button_handlers()
 
-        # A separate row below the action buttons for the explicit
-        # "Run in background" button (shown only while the app is running).
-        self._background_row = tk.Frame(self)
-        self._background_row.pack(pady=(2, 0))
+        # Docker-help panel: shown only in the no-docker state (packed before the
+        # primary grid). Empty otherwise.
+        self._docker_help_frame = tk.Frame(self)
+
+        # Primary actions: a fixed two-column grid, always visible. Enabled /
+        # disabled per state in ``_update_button_states``.
+        self._primary_frame = tk.Frame(self)
+        self._primary_frame.pack(pady=(6, 0))
+        for index, name in enumerate(PRIMARY_BUTTONS):
+            self._make_button(self._primary_frame, name, button_handlers[name]).grid(
+                row=index // 2, column=index % 2, padx=4, pady=2
+            )
+        # The copy-log button keeps a named alias for the "Copied!" feedback flip.
+        self._copy_log_btn = self._buttons["copy_log"]
 
         # Progress bar + label above the log: a quick visual for long actions
         # (install/start build, cleanup), with the scrollable log below for
@@ -245,21 +384,9 @@ class LauncherApp(tk.Tk):
         self._progress_label = tk.Label(self._progress_frame, text="", anchor="w", font=("Segoe UI", 8))
         self._progress_label.pack(fill="x", padx=12)
 
-        # Copy-log toolbar: a small button above the scrollable log so the user
-        # can grab the whole log in one click for a bug report / email / chat.
-        log_toolbar = tk.Frame(self)
-        log_toolbar.pack(fill="x", padx=12, pady=(8, 0))
-        self._copy_log_btn = tk.Button(
-            log_toolbar,
-            text=self._t("log_copy"),
-            width=14,
-            command=self._copy_log,
-        )
-        self._copy_log_btn.pack(side="right")
-
         status_frame = tk.Frame(self)
         self._status_frame = status_frame
-        status_frame.pack(fill="both", expand=True, padx=12, pady=(4, 12))
+        status_frame.pack(fill="both", expand=True, padx=12, pady=(8, 8))
         scrollbar = tk.Scrollbar(status_frame, orient="vertical")
         scrollbar.pack(side="right", fill="y")
         self._status = tk.Text(
@@ -277,11 +404,53 @@ class LauncherApp(tk.Tk):
         self._status.tag_configure("err", foreground="#c5221f")
         self._status.tag_configure("info", foreground="#555")
 
+        # Separator + secondary actions BELOW the log (packed after the expanding
+        # log frame, so they sit at the bottom of the window). The progress bar
+        # slots in between the log and the separator on demand.
+        self._divider = ttk.Separator(self, orient="horizontal")
+        self._divider.pack(fill="x", padx=12)
+        self._secondary_frame = tk.Frame(self)
+        self._secondary_frame.pack(pady=(6, 10))
+        for name in SECONDARY_BUTTONS:
+            self._make_button(self._secondary_frame, name, button_handlers[name]).pack(side="left", padx=4)
+
         self._refresh()
         if config.cleanup_on_start:
             self._offer_cleanup_if_stale()
         if config.update_check_enabled:
             self._check_for_update()
+
+    # --- button construction ---
+
+    def _build_button_handlers(self) -> dict[str, Callable[[], None]]:
+        """Map each button name to its click handler.
+
+        ``copy_log`` / ``cleanup`` / ``background`` have bespoke handlers; the
+        rest dispatch a normal action (``open_browser`` -> ``open``,
+        ``apply_port`` -> ``change_port``).
+        """
+        return {
+            "install": functools.partial(self._on_action, "install"),
+            "start": functools.partial(self._on_action, "start"),
+            "open_browser": functools.partial(self._on_action, "open"),
+            "stop": functools.partial(self._on_action, "stop"),
+            "uninstall": functools.partial(self._on_action, "uninstall"),
+            "copy_log": self._copy_log,
+            "cleanup": self._run_manual_cleanup,
+            "background": self._go_background,
+            "apply_port": functools.partial(self._on_action, "change_port"),
+        }
+
+    def _make_button(self, parent: tk.Frame, name: str, command: Callable[[], None]) -> tk.Button:
+        """Create one always-visible button and register it + its tooltip.
+
+        The caller places the returned button (``.grid`` for the primary grid,
+        ``.pack`` for the secondary row).
+        """
+        btn = tk.Button(parent, text=self._t(BUTTON_LABELS[name]), width=18, command=command)
+        self._buttons[name] = btn
+        self._tooltips[name] = _Tooltip(btn)
+        return btn
 
     # --- helpers ---
 
@@ -318,43 +487,28 @@ class LauncherApp(tk.Tk):
 
     def _refresh(self) -> None:
         state = actions.get_state(self._cfg)
-        heading = self._t(_STATE_KEYS.get(state, "no_docker"), port=actions.resolve_port(self._cfg))
-        self._state_label.configure(text=heading)
-        editable = port_editable(state)
-        self._port_entry.configure(state="normal" if editable else "disabled")
-        self._validate_port()
-        for child in self._button_row.winfo_children():
-            child.destroy()
         if state == "no_docker":
             self._render_docker_help()
         else:
-            for action_id, label_key in buttons_for_state(state):
-                tk.Button(
-                    self._button_row,
-                    text=self._t(label_key),
-                    width=18,
-                    command=functools.partial(self._on_action, action_id),
-                ).pack(side="left", padx=4)
-        for child in self._background_row.winfo_children():
-            child.destroy()
-        for action_id, label_key in secondary_buttons_for_state(state):
-            command = self._secondary_command(action_id)
-            tk.Button(self._background_row, text=self._t(label_key), width=22, command=command).pack(
-                side="left", padx=4
-            )
+            heading = self._t(_STATE_KEYS.get(state, "no_docker"), port=actions.resolve_port(self._cfg))
+            self._state_label.configure(text=heading, justify="center")
+            self._hide_docker_help()
+        self._port_entry.configure(state="normal" if port_editable(state) else "disabled")
+        self._validate_port()
+        self._update_button_states(state)
 
-    def _secondary_command(self, action_id: str) -> Callable[[], None]:
-        """Resolve the click handler for a second-row button.
+    def _update_button_states(self, state: str) -> None:
+        """Enable/disable every button for ``state`` and refresh its tooltip."""
+        for name, btn in self._buttons.items():
+            enabled = button_enabled(state, name)
+            btn.configure(state="normal" if enabled else "disabled")
+            reason = disabled_reason_key(name, state)
+            self._tooltips[name].set_text(self._t(reason) if reason else "")
 
-        ``background`` and ``cleanup`` have bespoke handlers (the latter scans
-        on demand rather than dispatching a one-shot action); everything else
-        routes through the normal action dispatch.
-        """
-        if action_id == "background":
-            return self._go_background
-        if action_id == "cleanup":
-            return self._run_manual_cleanup
-        return functools.partial(self._on_action, action_id)
+    def _relabel_buttons(self) -> None:
+        """Re-apply translated labels to every fixed button (language change)."""
+        for name, btn in self._buttons.items():
+            btn.configure(text=self._t(BUTTON_LABELS[name]))
 
     def _validate_port(self) -> None:
         raw = self._port_var.get().strip()
@@ -368,28 +522,39 @@ class LauncherApp(tk.Tk):
 
     def _render_docker_help(self) -> None:
         """Platform-specific Docker diagnostics + actions for the no-docker state."""
+        for child in self._docker_help_frame.winfo_children():
+            child.destroy()
         info = actions.check_docker_detailed(self._cfg)
         text = info.get("detail") or self._t("no_docker")
         if info.get("command"):
             text += "\n" + info["command"]
         self._state_label.configure(text=text, justify="center")
         tk.Button(
-            self._button_row, text=self._t("retry"), width=16, command=functools.partial(self._on_action, "recheck")
+            self._docker_help_frame,
+            text=self._t("retry"),
+            width=16,
+            command=functools.partial(self._on_action, "recheck"),
         ).pack(side="left", padx=4)
         if info.get("can_start"):
             tk.Button(
-                self._button_row,
+                self._docker_help_frame,
                 text=self._t("start_docker"),
                 width=16,
                 command=functools.partial(self._start_docker, info),
             ).pack(side="left", padx=4)
         if not info.get("installed"):
             tk.Button(
-                self._button_row,
+                self._docker_help_frame,
                 text=self._t("open_install_guide"),
                 width=22,
                 command=functools.partial(actions.open_url, info["install_url"]),
             ).pack(side="left", padx=4)
+        if not self._docker_help_frame.winfo_ismapped():
+            self._docker_help_frame.pack(pady=(0, 4), before=self._primary_frame)
+
+    def _hide_docker_help(self) -> None:
+        if self._docker_help_frame.winfo_ismapped():
+            self._docker_help_frame.pack_forget()
 
     def _start_docker(self, info: dict[str, object]) -> None:
         """Start the Docker daemon (Linux) or Docker Desktop (Win/macOS), then recheck."""
@@ -410,10 +575,10 @@ class LauncherApp(tk.Tk):
         """Build the collapsed expert section for internal (container) ports."""
         self._advanced_open = False
         self._advanced_toggle_row = tk.Frame(self)
-        # At first build the button row does not exist yet (natural order); on a
+        # At first build the primary grid does not exist yet (natural order); on a
         # rebuild (language change) it does, so anchor before it to keep position.
-        if hasattr(self, "_button_row"):
-            self._advanced_toggle_row.pack(pady=(0, 4), before=self._button_row)
+        if hasattr(self, "_primary_frame"):
+            self._advanced_toggle_row.pack(pady=(0, 4), before=self._primary_frame)
         else:
             self._advanced_toggle_row.pack(pady=(0, 4))
         self._advanced_toggle = tk.Button(
@@ -452,7 +617,7 @@ class LauncherApp(tk.Tk):
         arrow = "▼ " if self._advanced_open else "▶ "
         self._advanced_toggle.configure(text=arrow + self._t("advanced_settings"))
         if self._advanced_open:
-            self._advanced_frame.pack(pady=(0, 6), before=self._button_row)
+            self._advanced_frame.pack(pady=(0, 6), before=self._primary_frame)
         else:
             self._advanced_frame.pack_forget()
 
@@ -502,9 +667,8 @@ class LauncherApp(tk.Tk):
 
     def _reload_ui_strings(self) -> None:
         """Re-render every translated label after a language change (no restart)."""
-        self._refresh()  # state heading + primary/secondary button rows
-        if hasattr(self, "_copy_log_btn"):
-            self._copy_log_btn.configure(text=self._t("log_copy"))
+        self._relabel_buttons()
+        self._refresh()  # heading + docker-help + button states/tooltips
         if hasattr(self, "_advanced_toggle_row"):
             was_open = getattr(self, "_advanced_open", False)
             self._advanced_toggle_row.destroy()
@@ -530,10 +694,10 @@ class LauncherApp(tk.Tk):
         """Manual 'Cleanup' button: scan for leftover artifacts on demand, then
         either show the selection offer or report that nothing was found.
 
-        Always available in the installed states (running/stopped) and fully
-        decoupled from the startup offer (which only fires once at launch when
-        artifacts already exist). The scan runs off the Tk thread; results are
-        marshaled back via ``after``.
+        Always available whenever Docker is up (not_installed/stopped/running)
+        and fully decoupled from the startup offer (which only fires once at
+        launch when artifacts already exist). The scan runs off the Tk thread;
+        results are marshaled back via ``after``.
         """
         self._log(self._t("cleanup_scanning"))
 
@@ -604,7 +768,7 @@ class LauncherApp(tk.Tk):
 
     def _update_progress(self, percent: int | None, label: str) -> None:
         if not self._progress_frame.winfo_ismapped():
-            self._progress_frame.pack(fill="x", before=self._status_frame)
+            self._progress_frame.pack(fill="x", before=self._divider)
         self._progress_label.configure(text=label)
         if percent is None:  # indeterminate: unknown duration (e.g. health check)
             self._progress.configure(mode="indeterminate")
@@ -667,13 +831,14 @@ class LauncherApp(tk.Tk):
     def _set_busy(self, busy: bool) -> None:
         """Toggle the window between idle and "an action is running".
 
-        Disables EVERY button in the window - not just the action row, but any
+        Disables EVERY button in the window - not just the action rows, but any
         transient buttons too (e.g. the cleanup offer) - so a running action
         can never be triggered a second time or have a different action started
         in parallel. While busy the window is forced ``-topmost`` so it cannot
         vanish behind a shell window or dialog that pops up mid-install; when
         the action finishes the flag is dropped (so it does not nag during
-        normal use) and the window is brought to the front once.
+        normal use), the window is brought to the front once, and
+        :meth:`_refresh` restores each button to its per-state enabled value.
         """
         for btn in self._iter_buttons():
             btn["state"] = "disabled" if busy else "normal"

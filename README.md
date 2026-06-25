@@ -352,6 +352,31 @@ make test      # tests with coverage
 make fix       # auto-fix lint + format
 ```
 
+### Manual launcher testing
+
+Sample configs under `test-configs/` let you drive the launcher against a
+real app config without writing one. The `launcher-*` targets read
+`TEST_CONFIG` (default `test-configs/adaptive-learner.json`):
+
+```bash
+make launcher-test               # open the GUI in debug mode
+make launcher-status             # print the app state and exit
+make launcher-check              # check Docker availability and exit
+make launcher-stop               # stop the app
+make launcher-cleanup            # remove stale leftovers
+make launcher-version            # print the launcher version
+
+# pick a bundled config explicitly
+make launcher-test-al            # test-configs/adaptive-learner.json
+make launcher-test-bibliogon     # test-configs/bibliogon.json
+make launcher-test-minimal       # test-configs/minimal.json
+
+# or point at any config
+make launcher-test TEST_CONFIG=path/to/your.json
+
+make smoke                       # version + every test-config parses + --check
+```
+
 ## Used by
 
 - [Adaptive Learner](https://github.com/astrapi69/adaptive-learner) — AI-powered language learning platform

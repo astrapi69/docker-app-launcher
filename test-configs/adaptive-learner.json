@@ -1,0 +1,20 @@
+{
+  "app_name": "Adaptive Learner",
+  "container_name": "adaptive-learner",
+  "default_port": 8501,
+  "health_check_path": "/api/health",
+  "browser_path": "/",
+  "repo_url": "https://github.com/astrapi69/adaptive-learner",
+  "icon_path": "",
+  "locale": "auto",
+  "legacy_names": ["adaptive_learner"],
+  "cleanup_configs": [
+    "~/.config/adaptive_learner",
+    "~/.local/share/adaptive_learner"
+  ],
+  "show_advanced_ports": true,
+  "internal_ports": {"backend": 8000, "nginx": 80},
+  "tray_enabled": true,
+  "update_check_enabled": true,
+  "single_instance": true
+}

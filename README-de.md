@@ -292,6 +292,41 @@ Den Docker-Desktop-Pfad oder die Installations-URL überschreiben:
 }
 ```
 
+## Entwicklung
+
+```bash
+poetry install --with dev --all-extras
+make ci        # Lint + Format-Check + Typecheck + Tests
+make test      # Tests mit Coverage
+make fix       # Lint + Format automatisch korrigieren
+```
+
+### Manuelles Testen des Launchers
+
+Beispiel-Konfigurationen unter `test-configs/` lassen den Launcher gegen eine
+echte App-Konfiguration laufen, ohne selbst eine schreiben zu müssen. Die
+`launcher-*`-Targets lesen `TEST_CONFIG` (Standard
+`test-configs/adaptive-learner.json`):
+
+```bash
+make launcher-test               # GUI im Debug-Modus öffnen
+make launcher-status             # Zustand der App ausgeben und beenden
+make launcher-check              # Docker-Verfügbarkeit prüfen und beenden
+make launcher-stop               # App stoppen
+make launcher-cleanup            # Installationsreste entfernen
+make launcher-version            # Launcher-Version ausgeben
+
+# eine mitgelieferte Konfiguration explizit wählen
+make launcher-test-al            # test-configs/adaptive-learner.json
+make launcher-test-bibliogon     # test-configs/bibliogon.json
+make launcher-test-minimal       # test-configs/minimal.json
+
+# oder auf eine beliebige Konfiguration zeigen
+make launcher-test TEST_CONFIG=pfad/zu/deiner.json
+
+make smoke                       # Version + jede Test-Konfig parst + --check
+```
+
 ## Verwendet von
 
 - [Adaptive Learner](https://github.com/astrapi69/adaptive-learner) — KI-gestützte Sprachlernplattform

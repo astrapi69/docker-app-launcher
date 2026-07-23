@@ -40,6 +40,9 @@ jobs:
       - name: Install GObject system libraries (for the PyGObject tray extra)
         run: sudo apt-get update && sudo apt-get install -y libgirepository1.0-dev libcairo2-dev pkg-config
 
+      - name: Install xvfb + scrot (real-window GUI tests + screenshots)
+        run: sudo apt-get install -y xvfb scrot
+
       - name: Install dependencies
         run: poetry install --with dev --all-extras
 
@@ -52,8 +55,18 @@ jobs:
       - name: Type check with mypy
         run: poetry run mypy src/ tests/
 
-      - name: Run tests with coverage
-        run: poetry run pytest --cov=docker_app_launcher --cov-report=xml
+      - name: Run tests with coverage (GUI tests under xvfb)
+        run: xvfb-run -a poetry run pytest --cov=docker_app_launcher --cov-report=xml
+        env:
+          DAL_SCREENSHOTS: "1"
+
+      - name: Upload GUI screenshots
+        uses: actions/upload-artifact@v4
+        if: matrix.python-version == '3.12'
+        with:
+          name: gui-screenshots
+          path: test-screenshots/
+          if-no-files-found: ignore
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v7

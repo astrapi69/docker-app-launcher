@@ -24,6 +24,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `--start`, and the locale/update-check/logging/build-info error branches.
   `lockfile`, `logging_setup`, `update_check`, `build_info`, `pyinstaller`
   and `__init__` are at 100 % coverage.
+- **Real-window GUI tests + automatic screenshots (445 tests, coverage
+  86 %).** `tests/test_gui_window.py` drives a real `LauncherApp` window
+  through Tk's own event layer (`invoke()`, synchronous worker threads) with
+  all actions mocked: construction, per-state button enablement, the
+  no-docker help panel, live language switching, log + clipboard, port
+  validation, the threaded action flow (busy-guard, error hook), the cleanup
+  offer, the progress bar, and background/close behaviour — one window per
+  supported language. gui.py coverage 32 % -> 76 %. `pyautogui` (new dev
+  dependency) captures best-effort PNGs of every state when
+  `DAL_SCREENSHOTS=1` (`make screenshots`, dir `test-screenshots/`); CI runs
+  the whole suite under `xvfb-run` and uploads the screenshots as a build
+  artifact. New make targets `test-gui` and `screenshots`.
 
 ## [0.13.0] - 2026-07-23
 

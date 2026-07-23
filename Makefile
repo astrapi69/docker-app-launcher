@@ -90,6 +90,15 @@ test-cov: ## Run tests with coverage report
 test-xml: ## Run tests with XML coverage (for CI)
 	poetry run pytest -q --maxfail=1 --disable-warnings --cov=$(PKG) --cov-report=xml
 
+.PHONY: test-gui
+test-gui: ## Run the real-window GUI tests (needs a display or xvfb-run)
+	poetry run pytest tests/test_gui_window.py -v --no-cov
+
+.PHONY: screenshots
+screenshots: ## GUI screenshots for every state + language into test-screenshots/
+	DAL_SCREENSHOTS=1 poetry run pytest tests/test_gui_window.py -q --no-cov
+	@ls test-screenshots/ 2>/dev/null && echo "-> test-screenshots/" || echo "no screenshots produced (display/pyautogui unavailable)"
+
 # ---------------------------------------------------------------------------
 # Manual Launcher Testing
 # ---------------------------------------------------------------------------

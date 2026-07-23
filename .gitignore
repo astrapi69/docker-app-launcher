@@ -62,3 +62,4 @@ build/
 .coverage
 coverage.xml
 htmlcov/
+test-screenshots/

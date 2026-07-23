@@ -14,9 +14,16 @@ base works for any Docker app.
 - `src/docker_app_launcher/`
   - `config.py` — `LauncherConfig` dataclass (the single source of truth)
   - `actions.py` — all business logic, **no `tkinter`**, fully testable
-  - `gui.py` — `LauncherApp(tk.Tk)`, a thin window over the actions
+  - `ui_model.py` — framework-neutral UI behaviour (button tables, per-state
+    enablement, action dispatch, close policy) shared by every frontend
+  - `gui.py` — `LauncherApp(tk.Tk)`, the default `tk` frontend
+  - `frontends/` — frontend registry (`gui_backend`: `tk` | `ctk` | `qt`,
+    plus third-party via the `docker_app_launcher.frontends` entry-point
+    group); `ctk.py` (CustomTkinter, the `ctk` extra) and `qt.py` (PySide6,
+    the `qt` extra) render the same `ui_model` tables
   - `tray.py` — optional system tray (pystray + Pillow; the `tray` extra)
-  - `i18n.py` — DE/EN strings with `custom_strings` overrides
+  - `i18n/` — string catalogs as one YAML per language (11 languages),
+    `custom_strings` overrides
   - `__main__.py` — CLI entry point + GUI router
 - `tests/` — pytest suite (no Docker, no display)
 - `pyproject.toml` — single source of truth for metadata and tool config
@@ -39,7 +46,7 @@ base works for any Docker app.
 - **Formatting & linting:** Ruff only (no Black). Run `make fix` before committing.
 - **Typing:** mypy `strict` for `src/`; tests relax `disallow_untyped_defs` only.
 - **Line length:** 120.
-- **i18n:** add user-facing strings to `i18n.STRINGS` for both `en` and `de`
-  (a parity test enforces matching keys).
+- **i18n:** add user-facing strings to every `i18n/<code>.yaml` catalog (all
+  11 languages; a parity test enforces matching keys across all of them).
 - **Tests:** ≥5 tests per non-trivial action; mock Docker, never shell out.
 - **Python:** target 3.10+; CI verifies 3.10 – 3.14.

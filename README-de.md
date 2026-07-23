@@ -9,7 +9,10 @@ schließt sich nie von selbst — keine Dialog-Ketten.
 ## Schnellstart
 
 ```bash
-pip install docker-app-launcher
+pip install docker-app-launcher            # tkinter-Fenster (keine Extra-Abhängigkeiten)
+pip install "docker-app-launcher[ctk]"     # modernes CustomTkinter-Fenster
+pip install "docker-app-launcher[qt]"      # PySide6-(Qt)-Fenster
+pip install "docker-app-launcher[tray]"    # System-Tray-Unterstützung
 ```
 
 ### Python-API (3 Zeilen)
@@ -292,13 +295,37 @@ Den Docker-Desktop-Pfad oder die Installations-URL überschreiben:
 }
 ```
 
+## GUI-Frontends
+
+Das Fenster wird von einem austauschbaren Frontend gerendert, ausgewählt über
+das Konfigurationsfeld `gui_backend`. Alle Frontends teilen sich dieselben
+Verhaltens-Tabellen (`ui_model.py`) — Button-Layout, Aktivierung pro Zustand,
+Tooltips und Schließ-Verhalten sind konstruktionsbedingt identisch, nur das
+Widget-Toolkit unterscheidet sich.
+
+| `gui_backend` | Toolkit | Installation |
+|---------------|---------|--------------|
+| `"tk"` (Standard) | tkinter (Standardbibliothek) | nichts weiter nötig |
+| `"ctk"` | CustomTkinter — moderne Optik, folgt Hell/Dunkel des Systems | `pip install "docker-app-launcher[ctk]"` |
+| `"qt"` | PySide6 (Qt) — native Widgets | `pip install "docker-app-launcher[qt]"` |
+
+```json
+{ "app_name": "Meine App", "gui_backend": "ctk" }
+```
+
+Drittanbieter-Pakete können weitere Frontends über die Entry-Point-Gruppe
+`docker_app_launcher.frontends` registrieren; jedes Modul mit
+`run(config, *, debug=False) -> int` genügt dem Vertrag.
+
 ## Entwicklung
 
 ```bash
 poetry install --with dev --all-extras
-make ci        # Lint + Format-Check + Typecheck + Tests
-make test      # Tests mit Coverage
-make fix       # Lint + Format automatisch korrigieren
+make ci           # Lint + Format-Check + Typecheck + Tests
+make test         # Tests mit Coverage
+make test-gui     # Fenster-Tests (braucht Display oder xvfb-run)
+make screenshots  # Dark-Mode-Screenshots aller drei Frontends -> test-screenshots/
+make fix          # Lint + Format automatisch korrigieren
 ```
 
 ### Manuelles Testen des Launchers

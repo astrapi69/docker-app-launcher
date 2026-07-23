@@ -15,7 +15,10 @@ Pip-installable, no Electron, Linux/macOS/Windows, 11-language UI.
 ## Quick Start
 
 ```bash
-pip install docker-app-launcher
+pip install docker-app-launcher            # tkinter window (no extra deps)
+pip install "docker-app-launcher[ctk]"     # modern CustomTkinter window
+pip install "docker-app-launcher[qt]"      # PySide6 (Qt) window
+pip install "docker-app-launcher[tray]"    # system-tray support
 ```
 
 ### Python API (3 lines)
@@ -321,15 +324,38 @@ Override the Docker Desktop path or install URL:
 }
 ```
 
+## GUI Frontends
+
+The window is rendered by a swappable frontend, selected with the
+`gui_backend` config field. All frontends share the same behaviour tables
+(`ui_model.py`), so button layout, per-state enablement, tooltips, and close
+behaviour are identical by construction — only the widget toolkit differs.
+
+| `gui_backend` | Toolkit | Install |
+|---------------|---------|---------|
+| `"tk"` (default) | tkinter (stdlib) | nothing extra |
+| `"ctk"` | CustomTkinter — modern look, follows OS dark/light | `pip install "docker-app-launcher[ctk]"` |
+| `"qt"` | PySide6 (Qt) — native widgets | `pip install "docker-app-launcher[qt]"` |
+
+```json
+{ "app_name": "My App", "gui_backend": "ctk" }
+```
+
+Third-party packages can register additional frontends via the
+`docker_app_launcher.frontends` entry-point group; any module exposing
+`run(config, *, debug=False) -> int` qualifies.
+
 ## Architecture
 
 | Module        | Responsibility                                              |
 |---------------|-------------------------------------------------------------|
 | `config.py`         | `LauncherConfig` dataclass — the single source of truth.    |
 | `actions.py`        | All business logic. No `tkinter`. Fully testable.           |
-| `gui.py`            | `LauncherApp(tk.Tk)` — a thin window over the actions.       |
+| `ui_model.py`       | Framework-neutral UI behaviour shared by every frontend.    |
+| `gui.py`            | `LauncherApp(tk.Tk)` — the default `tk` frontend.            |
+| `frontends/`        | Frontend registry + `ctk` (CustomTkinter) and `qt` (PySide6). |
 | `tray.py`           | Optional system tray (pystray + Pillow).                     |
-| `i18n.py`           | DE/EN strings with custom-string overrides.                  |
+| `i18n/`             | One YAML catalog per language (11 languages), custom-string overrides. |
 | `lockfile.py`       | PID-based single-instance guard.                            |
 | `update_check.py`   | Background GitHub Releases update check.                    |
 | `logging_setup.py`  | Rotated file logging (`launcher.log` / `install.log`).      |
@@ -347,9 +373,11 @@ tray, i18n, and lifecycle callbacks).
 
 ```bash
 poetry install --with dev --all-extras
-make ci        # lint + format-check + typecheck + tests
-make test      # tests with coverage
-make fix       # auto-fix lint + format
+make ci           # lint + format-check + typecheck + tests
+make test         # tests with coverage
+make test-gui     # real-window GUI tests (needs a display or xvfb-run)
+make screenshots  # dark-mode screenshots of all three frontends -> test-screenshots/
+make fix          # auto-fix lint + format
 ```
 
 ### Manual launcher testing

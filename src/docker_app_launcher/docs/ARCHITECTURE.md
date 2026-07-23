@@ -1,7 +1,7 @@
 # docker-app-launcher — Architektur-Dokument
 
-Version: 0.11.0
-Stand: 25.06.2026
+Version: 0.14.0
+Stand: 23.07.2026
 
 ---
 
@@ -36,11 +36,16 @@ launch(LauncherConfig(
 └──────────────┬──────────────────────────┘
                │
 ┌──────────────▼──────────────────────────┐
-│              GUI (dünn)                │
-│  gui.py: LauncherApp(tk.Tk)            │
-│  - Zeigt Ergebnisse                    │
-│  - Ruft nur actions auf                │
-│  - Hat KEINE Business-Logik            │
+│         Frontends (dünn, tauschbar)    │
+│  frontends/: Registry (gui_backend)    │
+│   - gui.py  = "tk"  (tkinter, Default) │
+│   - ctk.py  = "ctk" (CustomTkinter)    │
+│   - qt.py   = "qt"  (PySide6)          │
+│  ui_model.py: geteilte Verhaltens-     │
+│   Tabellen (Buttons, Zustände,        │
+│   Dispatch, Close-Policy)              │
+│  - Zeigt Ergebnisse, ruft actions auf │
+│  - KEINE Business-Logik                │
 │  - Ein Fenster, schließt sich nie     │
 └──────────────┬──────────────────────────┘
                │ ruft auf
@@ -181,6 +186,33 @@ Verhindert Doppelstart. Cross-Platform (fcntl/msvcrt).
 **logging_setup.py** — File Logging
 launcher.log (persistent, rotiert), install.log (pro Install),
 launcher-debug.log (bei --debug).
+
+---
+
+## GUI-Frontends & ui_model (ab 0.14.0)
+
+Das Fenster ist eine austauschbare Schicht. Jede ENTSCHEIDUNG des Fensters
+liegt in `ui_model.py` — framework-frei:
+
+- `BUTTON_STATES`: Zustand → welcher Button aktiv (die eine Wahrheit)
+- `PRIMARY_BUTTONS` / `PRIMARY_GRID` / `SECONDARY_BUTTONS`: Layout-Tabellen
+- `disabled_reason_key()`: Tooltip-Begründung pro deaktiviertem Button
+- `dispatch_action()`: action_id → actions-Aufruf
+- `should_keep_alive_on_close()` / `should_minimize_to_tray()`: Close-Policy
+
+Ein Frontend ist ein Modul mit `run(config, *, debug=False) -> int`. Auswahl
+über das Config-Feld `gui_backend`; Auflösung in `frontends/__init__.py`:
+
+1. Eingebaut: `"tk"` (gui.py), `"ctk"` (frontends/ctk.py, Extra `ctk`),
+   `"qt"` (frontends/qt.py, Extra `qt`)
+2. Drittanbieter: Entry-Point-Gruppe `docker_app_launcher.frontends`
+
+Da alle Frontends dieselben `ui_model`-Tabellen rendern, kann Verhalten
+zwischen Toolkits nicht divergieren — die Fenster-Testsuiten aller drei
+Frontends prüfen identische Erwartungen gegen dieselben Tabellen.
+Toolkit-Eigenheiten bleiben im jeweiligen Frontend: Tk marshalt
+Worker-Threads per `after()`, Qt per queued Signal; der pystray-Hintergrund
+läuft in Qt über einen kleinen `withdraw`/`iconify`-Adapter.
 
 ---
 
@@ -546,6 +578,14 @@ Spezifische Fehlermeldungen:
 - "Docker nicht gestartet" → Start-Button
 - "Keine Berechtigung" → usermod Anleitung (Linux)
 
+Context-Fallback (ab 0.13.0): Ist der AKTIVE docker context nicht
+erreichbar (z. B. Docker Desktop für Linux mit totem Socket), probiert die
+Erkennung die übrigen Contexte per DOCKER_HOST-Probe durch und verbindet
+über den funktionierenden Endpoint — als modulweiter DOCKER_HOST-Override
+für alle folgenden docker-Kommandos (`actions.docker_host_override()`).
+Bei Totalausfall nennt die Meldung Context, Endpoint und dockers erste
+stderr-Zeile statt eines nackten "Docker ist nicht gestartet."
+
 ---
 
 ## Progressbar
@@ -602,7 +642,12 @@ src/docker_app_launcher/
   __main__.py           # CLI + GUI Router
   config.py             # LauncherConfig
   actions.py            # Alle Business-Logik
-  gui.py                # LauncherApp(tk.Tk)
+  ui_model.py           # Framework-freie UI-Verhaltens-Tabellen
+  gui.py                # LauncherApp(tk.Tk) — Frontend "tk"
+  frontends/
+    __init__.py          # Registry: gui_backend -> Frontend-Modul
+    ctk.py               # CustomTkinter-Frontend (Extra "ctk")
+    qt.py                # PySide6-Frontend (Extra "qt")
   tray.py               # System-Tray (optional)
   lockfile.py           # Single-Instance
   logging_setup.py      # File Logging
@@ -662,16 +707,20 @@ docker-app-launcher-build --config launcher.json --output dist/
 
 | Kategorie | Anzahl | Framework |
 |-----------|--------|-----------|
-| Actions | 250+ | pytest |
-| Config | 20+ | pytest |
-| CLI | 10+ | pytest |
-| GUI Helpers | 15+ | pytest |
-| i18n | 10+ | pytest |
-| Integration | 10+ | pytest |
-| **Gesamt** | **318+** | **pytest** |
+| Actions | 160+ | pytest |
+| Config / CLI / i18n / Infra | 150+ | pytest |
+| Fenster-Tests Tk (echtes Fenster) | 47 | pytest (+ Display/xvfb) |
+| Fenster-Tests CustomTkinter | 17 | pytest (+ Display/xvfb) |
+| Fenster-Tests Qt | 20 | pytest (offscreen, ohne Display) |
+| Frontend-Registry | 10 | pytest |
+| **Gesamt** | **490+** | **pytest** |
 
-Keine Tk-Abhängigkeit in Tests.
-Docker gemockt. tmp_path für Config.
+Docker gemockt, kein Shell-Out. Die Fenster-Suiten fahren echte Fenster
+über die Event-Schicht des Toolkits (invoke()/click(), Threads synchron
+gefakt) und skippen sauber ohne Display; die Qt-Suite läuft immer
+(offscreen-Plattform). Mit DAL_SCREENSHOTS=1 entstehen Dark-Mode-
+Screenshots aller Zustände und Sprachen (make screenshots; in CI als
+Artefakt "gui-screenshots").
 
 ---
 

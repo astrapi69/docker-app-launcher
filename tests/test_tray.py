@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 
 from docker_app_launcher import tray
@@ -165,3 +167,148 @@ def test_log_diagnostics_never_raises() -> None:
     # or not (it only logs).
     tray.log_diagnostics(_cfg())
     tray.log_diagnostics(LauncherConfig(app_name="X", icon_path="/no/such.png").resolve())
+
+
+# --- TrayController runtime with a fake backend (never a real tray) ---------
+
+
+class _FakeTrayIcon:
+    """Deterministic pystray.Icon stand-in: run() invokes setup synchronously."""
+
+    __module__ = "tests.fake_backend"
+
+    def __init__(self, name, image, tooltip, menu) -> None:
+        self.name = name
+        self.image = image
+        self.tooltip = tooltip
+        self.menu = menu
+        self.visible = False
+        self.stopped = False
+
+    def run(self, setup) -> None:
+        setup(self)
+
+    def stop(self) -> None:
+        self.stopped = True
+
+
+def _controller(**kwargs: Any) -> tray.TrayController:
+    defaults: dict[str, Any] = {"config": _cfg(), "port": 8080, "labels": {}, "callbacks": {}}
+    defaults.update(kwargs)
+    return tray.TrayController(**defaults)
+
+
+@pytest.fixture
+def fake_backend(monkeypatch):
+    """Force a fully fake tray stack: no pystray import, no real icon."""
+    monkeypatch.setattr(tray, "HAS_TRAY", True)
+    monkeypatch.setattr(tray, "_TrayIcon", _FakeTrayIcon)
+    monkeypatch.setattr(tray, "_resolve_tray_image", lambda config: object())
+    return _FakeTrayIcon
+
+
+class TestControllerStart:
+    def test_start_success_shows_icon(self, fake_backend) -> None:
+        controller = _controller()
+        assert controller.start() is True
+        assert controller._icon.visible is True
+
+    def test_start_false_when_extra_missing(self, monkeypatch) -> None:
+        monkeypatch.setattr(tray, "HAS_TRAY", False)
+        assert _controller().start() is False
+
+    def test_start_false_on_unreliable_backend(self, fake_backend, monkeypatch) -> None:
+        monkeypatch.setattr(fake_backend, "__module__", "pystray._xorg")
+        assert _controller().start() is False
+
+    def test_start_false_when_setup_never_fires(self, fake_backend, monkeypatch) -> None:
+        # A backend whose run() blocks without calling setup -> ready times out,
+        # start() must give up, clean up, and report False.
+        monkeypatch.setattr(_FakeTrayIcon, "run", lambda self, setup: None)
+        monkeypatch.setattr(tray.TrayController, "_READY_TIMEOUT_SECONDS", 0.05)
+        controller = _controller()
+        assert controller.start() is False
+        assert controller._icon is None
+
+    def test_start_false_when_run_loop_raises(self, fake_backend, monkeypatch) -> None:
+        def broken_run(self, setup):
+            raise RuntimeError("backend exploded")
+
+        monkeypatch.setattr(_FakeTrayIcon, "run", broken_run)
+        monkeypatch.setattr(tray.TrayController, "_READY_TIMEOUT_SECONDS", 0.5)
+        assert _controller().start() is False
+
+    def test_icon_gets_slug_and_menu(self, fake_backend, monkeypatch) -> None:
+        class _Item:
+            def __init__(self, label, handler, default=False):
+                self.label = label
+                self.default = default
+
+        class _Menu:
+            def __init__(self, *items):
+                self.items = items
+
+        import types
+
+        monkeypatch.setattr(tray, "pystray", types.SimpleNamespace(MenuItem=_Item, Menu=_Menu))
+        calls: list[str] = []
+        controller = _controller(
+            labels={"open": "Open!", "stop": "Stop!"},
+            callbacks={"open": lambda: calls.append("open"), "stop": lambda: calls.append("stop")},
+        )
+        assert controller.start() is True
+        icon = controller._icon
+        assert icon.name  # app_slug or "launcher"
+        labels = [item.label for item in icon.menu.items]
+        assert labels == ["Open!", "Stop!"]  # only supplied callbacks, display order
+        assert [item.default for item in icon.menu.items] == [True, False]  # "open" is default
+
+
+class TestControllerStop:
+    def test_stop_stops_icon_and_clears_state(self, fake_backend) -> None:
+        controller = _controller()
+        assert controller.start() is True
+        icon = controller._icon
+        controller.stop()
+        assert icon.stopped is True
+        assert controller._icon is None and controller._thread is None
+
+    def test_stop_swallows_backend_errors(self, fake_backend, monkeypatch) -> None:
+        controller = _controller()
+        assert controller.start() is True
+
+        def broken_stop(self):
+            raise RuntimeError("cannot stop")
+
+        monkeypatch.setattr(_FakeTrayIcon, "stop", broken_stop)
+        controller.stop()  # must not raise
+        assert controller._icon is None
+
+
+class TestLogDiagnostics:
+    def test_with_tray_and_missing_icon_path(self, caplog) -> None:
+        import logging
+
+        cfg = _cfg()
+        with caplog.at_level(logging.DEBUG, logger="docker_app_launcher.tray"):
+            tray.log_diagnostics(cfg)
+        assert any("Tray:" in message for message in caplog.messages)
+
+    def test_without_tray(self, monkeypatch, caplog) -> None:
+        import logging
+
+        monkeypatch.setattr(tray, "HAS_TRAY", False)
+        cfg = _cfg()
+        with caplog.at_level(logging.DEBUG, logger="docker_app_launcher.tray"):
+            tray.log_diagnostics(cfg)
+        assert any("FAILED" in message or "import" in message for message in caplog.messages)
+
+    def test_icon_path_found_vs_missing(self, tmp_path, caplog) -> None:
+        import logging
+
+        icon = tmp_path / "icon.png"
+        icon.write_bytes(b"png")
+        cfg = LauncherConfig(app_name="Demo", icon_path=str(icon)).resolve()
+        with caplog.at_level(logging.DEBUG, logger="docker_app_launcher.tray"):
+            tray.log_diagnostics(cfg)
+        assert any("found" in message for message in caplog.messages)

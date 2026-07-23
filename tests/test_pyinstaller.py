@@ -65,3 +65,28 @@ class TestRenderSpec:
     def test_missing_field_raises(self) -> None:
         with pytest.raises(TypeError):
             pyinstaller.render_spec(app_slug="x", entry_script="y", icon_path="z")  # type: ignore[call-arg]
+
+
+def test_read_build_info_oserror_returns_none(tmp_path, monkeypatch) -> None:
+    from pathlib import Path
+
+    path = tmp_path / "info.py"
+    path.write_text('__build_version__ = "1.0.0"')
+
+    def raise_os(self, **kwargs):
+        raise OSError("io error")
+
+    monkeypatch.setattr(Path, "read_text", raise_os)
+    assert build_info.read_build_info(path) is None
+
+
+def test_render_spec_rejects_unrendered_markers(monkeypatch, tmp_path) -> None:
+    # A template with a marker render_spec does not know must fail loudly,
+    # never ship a spec with literal {{...}} left inside.
+    from pathlib import Path
+
+    template = tmp_path / "launcher.spec.template"
+    template.write_text("name = {{APP_SLUG}}\nweird = {{UNKNOWN_MARKER}}\n")
+    monkeypatch.setattr(pyinstaller, "spec_template_path", lambda: Path(template))
+    with pytest.raises(ValueError, match="unrendered marker"):
+        pyinstaller.render_spec(app_slug="x", entry_script="run.py", icon_path="icon.png", config_json="launcher.json")

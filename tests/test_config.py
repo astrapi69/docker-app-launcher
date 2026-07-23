@@ -251,3 +251,26 @@ class TestMinimalConfigSmoke:
         assert cfg.container_name == "cn"
         assert actions.resolve_port(cfg) == 9090
         assert actions._env_port_updates(cfg) == {"CUSTOM_PORT": 9090}
+
+
+class TestDetectSystemLocaleEdges:
+    def test_locale_api_raises_falls_back_to_en(self, monkeypatch) -> None:
+        import locale as _locale
+
+        def boom():
+            raise ValueError("unknown locale")
+
+        monkeypatch.setattr(_locale, "getlocale", boom)
+        assert detect_system_locale() == "en"
+
+    def test_unsupported_language_falls_back_to_en(self, monkeypatch) -> None:
+        import locale as _locale
+
+        monkeypatch.setattr(_locale, "getlocale", lambda: ("xx_XX", "UTF-8"))
+        assert detect_system_locale() == "en"
+
+    def test_dash_separated_tag_normalized(self, monkeypatch) -> None:
+        import locale as _locale
+
+        monkeypatch.setattr(_locale, "getlocale", lambda: ("de-DE", "UTF-8"))
+        assert detect_system_locale() == "de"

@@ -58,3 +58,14 @@ class TestSetupLogging:
 
         monkeypatch.setattr(pathlib.Path, "mkdir", boom)
         logging_setup.setup_logging(cfg, debug=False)  # must not raise
+
+
+def test_debug_file_failure_is_nonfatal(tmp_path, monkeypatch) -> None:
+    # An unwritable CWD must degrade (no debug sink), never crash the launcher.
+    root = logging.getLogger("dal-test-debugfail")
+    root.handlers.clear()
+    missing = tmp_path / "does" / "not" / "exist"
+    monkeypatch.setattr(pathlib.Path, "cwd", classmethod(lambda cls: missing))
+    formatter = logging.Formatter("%(message)s")
+    logging_setup._add_debug_file(root, formatter)  # must not raise
+    assert not any(isinstance(handler, logging.FileHandler) for handler in root.handlers)

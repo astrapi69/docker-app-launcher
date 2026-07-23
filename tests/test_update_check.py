@@ -121,3 +121,30 @@ class TestCheckForUpdateAsync:
         assert thread is not None
         thread.join(timeout=2)
         assert seen == []
+
+
+class TestCallbackSafety:
+    def test_broken_notification_callback_is_swallowed(self, monkeypatch) -> None:
+        cfg = LauncherConfig(
+            app_name="X", app_version="1.0.0", repo_url="https://github.com/owner/repo", update_check_enabled=True
+        ).resolve()
+        monkeypatch.setattr(update_check, "fetch_latest_release", lambda url, user_agent: ("v9.9.9", "https://rel"))
+
+        def broken(tag: str, url: str) -> None:
+            raise RuntimeError("UI is gone")
+
+        thread = update_check.check_for_update_async(cfg, broken)
+        assert thread is not None
+        thread.join(timeout=5.0)
+        assert not thread.is_alive()
+
+    def test_no_release_found_is_silent(self, monkeypatch) -> None:
+        cfg = LauncherConfig(
+            app_name="X", app_version="1.0.0", repo_url="https://github.com/owner/repo", update_check_enabled=True
+        ).resolve()
+        monkeypatch.setattr(update_check, "fetch_latest_release", lambda url, user_agent: None)
+        called: list[str] = []
+        thread = update_check.check_for_update_async(cfg, lambda tag, url: called.append(tag))
+        assert thread is not None
+        thread.join(timeout=5.0)
+        assert called == []

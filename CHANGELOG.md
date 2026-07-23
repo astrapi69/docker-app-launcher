@@ -6,6 +6,25 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Gated tag-publishing.** The tag-triggered PyPI workflow now refuses to
+  publish unless the tag matches the `pyproject.toml` version, `CHANGELOG.md`
+  has a section for it, and the full check chain (lint + format + types +
+  tests) is green — a tag push can no longer ship unverified code.
+- **72 new tests (326 -> 398), coverage 68 % -> 76 %.** The previously
+  untested layers are now pinned: the docker-artifact enumeration helpers
+  behind cleanup/uninstall (`_project_containers`, `_project_images`,
+  `_docker_op`, `_docker_names`, `_image_size_bytes`, `_remove_config_path`),
+  the streaming build runner `_stream_command` (tail, keep-limit, watchdog
+  timeout, broken-callback safety), the `TrayController` runtime against a
+  fake backend (start/stop, unreliable-backend refusal, setup timeout, crash
+  fallback), Windows PID liveness via mocked `tasklist`, Docker-Desktop
+  launch paths for Windows/macOS, the `launch()` convenience API, CLI
+  `--start`, and the locale/update-check/logging/build-info error branches.
+  `lockfile`, `logging_setup`, `update_check`, `build_info`, `pyinstaller`
+  and `__init__` are at 100 % coverage.
+
 ## [0.13.0] - 2026-07-23
 
 ### Added

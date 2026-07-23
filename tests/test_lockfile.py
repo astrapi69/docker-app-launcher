@@ -67,3 +67,78 @@ class TestAnotherInstanceAlive:
         lockfile.write_lock(path, pid=os.getpid() + 1)
         monkeypatch.setattr(lockfile, "pid_is_alive", lambda pid: True)
         assert lockfile.another_instance_alive(path) is True
+
+
+class TestPidAliveWindows:
+    """_pid_alive_windows with a mocked tasklist (never runs on-CI Windows)."""
+
+    def _fake_run(self, monkeypatch, *, stdout: str | None = None, exc: BaseException | None = None) -> None:
+        import subprocess
+
+        def fake(cmd, **kwargs):
+            if exc is not None:
+                raise exc
+            return subprocess.CompletedProcess(args=cmd, returncode=0, stdout=stdout, stderr="")
+
+        monkeypatch.setattr(subprocess, "run", fake)
+
+    def test_pid_listed(self, monkeypatch) -> None:
+        self._fake_run(monkeypatch, stdout="launcher.exe   4242 Console")
+        assert lockfile._pid_alive_windows(4242) is True
+
+    def test_pid_not_listed(self, monkeypatch) -> None:
+        self._fake_run(monkeypatch, stdout="INFO: no tasks running")
+        assert lockfile._pid_alive_windows(4242) is False
+
+    def test_none_stdout_locale_edge(self, monkeypatch) -> None:
+        self._fake_run(monkeypatch, stdout=None)
+        assert lockfile._pid_alive_windows(4242) is False
+
+    def test_tasklist_missing_prefers_alive(self, monkeypatch) -> None:
+        self._fake_run(monkeypatch, exc=FileNotFoundError())
+        assert lockfile._pid_alive_windows(4242) is True
+
+    def test_tasklist_timeout_prefers_alive(self, monkeypatch) -> None:
+        import subprocess
+
+        self._fake_run(monkeypatch, exc=subprocess.TimeoutExpired(cmd="tasklist", timeout=5))
+        assert lockfile._pid_alive_windows(4242) is True
+
+
+class TestPidAlivePosixEdges:
+    def test_permission_error_means_alive(self, monkeypatch) -> None:
+        def raise_permission(pid, sig):
+            raise PermissionError()
+
+        monkeypatch.setattr(os, "kill", raise_permission)
+        assert lockfile._pid_alive_posix(1) is True
+
+    def test_other_oserror_means_dead(self, monkeypatch) -> None:
+        def raise_os(pid, sig):
+            raise OSError("odd platform")
+
+        monkeypatch.setattr(os, "kill", raise_os)
+        assert lockfile._pid_alive_posix(99999) is False
+
+
+class TestReadLockEdges:
+    def test_unreadable_file_returns_none(self, tmp_path, monkeypatch) -> None:
+        from pathlib import Path
+
+        lock = tmp_path / "lock.pid"
+        lock.write_text("123")
+
+        def raise_os(self, **kwargs):
+            raise OSError("no permission")
+
+        monkeypatch.setattr(Path, "read_text", raise_os)
+        assert lockfile.read_lock(lock) is None
+
+
+class TestPidIsAliveRouting:
+    def test_windows_platform_routes_to_tasklist_probe(self, monkeypatch) -> None:
+        import sys
+
+        monkeypatch.setattr(sys, "platform", "win32")
+        monkeypatch.setattr(lockfile, "_pid_alive_windows", lambda pid: True)
+        assert lockfile.pid_is_alive(1234) is True

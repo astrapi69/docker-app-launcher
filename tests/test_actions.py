@@ -6,10 +6,15 @@ real sockets; config + manifest use tmp dirs; health uses a mocked urlopen.
 
 from __future__ import annotations
 
+import os
+import platform
+import shutil
 import socket
 import subprocess
+import threading
 import urllib.request
 import webbrowser
+from collections.abc import Iterator
 from contextlib import contextmanager
 
 import pytest
@@ -1095,3 +1100,316 @@ class TestDockerContextFallback:
     def test_docker_contexts_degrades_on_old_cli(self, monkeypatch) -> None:
         monkeypatch.setattr(actions, "_run", lambda *a, **k: make_result(returncode=1, stderr="unknown command"))
         assert actions._docker_contexts() == []
+
+
+# --- low-level docker helpers (the layer the cleanup/uninstall flows mock) ---
+
+
+class TestDockerOp:
+    def test_success(self, monkeypatch) -> None:
+        monkeypatch.setattr(actions, "_run", lambda *a, **k: make_result())
+        assert actions._docker_op(["docker", "rm", "x"]) == (True, "")
+
+    def test_failure_returns_last_stderr_line(self, monkeypatch) -> None:
+        monkeypatch.setattr(actions, "_run", lambda *a, **k: make_result(returncode=1, stderr="first\nlast line"))
+        assert actions._docker_op(["docker", "rm", "x"]) == (False, "last line")
+
+    def test_failure_empty_stderr(self, monkeypatch) -> None:
+        monkeypatch.setattr(actions, "_run", lambda *a, **k: make_result(returncode=1))
+        assert actions._docker_op(["docker", "rm", "x"]) == (False, "unknown error")
+
+    def test_docker_missing(self, monkeypatch) -> None:
+        monkeypatch.setattr(actions, "_run", lambda *a, **k: (_ for _ in ()).throw(FileNotFoundError()))
+        assert actions._docker_op(["docker", "rm", "x"]) == (False, "docker not found")
+
+    def test_timeout(self, monkeypatch) -> None:
+        def boom(*a, **k):
+            raise subprocess.TimeoutExpired(cmd="docker", timeout=60)
+
+        monkeypatch.setattr(actions, "_run", boom)
+        assert actions._docker_op(["docker", "rm", "x"]) == (False, "timed out")
+
+
+class TestProjectContainers:
+    def test_parses_id_name_pairs(self, config, monkeypatch) -> None:
+        monkeypatch.setattr(actions, "_run", lambda *a, **k: make_result(stdout="abc\tapp-web\ndef\tapp-db\n"))
+        pairs = actions._project_containers(config, running_only=False)
+        assert pairs == [("abc", "app-web"), ("def", "app-db")]
+
+    def test_missing_name_falls_back_to_id(self, config, monkeypatch) -> None:
+        monkeypatch.setattr(actions, "_run", lambda *a, **k: make_result(stdout="abc\t\n"))
+        assert actions._project_containers(config, running_only=False) == [("abc", "abc")]
+
+    def test_running_only_omits_dash_a(self, config, monkeypatch) -> None:
+        seen: dict[str, list[str]] = {}
+
+        def fake_run(cmd, **k):
+            seen["cmd"] = cmd
+            return make_result()
+
+        monkeypatch.setattr(actions, "_run", fake_run)
+        actions._project_containers(config, running_only=True)
+        assert "-a" not in seen["cmd"]
+        actions._project_containers(config, running_only=False)
+        assert "-a" in seen["cmd"]
+
+    def test_docker_missing_returns_empty(self, config, monkeypatch) -> None:
+        monkeypatch.setattr(actions, "_run", lambda *a, **k: (_ for _ in ()).throw(FileNotFoundError()))
+        assert actions._project_containers(config, running_only=False) == []
+
+    def test_timeout_returns_empty(self, config, monkeypatch) -> None:
+        def boom(*a, **k):
+            raise subprocess.TimeoutExpired(cmd="docker", timeout=15)
+
+        monkeypatch.setattr(actions, "_run", boom)
+        assert actions._project_containers(config, running_only=True) == []
+
+
+class TestProjectImages:
+    def test_parses_and_dedupes_by_id(self, config, monkeypatch) -> None:
+        stdout = "id1\trepo/app\nid1\trepo/app-alias\nid2\trepo/db\n"
+        monkeypatch.setattr(actions, "_run", lambda *a, **k: make_result(stdout=stdout))
+        assert actions._project_images(config) == [("id1", "repo/app"), ("id2", "repo/db")]
+
+    def test_missing_ref_falls_back_to_id(self, config, monkeypatch) -> None:
+        monkeypatch.setattr(actions, "_run", lambda *a, **k: make_result(stdout="id1\t\n"))
+        assert actions._project_images(config) == [("id1", "id1")]
+
+    def test_uses_image_patterns_as_reference_filters(self, config, monkeypatch) -> None:
+        seen: dict[str, list[str]] = {}
+
+        def fake_run(cmd, **k):
+            seen["cmd"] = cmd
+            return make_result()
+
+        monkeypatch.setattr(actions, "_run", fake_run)
+        actions._project_images(config)
+        filters = [seen["cmd"][i + 1] for i, arg in enumerate(seen["cmd"]) if arg == "--filter"]
+        assert filters, "expected at least one --filter reference=..."
+        assert all(f.startswith("reference=*") for f in filters)
+
+    def test_docker_missing_returns_empty(self, config, monkeypatch) -> None:
+        monkeypatch.setattr(actions, "_run", lambda *a, **k: (_ for _ in ()).throw(FileNotFoundError()))
+        assert actions._project_images(config) == []
+
+
+class TestDockerNames:
+    def test_container_kind_uses_ps(self, config, monkeypatch) -> None:
+        seen: list[list[str]] = []
+
+        def fake_run(cmd, **k):
+            seen.append(cmd)
+            return make_result(stdout="app-web\n")
+
+        monkeypatch.setattr(actions, "_run", fake_run)
+        names = actions._docker_names(config, "container", ("app",))
+        assert names == ["app-web"]
+        assert seen[0][:3] == ["docker", "ps", "-a"]
+
+    def test_volume_kind_uses_volume_ls(self, config, monkeypatch) -> None:
+        seen: list[list[str]] = []
+
+        def fake_run(cmd, **k):
+            seen.append(cmd)
+            return make_result(stdout="app-data\n")
+
+        monkeypatch.setattr(actions, "_run", fake_run)
+        names = actions._docker_names(config, "volume", ("app",))
+        assert names == ["app-data"]
+        assert seen[0][:4] == ["docker", "volume", "ls", "--format"]
+
+    def test_dedupes_across_patterns(self, config, monkeypatch) -> None:
+        monkeypatch.setattr(actions, "_run", lambda *a, **k: make_result(stdout="same\n"))
+        assert actions._docker_names(config, "container", ("a", "b")) == ["same"]
+
+    def test_empty_pattern_skipped(self, config, monkeypatch) -> None:
+        calls: list[list[str]] = []
+
+        def fake_run(cmd, **k):
+            calls.append(cmd)
+            return make_result()
+
+        monkeypatch.setattr(actions, "_run", fake_run)
+        actions._docker_names(config, "container", ("", "app"))
+        assert len(calls) == 1
+
+    def test_error_on_one_pattern_continues(self, config, monkeypatch) -> None:
+        calls = {"n": 0}
+
+        def fake_run(cmd, **k):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                raise subprocess.TimeoutExpired(cmd="docker", timeout=15)
+            return make_result(stdout="found\n")
+
+        monkeypatch.setattr(actions, "_run", fake_run)
+        assert actions._docker_names(config, "container", ("a", "b")) == ["found"]
+
+
+class TestImageSizeBytes:
+    def test_valid_size(self, monkeypatch) -> None:
+        monkeypatch.setattr(actions, "_run", lambda *a, **k: make_result(stdout="123456789\n"))
+        assert actions._image_size_bytes("repo/app:latest") == 123456789
+
+    def test_nonzero_returncode(self, monkeypatch) -> None:
+        monkeypatch.setattr(actions, "_run", lambda *a, **k: make_result(returncode=1, stderr="no such image"))
+        assert actions._image_size_bytes("gone") == 0
+
+    def test_non_numeric_output(self, monkeypatch) -> None:
+        monkeypatch.setattr(actions, "_run", lambda *a, **k: make_result(stdout="not-a-number"))
+        assert actions._image_size_bytes("weird") == 0
+
+    def test_docker_missing(self, monkeypatch) -> None:
+        monkeypatch.setattr(actions, "_run", lambda *a, **k: (_ for _ in ()).throw(FileNotFoundError()))
+        assert actions._image_size_bytes("x") == 0
+
+    def test_timeout(self, monkeypatch) -> None:
+        def boom(*a, **k):
+            raise subprocess.TimeoutExpired(cmd="docker", timeout=15)
+
+        monkeypatch.setattr(actions, "_run", boom)
+        assert actions._image_size_bytes("x") == 0
+
+
+class TestRemoveConfigPath:
+    def test_removes_file(self, tmp_path) -> None:
+        target = tmp_path / "stale.json"
+        target.write_text("{}")
+        assert actions._remove_config_path(str(target)) == (True, "")
+        assert not target.exists()
+
+    def test_removes_directory(self, tmp_path) -> None:
+        target = tmp_path / "stale-dir"
+        (target / "sub").mkdir(parents=True)
+        (target / "sub" / "f.txt").write_text("x")
+        assert actions._remove_config_path(str(target)) == (True, "")
+        assert not target.exists()
+
+    def test_nonexistent_is_ok(self, tmp_path) -> None:
+        assert actions._remove_config_path(str(tmp_path / "gone")) == (True, "")
+
+    def test_oserror_reported(self, tmp_path, monkeypatch) -> None:
+        target = tmp_path / "stale-dir"
+        target.mkdir()
+
+        def boom(*a, **k):
+            raise OSError("permission denied")
+
+        monkeypatch.setattr(shutil, "rmtree", boom)
+        ok, detail = actions._remove_config_path(str(target))
+        assert ok is False and "permission denied" in detail
+
+
+class _FakePopen:
+    """Deterministic Popen stand-in: yields prepared lines, then exits."""
+
+    def __init__(self, lines: list[str], returncode: int = 0, hang_after: bool = False) -> None:
+        self._lines = lines
+        self.returncode = returncode
+        self._hang_after = hang_after
+        self._killed = threading.Event()
+        self.stdout = self._iter_stdout()
+
+    def _iter_stdout(self) -> Iterator[str]:
+        yield from (line + "\n" for line in self._lines)
+        if self._hang_after:
+            # Simulate a process that stops producing output but never exits
+            # until the watchdog kills it.
+            self._killed.wait(timeout=5.0)
+
+    def kill(self) -> None:
+        self.returncode = -9
+        self._killed.set()
+
+    def wait(self) -> int:
+        return self.returncode
+
+
+class TestStreamCommand:
+    def test_streams_lines_and_returns_tail(self, monkeypatch) -> None:
+        fake = _FakePopen(["one", "two", "three"])
+        monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: fake)
+        received: list[str] = []
+        code, tail = actions._stream_command(["docker", "build"], on_output=received.append, timeout=5.0)
+        assert code == 0
+        assert received == ["one", "two", "three"]
+        assert tail == "one\ntwo\nthree"
+
+    def test_tail_limited_to_tail_lines(self, monkeypatch) -> None:
+        fake = _FakePopen([f"line{i}" for i in range(20)])
+        monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: fake)
+        _, tail = actions._stream_command(["docker", "build"], timeout=5.0, tail_lines=2)
+        assert tail == "line18\nline19"
+
+    def test_keep_bounds_memory(self, monkeypatch) -> None:
+        fake = _FakePopen([f"line{i}" for i in range(50)])
+        monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: fake)
+        _, tail = actions._stream_command(["docker", "build"], timeout=5.0, tail_lines=15, keep=10)
+        # Only the last `keep` lines survive; the tail comes from those.
+        assert tail.splitlines() == [f"line{i}" for i in range(40, 50)]
+
+    def test_nonzero_returncode_passed_through(self, monkeypatch) -> None:
+        fake = _FakePopen(["ERROR: build failed"], returncode=17)
+        monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: fake)
+        code, tail = actions._stream_command(["docker", "build"], timeout=5.0)
+        assert code == 17
+        assert "build failed" in tail
+
+    def test_broken_output_callback_never_breaks_the_run(self, monkeypatch) -> None:
+        fake = _FakePopen(["a", "b"])
+        monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: fake)
+
+        def bad_callback(line: str) -> None:
+            raise RuntimeError("UI died")
+
+        code, tail = actions._stream_command(["docker", "build"], on_output=bad_callback, timeout=5.0)
+        assert code == 0 and tail == "a\nb"
+
+    def test_watchdog_timeout_raises(self, monkeypatch) -> None:
+        fake = _FakePopen(["only line"], hang_after=True)
+        monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: fake)
+        with pytest.raises(subprocess.TimeoutExpired):
+            actions._stream_command(["docker", "build"], timeout=0.05)
+
+
+class TestStartDockerDesktop:
+    def test_windows_configured_path(self, config, monkeypatch) -> None:
+        started: list[list[str]] = []
+        monkeypatch.setattr(platform, "system", lambda: "Windows")
+        monkeypatch.setattr(os.path, "exists", lambda p: True)
+        monkeypatch.setattr(subprocess, "Popen", lambda cmd, **k: started.append(cmd))
+        config.docker_desktop_path = r"C:\Custom\Docker Desktop.exe"
+        ok, msg = actions.start_docker_desktop(config)
+        assert ok is True and "starting" in msg
+        assert started == [[r"C:\Custom\Docker Desktop.exe"]]
+
+    def test_windows_not_installed(self, config, monkeypatch) -> None:
+        monkeypatch.setattr(platform, "system", lambda: "Windows")
+        monkeypatch.setattr(os.path, "exists", lambda p: False)
+        ok, msg = actions.start_docker_desktop(config)
+        assert ok is False and "not found" in msg
+
+    def test_macos_opens_app(self, config, monkeypatch) -> None:
+        started: list[list[str]] = []
+        monkeypatch.setattr(platform, "system", lambda: "Darwin")
+        monkeypatch.setattr(os.path, "exists", lambda p: True)
+        monkeypatch.setattr(subprocess, "Popen", lambda cmd, **k: started.append(cmd))
+        ok, _ = actions.start_docker_desktop(config)
+        assert ok is True
+        assert started == [["open", "/Applications/Docker.app"]]
+
+    def test_macos_not_installed(self, config, monkeypatch) -> None:
+        monkeypatch.setattr(platform, "system", lambda: "Darwin")
+        monkeypatch.setattr(os.path, "exists", lambda p: False)
+        assert actions.start_docker_desktop(config)[0] is False
+
+    def test_popen_oserror_is_suppressed(self, config, monkeypatch) -> None:
+        monkeypatch.setattr(platform, "system", lambda: "Windows")
+        monkeypatch.setattr(os.path, "exists", lambda p: True)
+
+        def boom(*a, **k):
+            raise OSError("blocked")
+
+        monkeypatch.setattr(subprocess, "Popen", boom)
+        ok, msg = actions.start_docker_desktop(config)
+        assert ok is False and "not found" in msg

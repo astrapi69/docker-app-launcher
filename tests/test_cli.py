@@ -136,3 +136,13 @@ class TestSingleInstance:
         assert state["existed_during"] is True
         cfg = LauncherConfig.from_json("launcher.json")
         assert not cfg.lock_path.is_file()
+
+
+class TestStartRoute:
+    def test_start_routes(self, monkeypatch) -> None:
+        monkeypatch.setattr(actions, "start", lambda c, **k: (True, "started"))
+        assert __main__.main(["--start"]) == 0
+
+    def test_start_failure_exit_code(self, monkeypatch) -> None:
+        monkeypatch.setattr(actions, "start", lambda c, **k: (False, "no compose file"))
+        assert __main__.main(["--start"]) == 1

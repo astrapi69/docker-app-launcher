@@ -41,8 +41,11 @@ def test_load_icon_image_nonexistent_returns_none() -> None:
     assert tray._load_icon_image("/no/such/icon.png") is None
 
 
-def test_controller_start_without_icon_returns_false() -> None:
-    # No icon_path configured -> start() bails out cleanly (no tray shown).
+def test_controller_start_without_image_returns_false(monkeypatch: pytest.MonkeyPatch) -> None:
+    # With the tray extra installed a missing icon_path no longer aborts start()
+    # (a default icon is generated), so simulate icon resolution failing: start()
+    # must bail out cleanly without ever creating a real tray icon.
+    monkeypatch.setattr(tray, "_resolve_tray_image", lambda config: None)
     controller = tray.TrayController(config=_cfg(), port=8080, labels={}, callbacks={})
     assert controller.start() is False
 

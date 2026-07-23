@@ -32,6 +32,9 @@ repos:
     rev: v2.1.0
     hooks:
       - id: mypy
-        additional_dependencies: [pytest]
+        # PySide6 ships type stubs; without it in the hook env the Qt frontend
+        # degrades to Any and strict mode flags it differently than the poetry
+        # env does - keep both environments seeing the same types.
+        additional_dependencies: [pytest, PySide6]
         pass_filenames: false
         args: ["src", "tests"]

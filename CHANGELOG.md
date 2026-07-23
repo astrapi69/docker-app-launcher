@@ -6,6 +6,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.14.1] - 2026-07-23
+
+### Fixed
+
+- **Documentation caught up with 0.14.0.** README (EN + DE), CLAUDE.md and
+  the architecture document now cover the swappable frontends: the
+  `gui_backend` field with the tk/ctk/qt table, the `ctk`/`qt` install
+  extras, the `ui_model` module, the third-party entry-point group, and the
+  new make targets — the release's headline feature was invisible on the
+  PyPI page.
+- **GUI screenshots capture reliably.** pyautogui silently produced nothing
+  under xvfb and on Wayland desktops, leaving stale bright screenshots in
+  place; capture now falls back pyautogui → ImageMagick `import` → Pillow
+  ImageGrab, a total miss surfaces as a pytest warning, and
+  `make screenshots` clears `test-screenshots/` first.
+
 ## [0.14.0] - 2026-07-23
 
 ### Added
@@ -450,7 +466,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - CLI ↔ GUI parity: both route through the same actions.
 - 160+ tests (no display required), mypy strict, ruff clean.
 
-[Unreleased]: https://github.com/astrapi69/docker-app-launcher/compare/v0.14.0...HEAD
+[Unreleased]: https://github.com/astrapi69/docker-app-launcher/compare/v0.14.1...HEAD
+[0.14.1]: https://github.com/astrapi69/docker-app-launcher/compare/v0.14.0...v0.14.1
 [0.14.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.12.1...v0.13.0
 [0.12.1]: https://github.com/astrapi69/docker-app-launcher/compare/v0.12.0...v0.12.1

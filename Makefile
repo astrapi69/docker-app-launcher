@@ -171,13 +171,14 @@ bump-major: ## Bump major version (0.1.0 -> 1.0.0)
 # ---------------------------------------------------------------------------
 
 .PHONY: build
-build: ## Build distribution package (sdist + wheel)
+build: ## Build distribution package (sdist + wheel); cleans stale artifacts first
+	rm -rf dist/
 	poetry build
 
 .PHONY: build-check
 build-check: build ## Build, then validate artifacts with twine + inspect wheel
 	poetry run twine check dist/*
-	poetry run python -m zipfile -l dist/*.whl
+	for whl in dist/*.whl; do poetry run python -m zipfile -l "$$whl"; done
 
 .PHONY: release-check
 release-check: ci codespell build-check ## Full pre-release gate (CI + spell + build + twine)

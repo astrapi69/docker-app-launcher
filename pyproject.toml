@@ -51,6 +51,9 @@ dependencies = ["pyyaml>=6.0"]
 tray = ["pystray>=0.19", "Pillow>=10.0", "PyGObject>=3.42,<3.52; sys_platform == 'linux'"]
 # Modern-look CustomTkinter frontend; select with "gui_backend": "ctk".
 ctk = ["customtkinter>=5.2"]
+# PySide6 (Qt) frontend; select with "gui_backend": "qt". PySide6 caps its
+# supported Python range, hence the marker.
+qt = ["PySide6>=6.5; python_version < '3.15'"]
 
 [project.urls]
 Homepage = "https://github.com/astrapi69/docker-app-launcher"
@@ -76,6 +79,7 @@ codespell = "^2.4.0"
 twine = "^6.2.0"
 pyautogui = "^0.9.54"
 customtkinter = "^6.0.0"
+pyside6 = {version = "^6.5", python = ">=3.10,<3.15"}
 
 [build-system]
 requires = ["poetry-core>=2.0"]

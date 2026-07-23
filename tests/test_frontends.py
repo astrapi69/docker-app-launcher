@@ -23,15 +23,15 @@ class TestBuiltins:
 
 class TestResolution:
     def test_unknown_name_lists_known_frontends(self) -> None:
-        with pytest.raises(ValueError, match=r"unknown gui_backend 'qt'.*tk"):
-            frontends.get_frontend("qt")
+        with pytest.raises(ValueError, match=r"unknown gui_backend 'web'.*tk"):
+            frontends.get_frontend("web")
 
     def test_entry_point_frontend_is_loaded(self, monkeypatch) -> None:
-        fake_module = types.ModuleType("fake_qt")
+        fake_module = types.ModuleType("fake_web")
         fake_module.run = lambda config, *, debug=False: 0  # type: ignore[attr-defined]
 
         class _FakeEp:
-            name = "qt"
+            name = "web"
 
             def load(self):
                 return fake_module
@@ -39,8 +39,8 @@ class TestResolution:
         monkeypatch.setattr(
             frontends, "entry_points", lambda group: [_FakeEp()] if group == frontends.ENTRY_POINT_GROUP else []
         )
-        assert frontends.get_frontend("qt") is fake_module
-        assert "qt" in frontends.available_frontends()
+        assert frontends.get_frontend("web") is fake_module
+        assert "web" in frontends.available_frontends()
 
     def test_builtin_wins_over_entry_point_of_same_name(self, monkeypatch) -> None:
         class _FakeEp:

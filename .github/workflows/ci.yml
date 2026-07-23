@@ -40,8 +40,8 @@ jobs:
       - name: Install GObject system libraries (for the PyGObject tray extra)
         run: sudo apt-get update && sudo apt-get install -y libgirepository1.0-dev libcairo2-dev pkg-config
 
-      - name: Install xvfb + scrot (real-window GUI tests + screenshots)
-        run: sudo apt-get install -y xvfb scrot
+      - name: Install xvfb + scrot (GUI tests + screenshots) and Qt runtime libs
+        run: sudo apt-get install -y xvfb scrot libegl1 libgl1 libxkbcommon-x11-0
 
       - name: Install dependencies
         run: poetry install --with dev --all-extras

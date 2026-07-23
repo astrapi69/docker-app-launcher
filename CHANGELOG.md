@@ -27,6 +27,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `ctk` (`pip install docker-app-launcher[ctk]`); without it the frontend
   refuses with an install hint. 17 real-window tests assert the SAME
   `ui_model` behaviour as the Tk frontend.
+- **PySide6 (Qt) frontend (`gui_backend: "qt"`).** The second reference
+  frontend, on a genuinely different toolkit: worker threads marshal onto
+  the GUI thread via a queued Qt signal instead of Tk's `after`, closing is
+  a `closeEvent`, tooltips/clipboard/progress are Qt-native — while every
+  decision still comes from the shared `ui_model`, including the pystray
+  background behaviour through a small `withdraw`/`iconify` adapter. New
+  optional extra `qt` (`pip install docker-app-launcher[qt]`; PySide6 caps
+  its Python range at <3.15, hence a marker). Its 20 tests run on Qt's
+  `offscreen` platform — no display, no xvfb — so they run on any bare box;
+  screenshots come from Qt's native `grab()`.
 
 - **Gated tag-publishing.** The tag-triggered PyPI workflow now refuses to
   publish unless the tag matches the `pyproject.toml` version, `CHANGELOG.md`

@@ -26,6 +26,7 @@ ENTRY_POINT_GROUP = "docker_app_launcher.frontends"
 BUILTIN_FRONTENDS = {
     "tk": "docker_app_launcher.gui",
     "ctk": "docker_app_launcher.frontends.ctk",
+    "qt": "docker_app_launcher.frontends.qt",
 }
 
 

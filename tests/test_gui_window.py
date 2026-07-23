@@ -13,6 +13,7 @@ skipped when pyautogui cannot reach the display (e.g. pure Wayland).
 
 from __future__ import annotations
 
+import contextlib
 import os
 import threading as _threading
 import tkinter as tk
@@ -66,10 +67,8 @@ def apply_dark_theme(root: tk.Misc) -> None:
         style.map("TCombobox", fieldbackground=[("readonly", _DARK["entry_bg"])])
     except tk.TclError:
         pass
-    try:
+    with contextlib.suppress(tk.TclError):
         root.configure(bg=_DARK["bg"])  # type: ignore[call-arg]
-    except tk.TclError:
-        pass
     stack: list[tk.Misc] = list(root.winfo_children())
     while stack:
         widget = stack.pop()

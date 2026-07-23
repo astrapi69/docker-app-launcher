@@ -48,6 +48,7 @@ def qapp():
     from PySide6.QtWidgets import QApplication
 
     app = QApplication.instance() or QApplication([])
+    assert isinstance(app, QApplication)
     # Dark mode for every test window: Fusion + a dark palette is the
     # portable Qt recipe (offscreen has no OS theme to follow).
     app.setStyle("Fusion")

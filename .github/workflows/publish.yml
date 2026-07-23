@@ -41,11 +41,14 @@ jobs:
             exit 1
           fi
 
+      - name: Install system libraries (PyGObject tray extra, Qt runtime, xvfb)
+        run: sudo apt-get update && sudo apt-get install -y libgirepository1.0-dev libcairo2-dev pkg-config libegl1 libgl1 libxkbcommon-x11-0 xvfb
+
       - name: Install dependencies
         run: poetry install --with dev --all-extras
 
       - name: Run full check chain (lint + format + types + tests)
-        run: make ci
+        run: xvfb-run -a make ci
 
       - name: Build distributions
         run: poetry build

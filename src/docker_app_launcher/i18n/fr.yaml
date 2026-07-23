@@ -117,3 +117,5 @@ tooltip_not_installed: "L'application n'est pas encore installée"
 tooltip_not_running: "L'application n'est pas en cours d'exécution"
 tooltip_only_running: "Disponible uniquement lorsque l'application est en cours d'exécution"
 tooltip_no_log: "Aucun journal à copier pour l'instant"
+docker_not_running_detail: 'Docker n''est pas en cours d''exécution. Contexte vérifié ''{context}'' ({endpoint}) : {error}'
+docker_running_other_context: 'Docker fonctionne via le contexte ''{context}'' - le contexte actif était inaccessible, le lanceur s''est connecté automatiquement.'

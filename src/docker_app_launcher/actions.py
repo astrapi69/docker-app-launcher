@@ -64,6 +64,14 @@ def _t(config: LauncherConfig, key: str, **kwargs: Any) -> str:
     return i18n.t(key, config, **kwargs)
 
 
+def _first_line(text: str) -> str:
+    """The first non-empty line of ``text`` (docker's stderr headline)."""
+    for line in (text or "").splitlines():
+        if line.strip():
+            return line.strip()
+    return ""
+
+
 def _progress(on_progress: ProgressPctFn | None, percent: int | None, label: str) -> None:
     """Report determinate (``percent`` 0-100) or indeterminate (``None``) progress."""
     if on_progress is not None:
@@ -129,16 +137,52 @@ def _stream_build_with_progress(
 
 # --- low-level command runners --------------------------------------------
 
+# Set when the ACTIVE docker context is unreachable but another context's
+# endpoint answers (#25 - Docker Desktop for Linux / rootless setups). Every
+# subsequent docker command then runs with DOCKER_HOST pointing at the
+# working endpoint, so the launcher CONNECTS instead of reporting a dead
+# Docker while the daemon demonstrably runs elsewhere.
+_DOCKER_HOST_OVERRIDE: str | None = None
 
-def _run(cmd: list[str], *, timeout: float = 15.0, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
-    """Run a docker command, capturing output. Logs the call for ``--debug``."""
+
+def docker_host_override() -> str | None:
+    """The endpoint the context fallback connected through, or ``None``."""
+    return _DOCKER_HOST_OVERRIDE
+
+
+def _reset_docker_host_override() -> None:
+    """Forget a previous context-fallback endpoint (tests / re-checks)."""
+    global _DOCKER_HOST_OVERRIDE
+    _DOCKER_HOST_OVERRIDE = None
+
+
+def _run(
+    cmd: list[str],
+    *,
+    timeout: float = 15.0,
+    cwd: Path | None = None,
+    extra_env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
+    """Run a docker command, capturing output. Logs the call for ``--debug``.
+
+    ``extra_env`` entries (and the #25 ``DOCKER_HOST`` fallback override,
+    when set) are layered over the inherited environment.
+    """
     logger.debug("exec: %s (cwd=%s, timeout=%ss)", " ".join(cmd), cwd, timeout)
+    env: dict[str, str] | None = None
+    if extra_env or _DOCKER_HOST_OVERRIDE:
+        env = os.environ.copy()
+        if _DOCKER_HOST_OVERRIDE:
+            env["DOCKER_HOST"] = _DOCKER_HOST_OVERRIDE
+        if extra_env:
+            env.update(extra_env)
     result = subprocess.run(
         cmd,
         capture_output=True,
         text=True,
         timeout=timeout,
         cwd=str(cwd) if cwd else None,
+        env=env,
         **subprocess_kwargs(),
     )
     logger.debug(
@@ -235,15 +279,76 @@ def docker_installed() -> tuple[bool, str]:
     return True, (result.stdout or "").strip() or "Docker is installed."
 
 
-def check_docker() -> tuple[bool, str]:
-    """Return ``(running, message)``. True only when the daemon is reachable."""
+def _docker_contexts() -> list[tuple[str, str, bool]]:
+    """``[(name, endpoint, is_active)]`` from ``docker context ls``.
+
+    Degrades to ``[]`` on any failure (old CLI without context support,
+    missing binary, timeout) - the caller then behaves exactly as before
+    the #25 sweep existed.
+    """
     try:
-        result = _run(["docker", "info"], timeout=10.0)
-    except FileNotFoundError:
-        return False, "Docker is not installed (docker not in PATH)."
-    except subprocess.TimeoutExpired:
-        return False, "Docker is not responding (Docker Desktop may still be starting)."
+        result = _run(
+            ["docker", "context", "ls", "--format", "{{.Name}}\t{{.DockerEndpoint}}\t{{.Current}}"],
+            timeout=5.0,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+        return []
     if result.returncode != 0:
+        return []
+    contexts: list[tuple[str, str, bool]] = []
+    for line in (result.stdout or "").splitlines():
+        parts = line.split("\t")
+        if len(parts) >= 2 and parts[0] and parts[1]:
+            contexts.append((parts[0], parts[1], len(parts) > 2 and parts[2].strip().lower() == "true"))
+    return contexts
+
+
+def _sweep_other_contexts() -> tuple[str, str] | None:
+    """Probe every non-active context; on a hit, connect through it.
+
+    Returns ``(context_name, endpoint)`` of the first context whose
+    ``docker info`` succeeds and sets the module-wide ``DOCKER_HOST``
+    override so every later docker command uses that endpoint (#25 -
+    the active context points at a dead socket while Docker actually
+    runs under e.g. ``desktop-linux`` or a rootless context).
+    """
+    global _DOCKER_HOST_OVERRIDE
+    for name, endpoint, is_active in _docker_contexts():
+        if is_active:
+            continue
+        rc, _stderr = _docker_info_rc(extra_env={"DOCKER_HOST": endpoint})
+        if rc == 0:
+            logger.info("docker reachable via context %r (%s); overriding DOCKER_HOST", name, endpoint)
+            _DOCKER_HOST_OVERRIDE = endpoint
+            return name, endpoint
+    return None
+
+
+def _active_context() -> tuple[str, str]:
+    """Best-effort ``(name, endpoint)`` of the active context for diagnostics."""
+    for name, endpoint, is_active in _docker_contexts():
+        if is_active:
+            return name, endpoint
+    return "default", os.environ.get("DOCKER_HOST", "unix:///var/run/docker.sock")
+
+
+def check_docker() -> tuple[bool, str]:
+    """Return ``(running, message)``. True only when the daemon is reachable.
+
+    When the ACTIVE context is unreachable the other contexts are probed
+    and, on a hit, used for every later docker command (#25).
+    """
+    _reset_docker_host_override()
+    rc, stderr = _docker_info_rc()
+    if rc == 127:
+        return False, "Docker is not installed (docker not in PATH)."
+    if rc is None:
+        return False, "Docker is not responding (Docker Desktop may still be starting)."
+    if rc != 0:
+        if "permission denied" not in stderr.lower():
+            fallback = _sweep_other_contexts()
+            if fallback is not None:
+                return True, f"Docker is running (via context '{fallback[0]}')."
         return False, "Docker is not started."
     return True, "Docker is running."
 
@@ -255,10 +360,14 @@ _DOCKER_INSTALL_URLS = {
 }
 
 
-def _docker_info_rc() -> tuple[int | None, str]:
-    """Run ``docker info``: ``(returncode, stderr)``; ``returncode=None`` on timeout."""
+def _docker_info_rc(extra_env: dict[str, str] | None = None) -> tuple[int | None, str]:
+    """Run ``docker info``: ``(returncode, stderr)``; ``returncode=None`` on timeout.
+
+    ``extra_env`` lets the #25 context sweep probe a specific endpoint via
+    ``DOCKER_HOST`` without touching the process environment.
+    """
     try:
-        result = _run(["docker", "info"], timeout=10.0)
+        result = _run(["docker", "info"], timeout=10.0, extra_env=extra_env)
     except FileNotFoundError:
         return 127, "docker not found"
     except subprocess.TimeoutExpired:
@@ -304,7 +413,19 @@ def check_docker_detailed(config: LauncherConfig) -> dict[str, Any]:
             out["detail"] = _t(config, "docker_no_permission")
             out["command"] = "sudo usermod -aG docker $USER"
         else:
-            out["detail"] = _t(config, "docker_not_running")
+            fallback = _sweep_other_contexts()
+            if fallback is not None:
+                out["running"] = True
+                out["detail"] = _t(config, "docker_running_other_context", context=fallback[0])
+                return out
+            name, endpoint = _active_context()
+            out["detail"] = _t(
+                config,
+                "docker_not_running_detail",
+                context=name,
+                endpoint=endpoint,
+                error=_first_line(stderr) or "no response",
+            )
             out["command"] = "sudo systemctl start docker"
             out["can_start"] = True
         return out
@@ -325,14 +446,26 @@ def check_docker_detailed(config: LauncherConfig) -> dict[str, Any]:
             out["detail"] = _t(config, "docker_not_installed")
         return out
     out["installed"] = True
-    rc, _ = _docker_info_rc()
+    rc, stderr = _docker_info_rc()
     if rc == 0:
         out["running"] = True
         out["detail"] = _t(config, "docker_running")
     elif rc is None:
         out["detail"] = _t(config, "docker_no_response")
     else:
-        out["detail"] = _t(config, "docker_stopped")
+        fallback = _sweep_other_contexts()
+        if fallback is not None:
+            out["running"] = True
+            out["detail"] = _t(config, "docker_running_other_context", context=fallback[0])
+            return out
+        name, endpoint = _active_context()
+        out["detail"] = _t(
+            config,
+            "docker_not_running_detail",
+            context=name,
+            endpoint=endpoint,
+            error=_first_line(stderr) or "no response",
+        )
         out["can_start"] = True
     return out
 

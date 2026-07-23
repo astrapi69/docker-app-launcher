@@ -76,3 +76,14 @@ def docker_ok(monkeypatch):
     from docker_app_launcher import actions
 
     monkeypatch.setattr(actions, "check_docker", lambda: (True, "Docker is running."))
+
+
+@pytest.fixture(autouse=True)
+def _reset_docker_host_override():
+    """Reset the #25 context-fallback override on BOTH sides of every test
+    (module-level state must not leak across test boundaries)."""
+    from docker_app_launcher import actions
+
+    actions._reset_docker_host_override()
+    yield
+    actions._reset_docker_host_override()

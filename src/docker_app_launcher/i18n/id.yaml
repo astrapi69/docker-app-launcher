@@ -117,3 +117,5 @@ tooltip_not_installed: "Aplikasi belum terpasang"
 tooltip_not_running: "Aplikasi tidak berjalan"
 tooltip_only_running: "Hanya tersedia saat aplikasi berjalan"
 tooltip_no_log: "Belum ada log untuk disalin"
+docker_not_running_detail: 'Docker tidak berjalan. Context yang diperiksa ''{context}'' ({endpoint}): {error}'
+docker_running_other_context: 'Docker berjalan melalui context ''{context}'' - context aktif tidak dapat dijangkau, launcher terhubung secara otomatis.'

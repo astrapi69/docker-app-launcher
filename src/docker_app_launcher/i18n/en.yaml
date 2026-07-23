@@ -117,3 +117,5 @@ tooltip_not_installed: "App is not installed yet"
 tooltip_not_running: "App is not running"
 tooltip_only_running: "Only available while the app is running"
 tooltip_no_log: "No log to copy yet"
+docker_not_running_detail: 'Docker is not running. Checked context ''{context}'' ({endpoint}): {error}'
+docker_running_other_context: 'Docker is running via context ''{context}'' - the active context was unreachable, the launcher connected automatically.'

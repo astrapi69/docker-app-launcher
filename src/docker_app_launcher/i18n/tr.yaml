@@ -117,3 +117,5 @@ tooltip_not_installed: "Uygulama henüz yüklü değil"
 tooltip_not_running: "Uygulama çalışmıyor"
 tooltip_only_running: "Yalnızca uygulama çalışırken kullanılabilir"
 tooltip_no_log: "Henüz kopyalanacak günlük yok"
+docker_not_running_detail: 'Docker çalışmıyor. Denetlenen context ''{context}'' ({endpoint}): {error}'
+docker_running_other_context: 'Docker ''{context}'' context''i üzerinden çalışıyor - etkin context erişilebilir değildi, başlatıcı otomatik olarak bağlandı.'

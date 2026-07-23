@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   publish:
-    name: Build and publish
+    name: Gate, build and publish
     runs-on: ubuntu-latest
     environment: pypi
     steps:
@@ -23,6 +23,29 @@ jobs:
 
       - name: Install Poetry
         run: pip install poetry
+
+      - name: Verify tag matches pyproject version
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          PYPROJECT_VERSION="$(poetry version -s)"
+          if [ "$TAG_VERSION" != "$PYPROJECT_VERSION" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match pyproject.toml version $PYPROJECT_VERSION. Bump the version before tagging."
+            exit 1
+          fi
+
+      - name: Verify CHANGELOG has a section for this version
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          if ! grep -q "^## \[$TAG_VERSION\]" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no '## [$TAG_VERSION]' section. Write the changelog before tagging."
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: poetry install --with dev --all-extras
+
+      - name: Run full check chain (lint + format + types + tests)
+        run: make ci
 
       - name: Build distributions
         run: poetry build

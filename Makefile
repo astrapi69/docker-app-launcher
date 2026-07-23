@@ -154,17 +154,22 @@ ci: lint format-check typecheck test ## Full CI pipeline (lint + format + types 
 # Version Management
 # ---------------------------------------------------------------------------
 
+# After a bump, reinstall so the venv's package metadata matches: __version__
+# is read from the installed dist-info at runtime, not from source.
 .PHONY: bump-patch
 bump-patch: ## Bump patch version (0.1.0 -> 0.1.1)
 	poetry version patch
+	poetry install --only-root
 
 .PHONY: bump-minor
 bump-minor: ## Bump minor version (0.1.0 -> 0.2.0)
 	poetry version minor
+	poetry install --only-root
 
 .PHONY: bump-major
 bump-major: ## Bump major version (0.1.0 -> 1.0.0)
 	poetry version major
+	poetry install --only-root
 
 # ---------------------------------------------------------------------------
 # Build & Publish

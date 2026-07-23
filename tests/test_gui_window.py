@@ -37,6 +37,68 @@ pytestmark = pytest.mark.skipif(not _display_available(), reason="no display (ru
 
 SCREENSHOT_DIR = Path(os.environ.get("DAL_SCREENSHOT_DIR", "test-screenshots"))
 
+# Dark palette applied to every test window so the screenshot set is easy on
+# the eyes. Classic Tk has no theme system, so the colors are pushed onto each
+# widget recursively; ttk widgets (Combobox, Progressbar, Separator) have no
+# bg/fg options and are skipped via the TclError guard.
+_DARK = {
+    "bg": "#1e1e1e",
+    "fg": "#e0e0e0",
+    "entry_bg": "#2d2d2d",
+    "button_bg": "#333333",
+    "active_bg": "#444444",
+}
+
+
+def apply_dark_theme(root: tk.Misc) -> None:
+    """Best-effort dark styling for a plain-Tk window (tests/screenshots only).
+
+    Safe to call on ANY frontend window and at any time: only pure-tkinter
+    widgets are touched (CustomTkinter subclasses tk widgets but styles
+    itself), and dynamically created widgets get styled on the next call.
+    """
+    try:
+        from tkinter import ttk as _ttk
+
+        style = _ttk.Style(root)
+        style.theme_use("clam")
+        style.configure(".", background=_DARK["bg"], foreground=_DARK["fg"], fieldbackground=_DARK["entry_bg"])
+        style.map("TCombobox", fieldbackground=[("readonly", _DARK["entry_bg"])])
+    except tk.TclError:
+        pass
+    try:
+        root.configure(bg=_DARK["bg"])  # type: ignore[call-arg]
+    except tk.TclError:
+        pass
+    stack: list[tk.Misc] = list(root.winfo_children())
+    while stack:
+        widget = stack.pop()
+        stack.extend(widget.winfo_children())
+        if not type(widget).__module__.startswith("tkinter"):
+            continue  # CustomTkinter (and friends) style themselves
+        try:
+            if isinstance(widget, tk.Button):
+                widget.configure(
+                    bg=_DARK["button_bg"],
+                    fg=_DARK["fg"],
+                    activebackground=_DARK["active_bg"],
+                    activeforeground=_DARK["fg"],
+                    disabledforeground="#777777",
+                )
+            elif isinstance(widget, tk.Entry):
+                widget.configure(
+                    bg=_DARK["entry_bg"], fg=_DARK["fg"], insertbackground=_DARK["fg"], disabledbackground=_DARK["bg"]
+                )
+            elif isinstance(widget, tk.Text):
+                widget.configure(bg=_DARK["entry_bg"], fg=_DARK["fg"], insertbackground=_DARK["fg"])
+            elif isinstance(widget, (tk.Frame, tk.Label)):
+                widget.configure(bg=_DARK["bg"])
+                if isinstance(widget, tk.Label):
+                    widget.configure(fg=_DARK["fg"])
+        except tk.TclError:
+            # ttk widgets and platform quirks: no bg/fg options - skip.
+            pass
+
 
 def _screenshot(app: gui.LauncherApp, name: str) -> None:
     """Best-effort window screenshot via pyautogui; never fails the test."""
@@ -45,6 +107,10 @@ def _screenshot(app: gui.LauncherApp, name: str) -> None:
     try:
         import pyautogui
 
+        # Restyle right before the shot: windows built outside the app fixture
+        # (per-language tests) and widgets created after fixture setup (docker
+        # help, cleanup offer) must be dark too. No-op on CTk windows.
+        apply_dark_theme(app)
         app.update_idletasks()
         app.update()
         region = (app.winfo_rootx(), app.winfo_rooty(), app.winfo_width(), app.winfo_height())
@@ -88,6 +154,7 @@ def app(gui_state):
         update_check_enabled=False,
     )
     window = gui.LauncherApp(config)
+    apply_dark_theme(window)
     window.update()
     yield window
     window.destroy()

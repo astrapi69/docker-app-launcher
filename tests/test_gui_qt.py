@@ -44,9 +44,31 @@ class _InlineThread:
 
 @pytest.fixture(scope="module")
 def qapp():
+    from PySide6.QtGui import QColor, QPalette
     from PySide6.QtWidgets import QApplication
 
     app = QApplication.instance() or QApplication([])
+    # Dark mode for every test window: Fusion + a dark palette is the
+    # portable Qt recipe (offscreen has no OS theme to follow).
+    app.setStyle("Fusion")
+    palette = QPalette()
+    for role, color in (
+        (QPalette.ColorRole.Window, "#1e1e1e"),
+        (QPalette.ColorRole.WindowText, "#e0e0e0"),
+        (QPalette.ColorRole.Base, "#2d2d2d"),
+        (QPalette.ColorRole.AlternateBase, "#252525"),
+        (QPalette.ColorRole.Text, "#e0e0e0"),
+        (QPalette.ColorRole.Button, "#333333"),
+        (QPalette.ColorRole.ButtonText, "#e0e0e0"),
+        (QPalette.ColorRole.ToolTipBase, "#333333"),
+        (QPalette.ColorRole.ToolTipText, "#e0e0e0"),
+        (QPalette.ColorRole.Highlight, "#2a5db0"),
+        (QPalette.ColorRole.HighlightedText, "#ffffff"),
+    ):
+        palette.setColor(role, QColor(color))
+    palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.ButtonText, QColor("#777777"))
+    palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Text, QColor("#777777"))
+    app.setPalette(palette)
     yield app
 
 

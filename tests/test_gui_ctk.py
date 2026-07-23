@@ -59,6 +59,9 @@ def gui_state(monkeypatch):
 
 @pytest.fixture
 def app(gui_state):
+    # Dark mode for every test window so the screenshot set is consistent
+    # across all three frontends.
+    ctk_frontend.ctk.set_appearance_mode("dark")
     config = LauncherConfig(
         app_name="Ctk App",
         default_port=8080,

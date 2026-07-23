@@ -198,12 +198,32 @@ def _controller(**kwargs: Any) -> tray.TrayController:
     return tray.TrayController(**defaults)
 
 
+class _FakeMenuItem:
+    def __init__(self, label, handler, default=False):
+        self.label = label
+        self.handler = handler
+        self.default = default
+
+
+class _FakeMenu:
+    def __init__(self, *items):
+        self.items = items
+
+
 @pytest.fixture
 def fake_backend(monkeypatch):
-    """Force a fully fake tray stack: no pystray import, no real icon."""
+    """Force a fully fake tray stack: no pystray import, no real icon.
+
+    Also fakes ``tray.pystray`` (MenuItem/Menu): on a box where importing
+    pystray fails (headless CI), the module attribute is ``None`` - the
+    controller tests must never depend on the real library.
+    """
+    import types
+
     monkeypatch.setattr(tray, "HAS_TRAY", True)
     monkeypatch.setattr(tray, "_TrayIcon", _FakeTrayIcon)
     monkeypatch.setattr(tray, "_resolve_tray_image", lambda config: object())
+    monkeypatch.setattr(tray, "pystray", types.SimpleNamespace(MenuItem=_FakeMenuItem, Menu=_FakeMenu))
     return _FakeTrayIcon
 
 

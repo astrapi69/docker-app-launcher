@@ -72,6 +72,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   strings in all 11 languages. Default window height 470 -> 520 for the taller
   grid.
 
+### Added
+
+- **Architecture documentation** (`docs/ARCHITECTURE.md`, German) covering the
+  full module layout, state machine, and design decisions; plus `make`
+  targets and `test-configs/` for manual launcher testing against real apps.
+
+## [0.11.0] - 2026-06-25
+
 ### Changed
 
 - **"Cleanup" button now available in every Docker-available state.** Previously
@@ -260,6 +268,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   "Restore defaults" button. With the maps empty (the default) nothing changes:
   no `.env` keys, no UI, no behaviour shift.
 
+## [0.3.0] - 2026-06-24
+
 ### Fixed
 
 - **A port change now actually reaches Docker Compose (#3).** `set_port`
@@ -282,6 +292,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   health-check on the **new** port. The persistent window now keeps the port
   field editable while running and adds an "Apply port" button that routes to
   it, with a "Port changed. Restarting..." progress line.
+
+### Changed
+
+- READMEs (EN + DE) document the v0.2.x features; relative README links became
+  absolute GitHub URLs so they resolve on PyPI.
 
 ## [0.2.2] - 2026-06-23
 
@@ -376,6 +391,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 [0.13.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.12.1...v0.13.0
 [0.12.1]: https://github.com/astrapi69/docker-app-launcher/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.11.0...v0.12.0
+[0.11.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.7.0...v0.8.0
@@ -383,7 +399,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 [0.6.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.2.2...v0.3.0
 [0.2.2]: https://github.com/astrapi69/docker-app-launcher/compare/v0.2.0...v0.2.2
-[0.2.1]: https://github.com/astrapi69/docker-app-launcher/compare/v0.2.0...v0.2.1
+[0.2.1]: https://github.com/astrapi69/docker-app-launcher/compare/v0.2.0...8e36cd65244dbbad855e3004e4ef3ebc60424d82
 [0.2.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/astrapi69/docker-app-launcher/releases/tag/v0.1.0

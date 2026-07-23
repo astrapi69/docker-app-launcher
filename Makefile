@@ -185,11 +185,25 @@ release-check: ci codespell build-check ## Full pre-release gate (CI + spell + b
 	@echo "Release gate passed. See .claude/rules/release-workflow.md for the full checklist."
 
 .PHONY: publish-test
-publish-test: release-check ## Publish to TestPyPI (smoke-test before the real thing)
+publish-test: release-check ## Publish to TestPyPI (asks for confirmation first)
+	@V=$$(poetry version -s); \
+	if curl -sfo /dev/null "https://test.pypi.org/pypi/docker-app-launcher/$$V/json"; then \
+		echo "ERROR: version $$V already exists on TestPyPI. Bump the version first (poetry version patch)."; \
+		exit 1; \
+	fi; \
+	printf "Upload docker-app-launcher %s to TestPyPI? [y/N] " "$$V"; \
+	read ans; case "$$ans" in y|Y) ;; *) echo "Aborted."; exit 1;; esac; \
 	poetry publish -r testpypi
 
 .PHONY: publish
-publish: release-check ## Run full gate, then publish to PyPI (irreversible)
+publish: release-check ## Run full gate, confirm, then publish to PyPI (irreversible)
+	@V=$$(poetry version -s); \
+	if curl -sfo /dev/null "https://pypi.org/pypi/docker-app-launcher/$$V/json"; then \
+		echo "ERROR: version $$V already exists on PyPI. Bump the version first (poetry version patch)."; \
+		exit 1; \
+	fi; \
+	printf "Upload docker-app-launcher %s to PyPI? IRREVERSIBLE. [y/N] " "$$V"; \
+	read ans; case "$$ans" in y|Y) ;; *) echo "Aborted."; exit 1;; esac; \
 	poetry publish
 
 # ---------------------------------------------------------------------------

@@ -25,6 +25,7 @@ ENTRY_POINT_GROUP = "docker_app_launcher.frontends"
 # name -> module path of the frontends that ship with this package.
 BUILTIN_FRONTENDS = {
     "tk": "docker_app_launcher.gui",
+    "ctk": "docker_app_launcher.frontends.ctk",
 }
 
 

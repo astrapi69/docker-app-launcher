@@ -19,6 +19,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   entry-point group — any module exposing `run(config, *, debug=False) -> int`
   qualifies. Every frontend renders the same `ui_model` tables, so behaviour
   cannot drift between toolkits.
+- **CustomTkinter frontend (`gui_backend: "ctk"`).** The first alternative
+  frontend: the same window — state heading, port row with live validation,
+  language picker, primary grid + secondary row, log, progress bar, cleanup
+  offer, docker-help panel, tray/background behaviour — rendered with modern
+  CustomTkinter widgets (dark/light follows the OS). New optional extra
+  `ctk` (`pip install docker-app-launcher[ctk]`); without it the frontend
+  refuses with an install hint. 17 real-window tests assert the SAME
+  `ui_model` behaviour as the Tk frontend.
 
 - **Gated tag-publishing.** The tag-triggered PyPI workflow now refuses to
   publish unless the tag matches the `pyproject.toml` version, `CHANGELOG.md`

@@ -49,6 +49,8 @@ dependencies = ["pyyaml>=6.0"]
 # native backends). When AppIndicator is still unavailable at runtime the
 # launcher falls back to a taskbar-minimized window, so this never hard-fails.
 tray = ["pystray>=0.19", "Pillow>=10.0", "PyGObject>=3.42,<3.52; sys_platform == 'linux'"]
+# Modern-look CustomTkinter frontend; select with "gui_backend": "ctk".
+ctk = ["customtkinter>=5.2"]
 
 [project.urls]
 Homepage = "https://github.com/astrapi69/docker-app-launcher"
@@ -73,6 +75,7 @@ pytest-mock = "^3.15.0"
 codespell = "^2.4.0"
 twine = "^6.2.0"
 pyautogui = "^0.9.54"
+customtkinter = "^6.0.0"
 
 [build-system]
 requires = ["poetry-core>=2.0"]

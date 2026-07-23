@@ -6,6 +6,45 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-07-23
+
+### Added
+
+- **Docker detection falls back to other contexts (#25).** When the ACTIVE
+  docker context is unreachable (Docker Desktop for Linux / rootless setups
+  where the active context points at a dead socket while the daemon runs under
+  another one), detection now sweeps the remaining contexts with
+  `DOCKER_HOST`-scoped `docker info` probes and, on a hit, **connects**: the
+  working endpoint becomes a module-wide `DOCKER_HOST` override injected into
+  every subsequent docker command, and the status says which context the
+  launcher connected through. New public accessor
+  `actions.docker_host_override()` returns that endpoint (or `None`).
+  Permission-denied and timeout keep their dedicated messages and never
+  trigger the sweep; CLIs without context support degrade to the old
+  behaviour. stdlib-only as before.
+- **Guarded publish targets.** `make publish` / `make publish-test` now
+  refuse to upload a version that already exists on (Test)PyPI and ask for an
+  explicit `y/N` confirmation before any upload — no more accidental releases
+  once the check chain happens to pass.
+
+### Fixed
+
+- **"Docker is not started." finally says what was probed.** On total
+  detection failure the new `docker_not_running_detail` message (all 11
+  languages) names the checked context, its endpoint, and docker's own first
+  stderr line. Both the CLI and the in-window Docker-help panel surface it.
+- **Stale `dist/` artifacts poisoned builds and uploads.** `make build` now
+  cleans `dist/` first; previously old wheels broke the `build-check` wheel
+  inspection and would have been re-uploaded by `poetry publish`. The wheel
+  listing also loops per wheel instead of assuming a single file.
+- **codespell no longer flags the German architecture doc.**
+  `src/docker_app_launcher/docs` joined the skip list (same reasoning as
+  `README-de.md` and the i18n catalogs), unblocking `make release-check`.
+- **`__version__` could report a stale version in dev environments.** It is
+  read from the installed package metadata, which only updates on reinstall;
+  the `bump-*` targets now run `poetry install --only-root` right after
+  `poetry version` so the venv can no longer drift (it sat at 0.5.0).
+
 ## [0.12.1] - 2026-06-25
 
 ### Fixed
@@ -333,8 +372,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - CLI ↔ GUI parity: both route through the same actions.
 - 160+ tests (no display required), mypy strict, ruff clean.
 
-[Unreleased]: https://github.com/astrapi69/docker-app-launcher/compare/v0.2.2...HEAD
-[0.2.2]: https://github.com/astrapi69/docker-app-launcher/compare/v0.2.1...v0.2.2
+[Unreleased]: https://github.com/astrapi69/docker-app-launcher/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.12.1...v0.13.0
+[0.12.1]: https://github.com/astrapi69/docker-app-launcher/compare/v0.12.0...v0.12.1
+[0.12.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.11.0...v0.12.0
+[0.10.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.9.0...v0.10.0
+[0.9.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.8.0...v0.9.0
+[0.8.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.7.0...v0.8.0
+[0.7.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.6.0...v0.7.0
+[0.6.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.5.0...v0.6.0
+[0.5.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.3.0...v0.4.0
+[0.2.2]: https://github.com/astrapi69/docker-app-launcher/compare/v0.2.0...v0.2.2
 [0.2.1]: https://github.com/astrapi69/docker-app-launcher/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/astrapi69/docker-app-launcher/releases/tag/v0.1.0

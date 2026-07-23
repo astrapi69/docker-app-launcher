@@ -95,9 +95,10 @@ test-gui: ## Run the real-window GUI tests (needs a display or xvfb-run)
 	poetry run pytest tests/test_gui_window.py -v --no-cov
 
 .PHONY: screenshots
-screenshots: ## GUI screenshots for every state + language into test-screenshots/
-	DAL_SCREENSHOTS=1 poetry run pytest tests/test_gui_window.py -q --no-cov
-	@ls test-screenshots/ 2>/dev/null && echo "-> test-screenshots/" || echo "no screenshots produced (display/pyautogui unavailable)"
+screenshots: ## GUI screenshots (all three frontends, dark) into test-screenshots/
+	rm -rf test-screenshots/
+	DAL_SCREENSHOTS=1 poetry run pytest tests/test_gui_window.py tests/test_gui_ctk.py tests/test_gui_qt.py -q --no-cov
+	@ls test-screenshots/ 2>/dev/null && echo "-> test-screenshots/" || echo "no screenshots produced (no capture backend available)"
 
 # ---------------------------------------------------------------------------
 # Manual Launcher Testing

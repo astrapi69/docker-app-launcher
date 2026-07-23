@@ -100,23 +100,55 @@ def apply_dark_theme(root: tk.Misc) -> None:
 
 
 def _screenshot(app: gui.LauncherApp, name: str) -> None:
-    """Best-effort window screenshot via pyautogui; never fails the test."""
+    """Best-effort window screenshot; never fails the test.
+
+    Backend chain: pyautogui -> ImageMagick ``import`` -> Pillow ImageGrab.
+    pyautogui alone proved unreliable both under xvfb (CI artifacts silently
+    contained no Tk shots) and on Wayland desktops, so a miss falls through
+    to the next backend, and a total miss surfaces as a pytest warning
+    instead of a swallowed print.
+    """
     if not os.environ.get("DAL_SCREENSHOTS"):
         return
+    import subprocess
+    import warnings
+
+    # Restyle right before the shot: windows built outside the app fixture
+    # (per-language tests) and widgets created after fixture setup (docker
+    # help, cleanup offer) must be dark too. No-op on CTk windows.
+    apply_dark_theme(app)
+    app.update_idletasks()
+    app.update()
+    x, y = app.winfo_rootx(), app.winfo_rooty()
+    w, h = app.winfo_width(), app.winfo_height()
+    SCREENSHOT_DIR.mkdir(parents=True, exist_ok=True)
+    path = SCREENSHOT_DIR / f"{name}.png"
+    errors: list[str] = []
     try:
         import pyautogui
 
-        # Restyle right before the shot: windows built outside the app fixture
-        # (per-language tests) and widgets created after fixture setup (docker
-        # help, cleanup offer) must be dark too. No-op on CTk windows.
-        apply_dark_theme(app)
-        app.update_idletasks()
-        app.update()
-        region = (app.winfo_rootx(), app.winfo_rooty(), app.winfo_width(), app.winfo_height())
-        SCREENSHOT_DIR.mkdir(parents=True, exist_ok=True)
-        pyautogui.screenshot(str(SCREENSHOT_DIR / f"{name}.png"), region=region)
+        pyautogui.screenshot(str(path), region=(x, y, w, h))
+        return
+    except Exception as exc:  # noqa: BLE001 - fall through to the next backend
+        errors.append(f"pyautogui: {exc}")
+    try:
+        subprocess.run(
+            ["import", "-window", "root", "-crop", f"{w}x{h}+{x}+{y}", "+repage", str(path)],
+            check=True,
+            capture_output=True,
+            timeout=15,
+        )
+        return
+    except Exception as exc:  # noqa: BLE001 - fall through to the next backend
+        errors.append(f"imagemagick: {exc}")
+    try:
+        from PIL import ImageGrab
+
+        ImageGrab.grab(bbox=(x, y, x + w, y + h)).save(path)
+        return
     except Exception as exc:  # noqa: BLE001 - screenshots are documentation, not assertions
-        print(f"screenshot {name} skipped: {exc}")
+        errors.append(f"ImageGrab: {exc}")
+    warnings.warn(f"screenshot {name} failed on every backend: {'; '.join(errors)}", stacklevel=2)
 
 
 @pytest.fixture

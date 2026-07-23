@@ -29,6 +29,7 @@
   "window_width": 620,
   "window_height": 470,
   "locale": "auto",
+  "gui_backend": "tk",
 
   "repo_url": "https://github.com/owner/repo",
   "releases_url": "",

@@ -116,9 +116,9 @@ def _launch_window(config: LauncherConfig, *, debug: bool) -> int:
     duplicate window. Disabled by ``config.single_instance = False``.
     """
     if not config.single_instance:
-        from docker_app_launcher.gui import run
+        from docker_app_launcher.frontends import get_frontend
 
-        return run(config, debug=debug)
+        return int(get_frontend(config.gui_backend).run(config, debug=debug))
     if lockfile.another_instance_alive(config.lock_path):
         message = i18n.t("already_running", config)
         print(message)
@@ -126,9 +126,9 @@ def _launch_window(config: LauncherConfig, *, debug: bool) -> int:
         return 0
     lockfile.write_lock(config.lock_path)
     try:
-        from docker_app_launcher.gui import run
+        from docker_app_launcher.frontends import get_frontend
 
-        return run(config, debug=debug)
+        return int(get_frontend(config.gui_backend).run(config, debug=debug))
     finally:
         lockfile.clear_lock(config.lock_path)
 

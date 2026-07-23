@@ -40,6 +40,6 @@ def launch(config: LauncherConfig | None = None, **kwargs: object) -> int:
         config = LauncherConfig(**kwargs)  # type: ignore[arg-type]
     config.resolve()
 
-    from docker_app_launcher.gui import run
+    from docker_app_launcher.frontends import get_frontend
 
-    return run(config)
+    return int(get_frontend(config.gui_backend).run(config))

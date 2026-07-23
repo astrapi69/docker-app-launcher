@@ -8,6 +8,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Swappable GUI frontends.** The framework-neutral UI behaviour (button
+  tables, per-state enablement, tooltip reasons, action dispatch, close
+  policy) moved from `gui` into the new `ui_model` module — `gui` re-exports
+  everything, so the existing API is unchanged. A new `frontends` registry
+  resolves the window implementation by name: the new
+  `LauncherConfig.gui_backend` field (default `"tk"`, also in
+  `launcher.example.json`) selects it, and third-party packages can register
+  alternatives (Qt, web, TUI, …) via the `docker_app_launcher.frontends`
+  entry-point group — any module exposing `run(config, *, debug=False) -> int`
+  qualifies. Every frontend renders the same `ui_model` tables, so behaviour
+  cannot drift between toolkits.
+
 - **Gated tag-publishing.** The tag-triggered PyPI workflow now refuses to
   publish unless the tag matches the `pyproject.toml` version, `CHANGELOG.md`
   has a section for it, and the full check chain (lint + format + types +

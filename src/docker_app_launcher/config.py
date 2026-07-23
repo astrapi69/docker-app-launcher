@@ -140,6 +140,10 @@ class LauncherConfig:
     # ``"auto"`` detects the OS language (resolved by :meth:`resolve`); any
     # explicit code in :data:`SUPPORTED_LOCALES` overrides it.
     locale: str = "auto"
+    # Which frontend renders the window: ``"tk"`` (built-in) or any name
+    # registered under the ``docker_app_launcher.frontends`` entry-point group.
+    # All frontends share the same behaviour tables (:mod:`ui_model`).
+    gui_backend: str = "tk"
 
     # === Single instance ===
     single_instance: bool = True

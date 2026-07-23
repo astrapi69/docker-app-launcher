@@ -117,3 +117,5 @@ tooltip_not_installed: "Η εφαρμογή δεν έχει εγκατασταθ
 tooltip_not_running: "Η εφαρμογή δεν εκτελείται"
 tooltip_only_running: "Διαθέσιμο μόνο όταν εκτελείται η εφαρμογή"
 tooltip_no_log: "Δεν υπάρχει ακόμη αρχείο καταγραφής για αντιγραφή"
+docker_not_running_detail: 'Το Docker δεν εκτελείται. Ελεγμένο context ''{context}'' ({endpoint}): {error}'
+docker_running_other_context: 'Το Docker εκτελείται μέσω του context ''{context}'' - το ενεργό context δεν ήταν προσβάσιμο, ο launcher συνδέθηκε αυτόματα.'

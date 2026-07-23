@@ -71,7 +71,8 @@ class TestCheckDockerDetailed:
     def _patch(self, monkeypatch, system, which, info) -> None:
         monkeypatch.setattr("platform.system", lambda: system)
         monkeypatch.setattr("shutil.which", lambda _x: which)
-        monkeypatch.setattr(actions, "_docker_info_rc", lambda: info)
+        monkeypatch.setattr(actions, "_docker_info_rc", lambda extra_env=None: info)
+        monkeypatch.setattr(actions, "_docker_contexts", lambda: [])
 
     def test_linux_not_installed(self, config, monkeypatch) -> None:
         self._patch(monkeypatch, "Linux", None, (127, ""))
@@ -969,3 +970,128 @@ class TestCleanup:
 )
 def test_human_size(num: int, expected: str) -> None:
     assert actions._human_size(num) == expected
+
+
+# --- context-aware docker detection (#25) ----------------------------------
+
+
+class TestDockerContextFallback:
+    """The active context's probe failing must trigger a sweep over the
+    other contexts (Docker Desktop for Linux / rootless setups) and, on a
+    hit, CONNECT through that endpoint for every later docker command."""
+
+    U_DEFAULT = "unix:///var/run/docker.sock"
+    U_DESKTOP = "unix:///home/u/.docker/desktop/docker.sock"
+
+    def _patch(self, monkeypatch, *, active_info, contexts, per_endpoint=None) -> None:
+        monkeypatch.setattr("platform.system", lambda: "Linux")
+        monkeypatch.setattr("shutil.which", lambda _x: "/usr/bin/docker")
+
+        def info_rc(extra_env=None):
+            if extra_env and per_endpoint is not None:
+                return per_endpoint.get(extra_env.get("DOCKER_HOST"), (1, "dead"))
+            return active_info
+
+        monkeypatch.setattr(actions, "_docker_info_rc", info_rc)
+        monkeypatch.setattr(actions, "_docker_contexts", lambda: contexts)
+
+    def test_falls_back_to_other_context_and_connects(self, monkeypatch) -> None:
+        self._patch(
+            monkeypatch,
+            active_info=(1, "Cannot connect to the Docker daemon at unix:///var/run/docker.sock"),
+            contexts=[("default", self.U_DEFAULT, True), ("desktop-linux", self.U_DESKTOP, False)],
+            per_endpoint={self.U_DESKTOP: (0, "")},
+        )
+        ok, msg = actions.check_docker()
+        assert ok is True
+        assert "desktop-linux" in msg
+        assert actions.docker_host_override() == self.U_DESKTOP
+
+    def test_detailed_reports_fallback_context(self, config, monkeypatch) -> None:
+        self._patch(
+            monkeypatch,
+            active_info=(1, "Cannot connect"),
+            contexts=[("default", self.U_DEFAULT, True), ("desktop-linux", self.U_DESKTOP, False)],
+            per_endpoint={self.U_DESKTOP: (0, "")},
+        )
+        r = actions.check_docker_detailed(config)
+        assert r["running"] is True
+        assert "desktop-linux" in r["detail"]
+
+    def test_detail_names_context_endpoint_and_docker_error(self, config, monkeypatch) -> None:
+        self._patch(
+            monkeypatch,
+            active_info=(1, "Cannot connect to the Docker daemon at unix:///var/run/docker.sock"),
+            contexts=[("default", self.U_DEFAULT, True)],
+        )
+        r = actions.check_docker_detailed(config)
+        assert r["running"] is False and r["can_start"] is True
+        assert "default" in r["detail"]
+        assert self.U_DEFAULT in r["detail"]
+        assert "Cannot connect to the Docker daemon" in r["detail"]
+
+    def test_permission_denied_is_not_swept(self, config, monkeypatch) -> None:
+        def contexts_must_not_be_called():
+            raise AssertionError("permission failures must not trigger the context sweep")
+
+        monkeypatch.setattr("platform.system", lambda: "Linux")
+        monkeypatch.setattr("shutil.which", lambda _x: "/usr/bin/docker")
+        monkeypatch.setattr(
+            actions, "_docker_info_rc", lambda extra_env=None: (1, "permission denied while connecting")
+        )
+        monkeypatch.setattr(actions, "_docker_contexts", contexts_must_not_be_called)
+        r = actions.check_docker_detailed(config)
+        assert "usermod -aG docker" in r["command"] and not r["running"]
+
+    def test_all_contexts_dead_stays_not_running(self, monkeypatch) -> None:
+        self._patch(
+            monkeypatch,
+            active_info=(1, "Cannot connect"),
+            contexts=[("default", self.U_DEFAULT, True), ("desktop-linux", self.U_DESKTOP, False)],
+            per_endpoint={},
+        )
+        ok, _ = actions.check_docker()
+        assert ok is False
+        assert actions.docker_host_override() is None
+
+    def test_active_context_ok_needs_no_sweep(self, monkeypatch) -> None:
+        def contexts_must_not_be_called():
+            raise AssertionError("a healthy active context must not trigger the sweep")
+
+        monkeypatch.setattr(actions, "_docker_info_rc", lambda extra_env=None: (0, ""))
+        monkeypatch.setattr(actions, "_docker_contexts", contexts_must_not_be_called)
+        ok, msg = actions.check_docker()
+        assert ok is True and msg == "Docker is running."
+        assert actions.docker_host_override() is None
+
+    def test_override_injected_into_subsequent_runs(self, monkeypatch) -> None:
+        seen_env = {}
+
+        def fake_run(cmd, **kwargs):
+            seen_env["env"] = kwargs.get("env")
+            return make_result(returncode=0, stdout="")
+
+        self._patch(
+            monkeypatch,
+            active_info=(1, "Cannot connect"),
+            contexts=[("desktop-linux", self.U_DESKTOP, False)],
+            per_endpoint={self.U_DESKTOP: (0, "")},
+        )
+        ok, _ = actions.check_docker()
+        assert ok is True
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        actions._run(["docker", "ps"])
+        assert seen_env["env"] is not None
+        assert seen_env["env"]["DOCKER_HOST"] == self.U_DESKTOP
+
+    def test_docker_contexts_parses_cli_output(self, monkeypatch) -> None:
+        stdout = "default\tunix:///var/run/docker.sock\ttrue\ndesktop-linux\tunix:///home/u/.docker/desktop/docker.sock\tfalse\n"
+        monkeypatch.setattr(actions, "_run", lambda *a, **k: make_result(returncode=0, stdout=stdout))
+        assert actions._docker_contexts() == [
+            ("default", "unix:///var/run/docker.sock", True),
+            ("desktop-linux", "unix:///home/u/.docker/desktop/docker.sock", False),
+        ]
+
+    def test_docker_contexts_degrades_on_old_cli(self, monkeypatch) -> None:
+        monkeypatch.setattr(actions, "_run", lambda *a, **k: make_result(returncode=1, stderr="unknown command"))
+        assert actions._docker_contexts() == []

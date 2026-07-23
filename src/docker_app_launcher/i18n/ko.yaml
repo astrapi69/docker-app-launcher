@@ -117,3 +117,5 @@ tooltip_not_installed: "앱이 아직 설치되지 않았습니다"
 tooltip_not_running: "앱이 실행되고 있지 않습니다"
 tooltip_only_running: "앱이 실행 중일 때만 사용할 수 있습니다"
 tooltip_no_log: "아직 복사할 로그가 없습니다"
+docker_not_running_detail: 'Docker가 실행되고 있지 않습니다. 확인한 컨텍스트 ''{context}'' ({endpoint}): {error}'
+docker_running_other_context: 'Docker가 컨텍스트 ''{context}''를 통해 실행 중입니다 - 활성 컨텍스트에 연결할 수 없어 런처가 자동으로 연결했습니다.'

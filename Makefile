@@ -197,7 +197,7 @@ publish-test: release-check ## Publish to TestPyPI (asks for confirmation first)
 		exit 1; \
 	fi; \
 	printf "Upload docker-app-launcher %s to TestPyPI? [y/N] " "$$V"; \
-	read ans; case "$$ans" in y|Y) ;; *) echo "Aborted."; exit 1;; esac; \
+	read answer; case "$$answer" in y|Y) ;; *) echo "Aborted."; exit 1;; esac; \
 	poetry publish -r testpypi
 
 .PHONY: publish
@@ -208,7 +208,7 @@ publish: release-check ## Run full gate, confirm, then publish to PyPI (irrevers
 		exit 1; \
 	fi; \
 	printf "Upload docker-app-launcher %s to PyPI? IRREVERSIBLE. [y/N] " "$$V"; \
-	read ans; case "$$ans" in y|Y) ;; *) echo "Aborted."; exit 1;; esac; \
+	read answer; case "$$answer" in y|Y) ;; *) echo "Aborted."; exit 1;; esac; \
 	poetry publish
 
 # ---------------------------------------------------------------------------

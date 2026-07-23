@@ -141,6 +141,9 @@ skip_covered = false
 [tool.codespell]
 # The i18n/ YAML files are translated string catalogs (11 languages),
 # README-de.md is the German README and docs/ARCHITECTURE.md is written in
-# German; non-English words there are not typos.
-skip = "poetry.lock,.git,src/docker_app_launcher/i18n,README-de.md,src/docker_app_launcher/docs"
+# German; non-English words there are not typos. Each exclusion is listed
+# twice (dir + dir/*) because the bare dir only prunes directory traversal
+# (make codespell) while the glob is needed when pre-commit passes explicit
+# file paths.
+skip = "poetry.lock,.git,src/docker_app_launcher/i18n,src/docker_app_launcher/i18n/*,README-de.md,src/docker_app_launcher/docs,src/docker_app_launcher/docs/*"
 ignore-words-list = "datas"

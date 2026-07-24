@@ -1,0 +1,8 @@
+{
+  "app_name": "Frozen Probe App",
+  "default_port": 8123,
+  "locale": "de",
+  "single_instance": false,
+  "update_check_enabled": false,
+  "cleanup_on_start": false
+}

@@ -146,3 +146,34 @@ class TestStartRoute:
     def test_start_failure_exit_code(self, monkeypatch) -> None:
         monkeypatch.setattr(actions, "start", lambda c, **k: (False, "no compose file"))
         assert __main__.main(["--start"]) == 1
+
+
+class TestRenderProbe:
+    def test_probe_prints_contract_json(self, monkeypatch, capsys, tmp_path) -> None:
+        import json
+
+        import tests.test_gui_window as tgw
+
+        if not tgw._display_available():
+            pytest.skip("no display")
+        config_file = tmp_path / "launcher.json"
+        config_file.write_text(
+            json.dumps(
+                {
+                    "app_name": "Probe App",
+                    "locale": "de",
+                    "single_instance": False,
+                    "update_check_enabled": False,
+                    "cleanup_on_start": False,
+                }
+            )
+        )
+        monkeypatch.setattr(actions, "get_state", lambda c: "not_installed")
+        monkeypatch.setattr(actions, "check_port", lambda p: (True, ""))
+        assert __main__.main(["--config", str(config_file), "--render-probe"]) == 0
+        contract = json.loads(capsys.readouterr().out)
+        assert contract["title"].startswith("Probe App")
+        assert contract["buttons"]["install"] == "Installieren"
+        import docker_app_launcher
+
+        assert docker_app_launcher.__version__ in contract["first_log_line"]

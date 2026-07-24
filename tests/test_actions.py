@@ -1631,6 +1631,56 @@ class TestDetectionStepLogging:
         assert actions.check_docker_detailed(config)["running"] is True
 
 
+class TestReloginTransitionSimulation:
+    """Simulates the group-membership transition a real re-login would cause.
+
+    HONEST LIMIT: this proves the DETECTION LOGIC reacts correctly to the
+    before/after states - it does NOT prove that a real logout/login on a
+    real system produces the after state (kernel session mechanics are not
+    simulated here).
+    """
+
+    def _docker_env(self, monkeypatch, session: dict[str, bool]) -> None:
+        monkeypatch.setattr("platform.system", lambda: "Linux")
+        monkeypatch.setattr("shutil.which", lambda _x: "/usr/bin/docker")
+
+        def info_rc(extra_env=None):
+            if session["relogged_in"]:
+                return (0, "")
+            return (1, "permission denied while trying to connect to the docker API")
+
+        monkeypatch.setattr(actions, "_docker_info_rc", info_rc)
+
+    def test_before_permission_message_after_running(self, config, monkeypatch) -> None:
+        session = {"relogged_in": False}
+        self._docker_env(monkeypatch, session)
+
+        before = actions.check_docker_detailed(config)
+        assert before["running"] is False
+        assert "usermod -aG docker" in before["detail"]
+        assert before["can_fix_permission"] is True
+        ok, msg = actions.check_docker()
+        assert ok is False and "log out" in msg.lower()
+
+        session["relogged_in"] = True  # what a real re-login would change
+
+        after = actions.check_docker_detailed(config)
+        assert after["running"] is True
+        ok, msg = actions.check_docker()
+        assert ok is True and "running" in msg.lower()
+
+    def test_usermod_without_relogin_keeps_the_message(self, config, monkeypatch) -> None:
+        # usermod succeeded but the session still has the old groups: the
+        # launcher must keep showing the permission message, never a false
+        # "fixed now".
+        session = {"relogged_in": False}
+        self._docker_env(monkeypatch, session)
+        before = actions.check_docker_detailed(config)
+        again = actions.check_docker_detailed(config)  # after usermod, no re-login
+        assert before["detail"] == again["detail"]
+        assert again["running"] is False
+
+
 class TestGetAppVersion:
     """#35: the About surface must report the ACTUALLY RUNNING app version.
 
@@ -1638,70 +1688,62 @@ class TestGetAppVersion:
     -> unknown. Each step fails open to the next.
     """
 
-    def _cfg(self, **kw):
-        from docker_app_launcher.config import LauncherConfig
+    def _cfg(self, *, app_version: str = "9.0.0", health_key: str | None = None) -> LauncherConfig:
+        cfg = LauncherConfig(app_name="X", app_version=app_version)
+        if health_key is not None:
+            cfg.app_version_health_key = health_key
+        return cfg.resolve()
 
-        defaults = {"app_name": "X", "app_version": "9.0.0"}
-        defaults.update(kw)
-        return LauncherConfig(**defaults).resolve()
+    @staticmethod
+    def _payload(value: dict[str, str] | None):
+        def fetch(config: LauncherConfig, port: int, timeout: float = 1.5) -> dict[str, str] | None:
+            return value
 
-    def test_running_health_payload_wins(self, monkeypatch):
-        from docker_app_launcher import actions
+        return fetch
 
+    def test_running_health_payload_wins(self, monkeypatch: pytest.MonkeyPatch) -> None:
         cfg = self._cfg()
-        monkeypatch.setattr(
-            actions, "_health_payload", lambda config, port, timeout=1.5: {"status": "ok", "version": "2.6.0"}
-        )
+        monkeypatch.setattr(actions, "_health_payload", self._payload({"status": "ok", "version": "2.6.0"}))
         assert actions.get_app_version(cfg) == ("2.6.0", "running")
 
-    def test_empty_health_key_disables_probe(self, monkeypatch):
-        from docker_app_launcher import actions
+    def test_empty_health_key_disables_probe(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        cfg = self._cfg(health_key="")
 
-        cfg = self._cfg(app_version_health_key="")
-
-        def boom(*a, **kw):  # pragma: no cover - must not be called
+        def boom(config: LauncherConfig, port: int, timeout: float = 1.5) -> dict[str, str] | None:
             raise AssertionError("health probe must be skipped")
 
         monkeypatch.setattr(actions, "_health_payload", boom)
         monkeypatch.setattr(actions, "read_manifest", lambda config: {"app_version": "1.2.3"})
         assert actions.get_app_version(cfg) == ("1.2.3", "installed")
 
-    def test_stopped_falls_back_to_manifest(self, monkeypatch):
-        from docker_app_launcher import actions
-
+    def test_stopped_falls_back_to_manifest(self, monkeypatch: pytest.MonkeyPatch) -> None:
         cfg = self._cfg()
-        monkeypatch.setattr(actions, "_health_payload", lambda config, port, timeout=1.5: None)
+        monkeypatch.setattr(actions, "_health_payload", self._payload(None))
         monkeypatch.setattr(actions, "read_manifest", lambda config: {"app_version": "1.2.3"})
         assert actions.get_app_version(cfg) == ("1.2.3", "installed")
 
-    def test_not_installed_falls_back_to_config(self, monkeypatch):
-        from docker_app_launcher import actions
-
+    def test_not_installed_falls_back_to_config(self, monkeypatch: pytest.MonkeyPatch) -> None:
         cfg = self._cfg()
-        monkeypatch.setattr(actions, "_health_payload", lambda config, port, timeout=1.5: None)
+        monkeypatch.setattr(actions, "_health_payload", self._payload(None))
         monkeypatch.setattr(actions, "read_manifest", lambda config: None)
         assert actions.get_app_version(cfg) == ("9.0.0", "expected")
 
-    def test_nothing_known_is_unknown(self, monkeypatch):
-        from docker_app_launcher import actions
-
+    def test_nothing_known_is_unknown(self, monkeypatch: pytest.MonkeyPatch) -> None:
         cfg = self._cfg(app_version="")
-        monkeypatch.setattr(actions, "_health_payload", lambda config, port, timeout=1.5: None)
+        monkeypatch.setattr(actions, "_health_payload", self._payload(None))
         monkeypatch.setattr(actions, "read_manifest", lambda config: None)
         assert actions.get_app_version(cfg) == ("", "unknown")
 
-    def test_health_payload_without_version_key_falls_through(self, monkeypatch):
-        from docker_app_launcher import actions
-
+    def test_health_payload_without_version_key_falls_through(self, monkeypatch: pytest.MonkeyPatch) -> None:
         cfg = self._cfg()
-        monkeypatch.setattr(actions, "_health_payload", lambda config, port, timeout=1.5: {"status": "ok"})
+        monkeypatch.setattr(actions, "_health_payload", self._payload({"status": "ok"}))
         monkeypatch.setattr(actions, "read_manifest", lambda config: {"app_version": "1.2.3"})
         assert actions.get_app_version(cfg) == ("1.2.3", "installed")
 
-    def test_uninstalled_manifest_is_ignored(self, monkeypatch):
-        from docker_app_launcher import actions
-
+    def test_uninstalled_manifest_is_ignored(self, monkeypatch: pytest.MonkeyPatch) -> None:
         cfg = self._cfg()
-        monkeypatch.setattr(actions, "_health_payload", lambda config, port, timeout=1.5: None)
-        monkeypatch.setattr(actions, "read_manifest", lambda config: {"app_version": "0.3.0", "status": "uninstalled"})
+        monkeypatch.setattr(actions, "_health_payload", self._payload(None))
+        monkeypatch.setattr(
+            actions, "read_manifest", lambda config: {"app_version": "0.3.0", "status": "uninstalled"}
+        )
         assert actions.get_app_version(cfg) == ("9.0.0", "expected")

@@ -1,0 +1,13 @@
+// Polkit rule for the pkexec integration test container ONLY.
+//
+// As narrow as possible (never a blanket allow): auto-approve exactly the
+// usermod binary, run via pkexec, by exactly the dedicated test user.
+// This file must never be installed on a real system - the integration
+// runner copies it into a throwaway container that is removed afterwards.
+polkit.addRule(function(action, subject) {
+    if (action.id == "org.freedesktop.policykit.exec" &&
+        action.lookup("program") == "/usr/sbin/usermod" &&
+        subject.user == "daltest") {
+        return polkit.Result.YES;
+    }
+});

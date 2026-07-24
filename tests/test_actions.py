@@ -1629,3 +1629,53 @@ class TestDetectionStepLogging:
         monkeypatch.setattr("shutil.which", lambda _x: "/usr/bin/docker")
         monkeypatch.setattr(actions, "_docker_info_rc", lambda extra_env=None: (0, ""))
         assert actions.check_docker_detailed(config)["running"] is True
+
+
+class TestReloginTransitionSimulation:
+    """Simulates the group-membership transition a real re-login would cause.
+
+    HONEST LIMIT: this proves the DETECTION LOGIC reacts correctly to the
+    before/after states - it does NOT prove that a real logout/login on a
+    real system produces the after state (kernel session mechanics are not
+    simulated here).
+    """
+
+    def _docker_env(self, monkeypatch, session: dict) -> None:
+        monkeypatch.setattr("platform.system", lambda: "Linux")
+        monkeypatch.setattr("shutil.which", lambda _x: "/usr/bin/docker")
+
+        def info_rc(extra_env=None):
+            if session["relogged_in"]:
+                return (0, "")
+            return (1, "permission denied while trying to connect to the docker API")
+
+        monkeypatch.setattr(actions, "_docker_info_rc", info_rc)
+
+    def test_before_permission_message_after_running(self, config, monkeypatch) -> None:
+        session = {"relogged_in": False}
+        self._docker_env(monkeypatch, session)
+
+        before = actions.check_docker_detailed(config)
+        assert before["running"] is False
+        assert "usermod -aG docker" in before["detail"]
+        assert before["can_fix_permission"] is True
+        ok, msg = actions.check_docker()
+        assert ok is False and "log out" in msg.lower()
+
+        session["relogged_in"] = True  # what a real re-login would change
+
+        after = actions.check_docker_detailed(config)
+        assert after["running"] is True
+        ok, msg = actions.check_docker()
+        assert ok is True and "running" in msg.lower()
+
+    def test_usermod_without_relogin_keeps_the_message(self, config, monkeypatch) -> None:
+        # usermod succeeded but the session still has the old groups: the
+        # launcher must keep showing the permission message, never a false
+        # "fixed now".
+        session = {"relogged_in": False}
+        self._docker_env(monkeypatch, session)
+        before = actions.check_docker_detailed(config)
+        again = actions.check_docker_detailed(config)  # after usermod, no re-login
+        assert before["detail"] == again["detail"]
+        assert again["running"] is False

@@ -135,6 +135,7 @@ testpaths = ["tests"]
 addopts = "--cov=docker_app_launcher --cov-report=term-missing --strict-markers"
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: real-environment tests that only run inside the dedicated container (tests/integration/)",
 ]
 
 [tool.coverage.run]

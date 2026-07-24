@@ -6,6 +6,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Frozen-binary CI gate (#38).** A bug that only exists in the frozen
+  PyInstaller artifact (missing i18n catalogs #34, placeholder branding,
+  wrong version) is invisible to source-tree tests by nature. The new
+  mandatory `frozen-binary` CI job builds the real binary from the rendered
+  spec, opens its real window under xvfb, and asserts the rendered contract
+  via the new `--render-probe` CLI flag (title incl. version, translated
+  labels — never raw keys, full button set). Proven RED against a binary
+  built without package data (renders exactly the raw keys from the original
+  screenshot), GREEN on the current spec.
+
 ## [0.16.0] - 2026-07-24
 
 ### Added

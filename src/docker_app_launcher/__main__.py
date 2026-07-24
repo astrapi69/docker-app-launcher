@@ -41,7 +41,44 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--uninstall", action="store_true", help="Remove the app containers/images and exit.")
     parser.add_argument("--cleanup", action="store_true", help="Remove stale leftovers and exit.")
     parser.add_argument("--open", action="store_true", help="Open the app in the browser and exit.")
+    parser.add_argument(
+        "--render-probe",
+        action="store_true",
+        help="Render the window once, print its contract (title/labels/log) as JSON, and exit. "
+        "Used by the frozen-binary CI check (#38).",
+    )
     return parser
+
+
+def run_render_probe(config: LauncherConfig) -> int:
+    """Open the real window once and print its rendered contract as JSON.
+
+    This is what the frozen-binary CI job (#38) asserts against: a bug that
+    only exists in the frozen artifact (missing i18n catalogs, placeholder
+    branding, wrong version) is invisible to source-tree tests, so the check
+    must interrogate the ACTUAL rendered window of the ACTUAL binary.
+    """
+    import json as _json
+
+    from docker_app_launcher import frontends
+
+    module = frontends.get_frontend(config.gui_backend)
+    app = module.LauncherApp(config) if hasattr(module, "LauncherApp") else None
+    if app is None:  # non-tk frontends expose their class differently; tk is the CI target
+        print(_json.dumps({"error": f"render probe supports the tk frontend, got {config.gui_backend!r}"}))
+        return 2
+    app.update()
+    contract = {
+        "title": app.title(),
+        "buttons": {name: str(btn.cget("text")) for name, btn in app._buttons.items()},
+        "first_log_line": app._status.get("1.0", "end").splitlines()[0]
+        if app._status.get("1.0", "end").strip()
+        else "",
+        "locale": config.locale,
+    }
+    app.destroy()
+    print(_json.dumps(contract, ensure_ascii=False))
+    return 0
 
 
 def run_cli_action(args: argparse.Namespace, config: LauncherConfig) -> int | None:
@@ -104,6 +141,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     action_rc = run_cli_action(args, config)
     if action_rc is not None:
         return action_rc
+
+    if args.render_probe:
+        return run_render_probe(config)
 
     return _launch_window(config, debug=args.debug)
 

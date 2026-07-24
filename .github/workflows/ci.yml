@@ -76,3 +76,33 @@ jobs:
           fail_ci_if_error: false
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  frozen-binary:
+    # A bug that only exists in the frozen PyInstaller artifact (missing i18n
+    # catalogs #34, placeholder branding, wrong version) is invisible to every
+    # source-tree test by nature. This job builds the REAL binary from the
+    # rendered spec, opens its REAL window under xvfb, and asserts the
+    # rendered contract via --render-probe (#38). Mandatory gate.
+    name: Frozen binary contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install xvfb
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+
+      - name: Install package + PyInstaller
+        run: pip install . pyinstaller
+
+      - name: Build the frozen binary and probe its rendered window
+        run: |
+          xvfb-run -a bash tests/frozen/build_and_probe.sh /tmp/frozen-ci > /tmp/probe.json
+          VERSION=$(python -c "import docker_app_launcher; print(docker_app_launcher.__version__)")
+          python tests/frozen/assert_render_probe.py \
+            --expect-version "$VERSION" \
+            --expect-app-name "Frozen Probe App" < /tmp/probe.json

@@ -1679,3 +1679,69 @@ class TestReloginTransitionSimulation:
         again = actions.check_docker_detailed(config)  # after usermod, no re-login
         assert before["detail"] == again["detail"]
         assert again["running"] is False
+
+
+class TestGetAppVersion:
+    """#35: the About surface must report the ACTUALLY RUNNING app version.
+
+    Ladder: running health payload -> install manifest -> config.app_version
+    -> unknown. Each step fails open to the next.
+    """
+
+    def _cfg(self, *, app_version: str = "9.0.0", health_key: str | None = None) -> LauncherConfig:
+        cfg = LauncherConfig(app_name="X", app_version=app_version)
+        if health_key is not None:
+            cfg.app_version_health_key = health_key
+        return cfg.resolve()
+
+    @staticmethod
+    def _payload(value: dict[str, str] | None):
+        def fetch(config: LauncherConfig, port: int, timeout: float = 1.5) -> dict[str, str] | None:
+            return value
+
+        return fetch
+
+    def test_running_health_payload_wins(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        cfg = self._cfg()
+        monkeypatch.setattr(actions, "_health_payload", self._payload({"status": "ok", "version": "2.6.0"}))
+        assert actions.get_app_version(cfg) == ("2.6.0", "running")
+
+    def test_empty_health_key_disables_probe(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        cfg = self._cfg(health_key="")
+
+        def boom(config: LauncherConfig, port: int, timeout: float = 1.5) -> dict[str, str] | None:
+            raise AssertionError("health probe must be skipped")
+
+        monkeypatch.setattr(actions, "_health_payload", boom)
+        monkeypatch.setattr(actions, "read_manifest", lambda config: {"app_version": "1.2.3"})
+        assert actions.get_app_version(cfg) == ("1.2.3", "installed")
+
+    def test_stopped_falls_back_to_manifest(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        cfg = self._cfg()
+        monkeypatch.setattr(actions, "_health_payload", self._payload(None))
+        monkeypatch.setattr(actions, "read_manifest", lambda config: {"app_version": "1.2.3"})
+        assert actions.get_app_version(cfg) == ("1.2.3", "installed")
+
+    def test_not_installed_falls_back_to_config(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        cfg = self._cfg()
+        monkeypatch.setattr(actions, "_health_payload", self._payload(None))
+        monkeypatch.setattr(actions, "read_manifest", lambda config: None)
+        assert actions.get_app_version(cfg) == ("9.0.0", "expected")
+
+    def test_nothing_known_is_unknown(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        cfg = self._cfg(app_version="")
+        monkeypatch.setattr(actions, "_health_payload", self._payload(None))
+        monkeypatch.setattr(actions, "read_manifest", lambda config: None)
+        assert actions.get_app_version(cfg) == ("", "unknown")
+
+    def test_health_payload_without_version_key_falls_through(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        cfg = self._cfg()
+        monkeypatch.setattr(actions, "_health_payload", self._payload({"status": "ok"}))
+        monkeypatch.setattr(actions, "read_manifest", lambda config: {"app_version": "1.2.3"})
+        assert actions.get_app_version(cfg) == ("1.2.3", "installed")
+
+    def test_uninstalled_manifest_is_ignored(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        cfg = self._cfg()
+        monkeypatch.setattr(actions, "_health_payload", self._payload(None))
+        monkeypatch.setattr(actions, "read_manifest", lambda config: {"app_version": "0.3.0", "status": "uninstalled"})
+        assert actions.get_app_version(cfg) == ("9.0.0", "expected")

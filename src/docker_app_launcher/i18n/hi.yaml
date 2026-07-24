@@ -125,3 +125,6 @@ docker_group_added: "'docker' समूह जोड़ा गया। पर�
 docker_group_cancelled: "रद्द किया गया - कुछ नहीं बदला। मैन्युअल: 'sudo usermod -aG docker $USER' चलाएँ, फिर लॉग आउट करके फिर से लॉग इन करें।"
 docker_group_failed: "'docker' समूह में जोड़ा नहीं जा सका: {error}। मैन्युअल: 'sudo usermod -aG docker $USER' चलाएँ, फिर लॉग आउट करके फिर से लॉग इन करें।"
 docker_desktop_waiting: "Docker Desktop शुरू हो रहा है - इसमें थोड़ा समय लग सकता है (VM बूट)…"
+about: "जानकारी…"
+about_open_issues: "समस्या रिपोर्ट करें - ब्राउज़र में issue tracker खोलें?"
+checking_context: "Docker context '{context}' ({endpoint}) की जाँच हो रही है…"

@@ -159,7 +159,7 @@ def gui_state(monkeypatch):
     monkeypatch.setattr(
         actions,
         "check_docker_detailed",
-        lambda c: {
+        lambda c, **k: {
             "status": "daemon_stopped",
             "detail": "daemon not running",
             "command": "systemctl start docker",
@@ -171,7 +171,7 @@ def gui_state(monkeypatch):
     monkeypatch.setattr(actions, "resolve_port", lambda c: c.default_port)
     monkeypatch.setattr(actions, "resolve_locale", lambda c: c.locale if c.locale != "auto" else "en")
     monkeypatch.setattr(actions, "set_locale", lambda c, code: code)
-    monkeypatch.setattr(actions, "find_stale_artifacts", lambda c: {})
+    monkeypatch.setattr(actions, "find_stale_artifacts", lambda c, **k: {})
     return state
 
 
@@ -192,9 +192,18 @@ def app(gui_state):
 
 
 class TestWindowConstruction:
-    def test_window_builds_with_title(self, app) -> None:
-        assert app.title() == "Test App"
+    def test_window_builds_with_title_and_version(self, app) -> None:
+        import docker_app_launcher
+
+        assert app.title().startswith("Test App")
+        assert docker_app_launcher.__version__ in app.title()  # never hardcoded (#30)
         _screenshot(app, "not_installed_en")
+
+    def test_version_is_the_first_log_line(self, app) -> None:
+        import docker_app_launcher
+
+        first_line = app._status.get("1.0", "end").splitlines()[0]
+        assert docker_app_launcher.__version__ in first_line
 
     def test_all_buttons_exist_and_visible(self, app) -> None:
         assert set(app._buttons) == set(gui.PRIMARY_BUTTONS) | set(gui.SECONDARY_BUTTONS)
@@ -290,6 +299,7 @@ class TestLogAndClipboard:
         assert app._copy_log_btn["text"] != original  # localized "Copied!"
 
     def test_copy_empty_log_is_noop(self, app) -> None:
+        app._clear_status()  # discard the startup version line
         original = app._copy_log_btn["text"]
         app._copy_log()
         assert app._copy_log_btn["text"] == original
@@ -427,7 +437,7 @@ class TestCleanupOffer:
         assert app._t("cleanup_skipped") in app._status.get("1.0", "end")
 
     def test_manual_cleanup_reports_nothing_found(self, app, inline_threads, monkeypatch) -> None:
-        monkeypatch.setattr(actions, "find_stale_artifacts", lambda c: {})
+        monkeypatch.setattr(actions, "find_stale_artifacts", lambda c, **k: {})
         app._run_manual_cleanup()
         app.update()
         assert app._t("cleanup_none") in app._status.get("1.0", "end")
@@ -545,7 +555,7 @@ class TestFixDockerPermission:
         monkeypatch.setattr(
             actions,
             "check_docker_detailed",
-            lambda c: {
+            lambda c, **k: {
                 "status": "no_permission",
                 "platform": "Linux",
                 "detail": "no permission",
@@ -647,3 +657,114 @@ class TestStartDockerWaits:
         app._start_docker({"platform": "Darwin"})
         app.update()
         assert "not found" in app._status.get("1.0", "end")
+
+
+class TestAboutDialog:
+    """About button: version + platform + click-through to the issue tracker (#30)."""
+
+    def test_about_button_exists_and_enabled_even_without_docker(self, app, gui_state) -> None:
+        gui_state["value"] = "no_docker"
+        app._refresh()
+        app.update()
+        assert str(app._buttons["info"]["state"]) == "normal"
+
+    def test_accept_opens_issue_tracker(self, app, monkeypatch) -> None:
+        opened: list[str] = []
+        monkeypatch.setattr("tkinter.messagebox.askyesno", lambda *a, **k: True)
+
+        def record_open(url):
+            opened.append(url)
+            return True
+
+        monkeypatch.setattr(actions, "open_url", record_open)
+        app._buttons["info"].invoke()
+        assert opened and opened[0].endswith("/issues")
+
+    def test_decline_opens_nothing(self, app, monkeypatch) -> None:
+        opened: list[str] = []
+        monkeypatch.setattr("tkinter.messagebox.askyesno", lambda *a, **k: False)
+
+        def record_open(url):
+            opened.append(url)
+            return True
+
+        monkeypatch.setattr(actions, "open_url", record_open)
+        app._buttons["info"].invoke()
+        assert opened == []
+
+
+class TestDetectionStepsVisible:
+    """Multi-step docker detection streams into the visible log (#30)."""
+
+    def test_sweep_steps_appear_in_the_log(self, app, gui_state, monkeypatch) -> None:
+        def fake_detailed(cfg, *, on_step=None):
+            if on_step is not None:
+                on_step("Checking Docker context 'desktop-linux' (unix:///desk.sock)…")
+                on_step("Checking Docker context 'rootless' (unix:///root.sock)…")
+            return {
+                "status": "not_running",
+                "platform": "Linux",
+                "detail": "not running",
+                "command": "",
+                "can_start": True,
+                "installed": True,
+                "can_fix_permission": False,
+            }
+
+        gui_state["value"] = "no_docker"
+        monkeypatch.setattr(actions, "check_docker_detailed", fake_detailed)
+        app._refresh()
+        app.update()
+        log = app._status.get("1.0", "end")
+        assert "desktop-linux" in log and "rootless" in log  # each sub-step, not just the end state
+
+
+class TestUninstallConfirmation:
+    """Uninstall is destructive - a single misclick must not trigger it (#31 audit)."""
+
+    def test_decline_does_not_dispatch(self, app, gui_state, monkeypatch) -> None:
+        gui_state["value"] = "running"
+        app._refresh()
+        monkeypatch.setattr("tkinter.messagebox.askyesno", lambda *a, **k: False)
+        dispatched: list[str] = []
+        monkeypatch.setattr(app, "_on_action", lambda action_id: dispatched.append(action_id))
+        app._buttons["uninstall"].invoke()
+        assert dispatched == []
+
+    def test_accept_dispatches_uninstall(self, app, gui_state, monkeypatch) -> None:
+        gui_state["value"] = "running"
+        app._refresh()
+        monkeypatch.setattr("tkinter.messagebox.askyesno", lambda *a, **k: True)
+        dispatched: list[str] = []
+        monkeypatch.setattr(app, "_on_action", lambda action_id: dispatched.append(action_id))
+        app._buttons["uninstall"].invoke()
+        assert dispatched == ["uninstall"]
+
+
+class TestWindowGeometryMemory:
+    """The window reopens where the user left it (#31 audit)."""
+
+    def test_stored_geometry_is_applied_on_start(self, gui_state, monkeypatch) -> None:
+        monkeypatch.setattr(actions, "resolve_window_geometry", lambda c: "640x540+11+22")
+        config = LauncherConfig(
+            app_name="Geo App", default_port=8080, locale="en", cleanup_on_start=False, update_check_enabled=False
+        )
+        window = gui.LauncherApp(config)
+        try:
+            window.update()
+            geometry = window.winfo_geometry()
+            assert geometry.startswith("640x540")
+        finally:
+            window.destroy()
+
+    def test_quit_persists_geometry(self, gui_state, monkeypatch) -> None:
+        saved: list[str] = []
+        monkeypatch.setattr(actions, "set_window_geometry", lambda c, g: saved.append(g))
+        config = LauncherConfig(
+            app_name="Geo App", default_port=8080, locale="en", cleanup_on_start=False, update_check_enabled=False
+        )
+        window = gui.LauncherApp(config)
+        window.update()
+        window._quit()  # destroys the window itself - no fixture double-destroy
+        assert len(saved) == 1
+        assert "x" in saved[0] and "+" in saved[0]

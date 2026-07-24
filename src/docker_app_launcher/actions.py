@@ -304,7 +304,9 @@ def _docker_contexts() -> list[tuple[str, str, bool]]:
     return contexts
 
 
-def _sweep_other_contexts() -> tuple[str, str] | None:
+def _sweep_other_contexts(
+    config: LauncherConfig | None = None, on_step: ProgressFn | None = None
+) -> tuple[str, str] | None:
     """Probe every non-active context; on a hit, connect through it.
 
     Returns ``(context_name, endpoint)`` of the first context whose
@@ -312,11 +314,17 @@ def _sweep_other_contexts() -> tuple[str, str] | None:
     override so every later docker command uses that endpoint (#25 -
     the active context points at a dead socket while Docker actually
     runs under e.g. ``desktop-linux`` or a rootless context).
+
+    With ``config`` + ``on_step`` each probed endpoint is reported to the
+    caller ("Checking Docker context 'x' (…)"), so a multi-second sweep is
+    visible in the window log instead of looking frozen (#30).
     """
     global _DOCKER_HOST_OVERRIDE
     for name, endpoint, is_active in _docker_contexts():
         if is_active:
             continue
+        if on_step is not None and config is not None:
+            _notify(on_step, _t(config, "checking_context", context=name, endpoint=endpoint))
         rc, _stderr = _docker_info_rc(extra_env={"DOCKER_HOST": endpoint})
         if rc == 0:
             logger.info("docker reachable via context %r (%s); overriding DOCKER_HOST", name, endpoint)
@@ -384,7 +392,7 @@ def _docker_info_rc(extra_env: dict[str, str] | None = None) -> tuple[int | None
     return result.returncode, (result.stderr or "")
 
 
-def check_docker_detailed(config: LauncherConfig) -> dict[str, Any]:
+def check_docker_detailed(config: LauncherConfig, *, on_step: ProgressFn | None = None) -> dict[str, Any]:
     """Platform-specific Docker diagnostics for the "no Docker" screen.
 
     Returns a dict with ``platform`` (Linux/Windows/Darwin), ``installed``,
@@ -424,7 +432,7 @@ def check_docker_detailed(config: LauncherConfig) -> dict[str, Any]:
             out["command"] = "sudo usermod -aG docker $USER"
             out["can_fix_permission"] = True
         else:
-            fallback = _sweep_other_contexts()
+            fallback = _sweep_other_contexts(config, on_step)
             if fallback is not None:
                 out["running"] = True
                 out["detail"] = _t(config, "docker_running_other_context", context=fallback[0])
@@ -464,7 +472,7 @@ def check_docker_detailed(config: LauncherConfig) -> dict[str, Any]:
     elif rc is None:
         out["detail"] = _t(config, "docker_no_response")
     else:
-        fallback = _sweep_other_contexts()
+        fallback = _sweep_other_contexts(config, on_step)
         if fallback is not None:
             out["running"] = True
             out["detail"] = _t(config, "docker_running_other_context", context=fallback[0])
@@ -784,6 +792,25 @@ def set_locale(config: LauncherConfig, locale: str) -> str:
     data["locale"] = locale
     save_config(config.launcher_config_file, data)
     return locale
+
+
+_GEOMETRY_RE = re.compile(r"^\d+x\d+[+-]-?\d+[+-]-?\d+$")
+
+
+def set_window_geometry(config: LauncherConfig, geometry: str) -> None:
+    """Persist the window geometry (``WxH+X+Y``) so the next start reopens
+    the window where the user left it. Invalid strings are ignored."""
+    if not _GEOMETRY_RE.match(geometry or ""):
+        return
+    data = load_config(config.launcher_config_file)
+    data["window_geometry"] = geometry
+    save_config(config.launcher_config_file, data)
+
+
+def resolve_window_geometry(config: LauncherConfig) -> str:
+    """The stored window geometry from the launcher JSON, or ``""``."""
+    value = load_config(config.launcher_config_file).get("window_geometry", "")
+    return value if isinstance(value, str) and _GEOMETRY_RE.match(value) else ""
 
 
 def resolve_internal_port(config: LauncherConfig, name: str) -> int:

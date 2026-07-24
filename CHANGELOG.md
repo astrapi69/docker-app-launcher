@@ -6,6 +6,25 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Version visible everywhere (#30).** The window title now reads
+  `My App — v0.15.0` (version read from the installed package metadata,
+  never hardcoded), the first log line states version · backend · platform,
+  and a new always-enabled "About…" button (even in the no-docker state —
+  bug reports happen exactly there) shows version, platform, GUI backend,
+  the active docker endpoint override, and offers to open the issue tracker.
+- **Docker-detection steps stream into the visible log (#30).** The context
+  sweep reports every probed endpoint ("Checking Docker context
+  'desktop-linux' (…)…", all 11 languages) into the existing log area, so a
+  multi-second detection is visible progress instead of a frozen message.
+- **Uninstall asks first (#31).** Uninstall is destructive
+  (containers + images); a confirmation dialog (existing `confirm_uninstall`
+  catalogs, previously unused) now guards it in all three frontends. Stop
+  stays unconfirmed on purpose: it is loss-free and instantly reversible.
+- **The window reopens where you left it (#31).** Geometry is persisted to
+  the launcher JSON on quit and restored on start (all three frontends).
+
 ## [0.15.0] - 2026-07-24
 
 ### Added

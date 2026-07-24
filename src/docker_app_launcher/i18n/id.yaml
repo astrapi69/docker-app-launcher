@@ -125,3 +125,6 @@ docker_group_added: "Grup 'docker' ditambahkan. Keluar lalu masuk lagi (atau mul
 docker_group_cancelled: "Dibatalkan - tidak ada perubahan. Manual: jalankan 'sudo usermod -aG docker $USER', lalu keluar dan masuk lagi."
 docker_group_failed: "Gagal menambahkan ke grup 'docker': {error}. Manual: jalankan 'sudo usermod -aG docker $USER', lalu keluar dan masuk lagi."
 docker_desktop_waiting: "Docker Desktop sedang dimulai - ini bisa memakan waktu sejenak (boot VM)…"
+about: "Tentang…"
+about_open_issues: "Laporkan masalah - buka issue tracker di browser?"
+checking_context: "Memeriksa Docker context '{context}' ({endpoint})…"

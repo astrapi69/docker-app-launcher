@@ -33,9 +33,12 @@ class TestPortEditable:
 class TestButtonStates:
     """Every button is always visible; only its enabled flag changes per state."""
 
-    def test_no_docker_disables_everything(self) -> None:
+    def test_no_docker_disables_everything_except_info(self) -> None:
+        # "info" stays clickable everywhere - bug reports happen exactly when
+        # Docker is down (#30).
         for name in gui.PRIMARY_BUTTONS + gui.SECONDARY_BUTTONS:
-            assert gui.button_enabled("no_docker", name) is False
+            expected = name == "info"
+            assert gui.button_enabled("no_docker", name) is expected
 
     def test_not_installed(self) -> None:
         for name in ("install", "copy_log", "cleanup"):
@@ -62,8 +65,8 @@ class TestButtonStates:
         assert "apply_port" in gui.PRIMARY_BUTTONS
         assert "copy_log" in gui.PRIMARY_BUTTONS
 
-    def test_secondary_is_cleanup_then_background(self) -> None:
-        assert gui.SECONDARY_BUTTONS == ["cleanup", "background"]
+    def test_secondary_is_cleanup_background_info(self) -> None:
+        assert gui.SECONDARY_BUTTONS == ["cleanup", "background", "info"]
 
 
 class TestDisabledReason:
@@ -402,3 +405,66 @@ class TestManualCleanup:
         app._run_manual_cleanup()  # must not raise
         assert calls["offered"] == []
         assert any("docker down" in str(m) for m in calls["logged"])
+
+
+# --- version display + about info (#30) -------------------------------------
+
+
+class TestWindowTitle:
+    def test_title_contains_app_name_and_real_version(self) -> None:
+        import docker_app_launcher
+        from docker_app_launcher import ui_model
+
+        cfg = LauncherConfig(app_name="My App").resolve()
+        title = ui_model.window_title(cfg)
+        assert title.startswith("My App")
+        assert docker_app_launcher.__version__ in title
+
+    def test_title_follows_the_version_source_not_a_hardcode(self, monkeypatch) -> None:
+        from docker_app_launcher import ui_model
+
+        monkeypatch.setattr(ui_model, "launcher_version", lambda: "9.9.9-test")
+        cfg = LauncherConfig(app_name="My App").resolve()
+        assert "9.9.9-test" in ui_model.window_title(cfg)
+
+
+class TestAboutInfo:
+    def test_about_lines_carry_version_platform_backend(self) -> None:
+        import platform as _platform
+
+        import docker_app_launcher
+        from docker_app_launcher import ui_model
+
+        cfg = LauncherConfig(app_name="X", gui_backend="qt").resolve()
+        text = "\n".join(ui_model.about_lines(cfg))
+        assert docker_app_launcher.__version__ in text
+        assert _platform.system() in text
+        assert "qt" in text
+
+    def test_about_lines_show_active_docker_endpoint_override(self, monkeypatch) -> None:
+        from docker_app_launcher import actions, ui_model
+
+        monkeypatch.setattr(actions, "docker_host_override", lambda: "unix:///run/user/1000/docker.sock")
+        cfg = LauncherConfig(app_name="X").resolve()
+        assert any("unix:///run/user/1000/docker.sock" in line for line in ui_model.about_lines(cfg))
+
+    def test_issue_tracker_url_from_repo_url(self) -> None:
+        from docker_app_launcher import ui_model
+
+        cfg = LauncherConfig(app_name="X", repo_url="https://github.com/owner/myapp").resolve()
+        assert ui_model.issue_tracker_url(cfg) == "https://github.com/owner/myapp/issues"
+
+    def test_issue_tracker_url_defaults_to_launcher_repo(self) -> None:
+        from docker_app_launcher import ui_model
+
+        cfg = LauncherConfig(app_name="X").resolve()
+        assert ui_model.issue_tracker_url(cfg).endswith("/issues")
+
+
+class TestInfoButtonModel:
+    def test_info_is_a_secondary_button(self) -> None:
+        assert "info" in gui.SECONDARY_BUTTONS
+
+    def test_info_enabled_in_every_state_including_no_docker(self) -> None:
+        for state in ("no_docker", "not_installed", "stopped", "running"):
+            assert gui.button_enabled(state, "info") is True, f"info must stay clickable in {state}"

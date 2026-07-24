@@ -125,3 +125,6 @@ docker_group_added: "'docker' グループに追加しました。変更を有�
 docker_group_cancelled: "キャンセルしました。変更はありません。手動での対処: 'sudo usermod -aG docker $USER' を実行し、ログアウトして再ログインしてください。"
 docker_group_failed: "'docker' グループへの追加に失敗しました: {error}。手動での対処: 'sudo usermod -aG docker $USER' を実行し、ログアウトして再ログインしてください。"
 docker_desktop_waiting: "Docker Desktop を起動しています。しばらくかかることがあります（VM 起動）…"
+about: "情報…"
+about_open_issues: "問題を報告 - ブラウザで issue tracker を開きますか？"
+checking_context: "Docker コンテキスト '{context}'（{endpoint}）を確認中…"

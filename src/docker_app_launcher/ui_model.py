@@ -14,6 +14,8 @@ see :mod:`docker_app_launcher.frontends`.
 from __future__ import annotations
 
 import logging
+import platform
+from importlib.metadata import PackageNotFoundError, version
 
 from docker_app_launcher import actions, i18n
 from docker_app_launcher.config import LauncherConfig
@@ -49,7 +51,43 @@ PRIMARY_GRID = {
 }
 
 # Secondary actions, rendered in a single row BELOW the log under a separator.
-SECONDARY_BUTTONS = ["cleanup", "background"]
+SECONDARY_BUTTONS = ["cleanup", "background", "info"]
+
+_LAUNCHER_REPO_URL = "https://github.com/astrapi69/docker-app-launcher"
+
+
+def launcher_version() -> str:
+    """The version of the actually installed package - never hardcoded (#30)."""
+    try:
+        return version("docker-app-launcher")
+    except PackageNotFoundError:  # pragma: no cover - source checkout without install
+        return "unknown"
+
+
+def window_title(config: LauncherConfig) -> str:
+    """Window title with the running version: ``My App — v0.15.0`` (#30)."""
+    return f"{config.app_name} — v{launcher_version()}"
+
+
+def about_lines(config: LauncherConfig) -> list[str]:
+    """Diagnostic facts for the About dialog: what a bug report needs (#30)."""
+    lines = [
+        f"docker-app-launcher v{launcher_version()}",
+        f"App: {config.app_name} {config.app_version}".strip(),
+        f"Platform: {platform.system()} ({platform.machine()})",
+        f"GUI backend: {config.gui_backend}",
+    ]
+    override = actions.docker_host_override()
+    if override:
+        lines.append(f"Docker endpoint (context fallback): {override}")
+    lines.append(f"Repository: {config.repo_url or _LAUNCHER_REPO_URL}")
+    return lines
+
+
+def issue_tracker_url(config: LauncherConfig) -> str:
+    """Where a bug report should go: the app's repo, else the launcher's."""
+    return (config.repo_url or _LAUNCHER_REPO_URL).rstrip("/") + "/issues"
+
 
 # button name -> i18n label key.
 BUTTON_LABELS = {
@@ -62,6 +100,7 @@ BUTTON_LABELS = {
     "cleanup": "cleanup",
     "background": "run_in_background",
     "apply_port": "apply_port",
+    "info": "about",
 }
 
 # The X is the only way to close the window, so there is no cancel/close button.
@@ -81,6 +120,7 @@ BUTTON_STATES: dict[str, dict[str, bool]] = {
         "copy_log": False,
         "cleanup": False,
         "background": False,
+        "info": True,
     },
     "not_installed": {
         "install": True,
@@ -92,6 +132,7 @@ BUTTON_STATES: dict[str, dict[str, bool]] = {
         "copy_log": True,
         "cleanup": True,
         "background": False,
+        "info": True,
     },
     "stopped": {
         "install": False,
@@ -103,6 +144,7 @@ BUTTON_STATES: dict[str, dict[str, bool]] = {
         "copy_log": True,
         "cleanup": True,
         "background": False,
+        "info": True,
     },
     "running": {
         "install": False,
@@ -114,6 +156,7 @@ BUTTON_STATES: dict[str, dict[str, bool]] = {
         "copy_log": True,
         "cleanup": True,
         "background": True,
+        "info": True,
     },
 }
 

@@ -41,7 +41,7 @@ def gui_state(monkeypatch):
     monkeypatch.setattr(
         actions,
         "check_docker_detailed",
-        lambda c: {
+        lambda c, **k: {
             "status": "daemon_stopped",
             "detail": "daemon not running",
             "command": "systemctl start docker",
@@ -53,7 +53,7 @@ def gui_state(monkeypatch):
     monkeypatch.setattr(actions, "resolve_port", lambda c: c.default_port)
     monkeypatch.setattr(actions, "resolve_locale", lambda c: c.locale if c.locale != "auto" else "en")
     monkeypatch.setattr(actions, "set_locale", lambda c, code: code)
-    monkeypatch.setattr(actions, "find_stale_artifacts", lambda c: {})
+    monkeypatch.setattr(actions, "find_stale_artifacts", lambda c, **k: {})
     return state
 
 
@@ -88,7 +88,10 @@ class TestRegistry:
 
 class TestWindow:
     def test_builds_with_title_and_all_buttons(self, app) -> None:
-        assert app.title() == "Ctk App"
+        import docker_app_launcher
+
+        assert app.title().startswith("Ctk App")
+        assert docker_app_launcher.__version__ in app.title()
         from docker_app_launcher.ui_model import PRIMARY_BUTTONS, SECONDARY_BUTTONS
 
         assert set(app._buttons) == set(PRIMARY_BUTTONS) | set(SECONDARY_BUTTONS)
@@ -153,7 +156,7 @@ class TestActionFlow:
 
     def test_cleanup_none_found(self, app, monkeypatch) -> None:
         monkeypatch.setattr(_threading, "Thread", _InlineThread)
-        monkeypatch.setattr(actions, "find_stale_artifacts", lambda c: {})
+        monkeypatch.setattr(actions, "find_stale_artifacts", lambda c, **k: {})
         app._run_manual_cleanup()
         app.update()
         assert app._t("cleanup_none") in app._status.get("1.0", "end")

@@ -13,8 +13,11 @@ it with ``"gui_backend": "qt"`` in the launcher JSON.
 
 from __future__ import annotations
 
+import contextlib
 import functools
 import logging
+import platform as _platform
+import re
 import sys
 import threading
 from typing import Any
@@ -27,14 +30,17 @@ from docker_app_launcher.ui_model import (
     PRIMARY_BUTTONS,
     PRIMARY_GRID,
     SECONDARY_BUTTONS,
+    about_lines,
     advanced_ports_visible,
     button_enabled,
     default_internal_ports,
     disabled_reason_key,
     dispatch_action,
     internal_port_fields,
+    issue_tracker_url,
     port_editable,
     should_keep_alive_on_close,
+    window_title,
 )
 
 logger = logging.getLogger("docker_app_launcher.frontends.qt")
@@ -83,8 +89,13 @@ if HAS_QT:
             self._buttons: dict[str, QPushButton] = {}
             self._invoke.connect(lambda fn: fn())
 
-            self.setWindowTitle(config.app_name)
+            self.setWindowTitle(window_title(config))
             self.resize(config.window_width, config.window_height)
+            stored_geometry = actions.resolve_window_geometry(config)
+            match = re.match(r"^(\d+)x(\d+)([+-]-?\d+)([+-]-?\d+)$", stored_geometry)
+            if match:
+                self.resize(int(match.group(1)), int(match.group(2)))
+                self.move(int(match.group(3)), int(match.group(4)))
             self.setMinimumSize(min(600, config.window_width), min(420, config.window_height))
             if config.icon_path:
                 self.setWindowIcon(QIcon(config.icon_path))
@@ -168,6 +179,7 @@ if HAS_QT:
                 secondary_row.addWidget(self._make_button(name, handlers[name]))
             root.addWidget(secondary, alignment=Qt.AlignmentFlag.AlignHCenter)
 
+            self._log(f"{about_lines(config)[0]} · {config.gui_backend} · {_platform.system()}")
             self._refresh()
             if config.cleanup_on_start:
                 self._offer_cleanup_if_stale()
@@ -196,11 +208,12 @@ if HAS_QT:
                 "start": functools.partial(self._on_action, "start"),
                 "open_browser": functools.partial(self._on_action, "open"),
                 "stop": functools.partial(self._on_action, "stop"),
-                "uninstall": functools.partial(self._on_action, "uninstall"),
+                "uninstall": self._confirm_uninstall,
                 "copy_log": self._copy_log,
                 "cleanup": self._run_manual_cleanup,
                 "background": self._go_background,
                 "apply_port": functools.partial(self._on_action, "change_port"),
+                "info": self._show_about,
             }
 
         def _make_button(self, name: str, handler: Any) -> QPushButton:
@@ -271,7 +284,7 @@ if HAS_QT:
                 widget = item.widget() if item is not None else None
                 if widget is not None:
                     widget.deleteLater()
-            info = actions.check_docker_detailed(self._cfg)
+            info = actions.check_docker_detailed(self._cfg, on_step=self._log)
             text = info.get("detail") or self._t("no_docker")
             if info.get("command"):
                 text += "\n" + info["command"]
@@ -295,6 +308,33 @@ if HAS_QT:
                 guide.clicked.connect(lambda: actions.open_url(self._cfg.docker_install_url))
                 self._docker_help_row.insertWidget(offset, guide)
             self._docker_help.show()
+
+        def _show_about(self) -> None:
+            from PySide6.QtWidgets import QMessageBox
+
+            text = "\n".join(about_lines(self._cfg)) + "\n\n" + self._t("about_open_issues")
+            answer = QMessageBox.question(
+                self,
+                self._t("about"),
+                text,
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if answer == QMessageBox.StandardButton.Yes:
+                actions.open_url(issue_tracker_url(self._cfg))
+
+        def _confirm_uninstall(self) -> None:
+            from PySide6.QtWidgets import QMessageBox
+
+            answer = QMessageBox.question(
+                self,
+                self._cfg.app_name,
+                self._t("confirm_uninstall", app=self._cfg.app_name),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if answer == QMessageBox.StandardButton.Yes:
+                self._on_action("uninstall")
 
         def _fix_docker_permission(self) -> None:
             """Self-repair for the docker-group case (#27): confirm (docker
@@ -584,6 +624,8 @@ if HAS_QT:
                 self._tray = None
 
         def _quit(self) -> None:
+            with contextlib.suppress(Exception):
+                actions.set_window_geometry(self._cfg, f"{self.width()}x{self.height()}+{self.x()}+{self.y()}")
             self._stop_tray()
             self.close()
 

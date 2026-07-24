@@ -21,8 +21,10 @@ apply-port) sit below the log under a separator.
 
 from __future__ import annotations
 
+import contextlib
 import functools
 import logging
+import platform
 import threading
 import tkinter as tk
 from collections.abc import Callable
@@ -54,6 +56,9 @@ from docker_app_launcher.ui_model import (
     SECONDARY_BUTTONS as SECONDARY_BUTTONS,
 )
 from docker_app_launcher.ui_model import (
+    about_lines as about_lines,
+)
+from docker_app_launcher.ui_model import (
     advanced_ports_visible as advanced_ports_visible,
 )
 from docker_app_launcher.ui_model import (
@@ -72,6 +77,9 @@ from docker_app_launcher.ui_model import (
     internal_port_fields as internal_port_fields,
 )
 from docker_app_launcher.ui_model import (
+    issue_tracker_url as issue_tracker_url,
+)
+from docker_app_launcher.ui_model import (
     port_editable as port_editable,
 )
 from docker_app_launcher.ui_model import (
@@ -79,6 +87,9 @@ from docker_app_launcher.ui_model import (
 )
 from docker_app_launcher.ui_model import (
     should_minimize_to_tray as should_minimize_to_tray,
+)
+from docker_app_launcher.ui_model import (
+    window_title as window_title,
 )
 
 logger = logging.getLogger("docker_app_launcher.gui")
@@ -154,8 +165,11 @@ class LauncherApp(tk.Tk):
         self._buttons: dict[str, tk.Button] = {}
         self._tooltips: dict[str, _Tooltip] = {}
 
-        self.title(config.app_name)
+        self.title(window_title(config))
         self.geometry(f"{config.window_width}x{config.window_height}")
+        stored_geometry = actions.resolve_window_geometry(config)
+        if stored_geometry:
+            self.geometry(stored_geometry)
         if not config.window_resizable:
             self.resizable(False, False)
         self.minsize(min(600, config.window_width), min(420, config.window_height))
@@ -250,6 +264,7 @@ class LauncherApp(tk.Tk):
         for name in SECONDARY_BUTTONS:
             self._make_button(self._secondary_frame, name, button_handlers[name]).pack(side="left", padx=4)
 
+        self._log(f"{about_lines(config)[0]} · {config.gui_backend} · {platform.system()}")
         self._refresh()
         if config.cleanup_on_start:
             self._offer_cleanup_if_stale()
@@ -270,11 +285,12 @@ class LauncherApp(tk.Tk):
             "start": functools.partial(self._on_action, "start"),
             "open_browser": functools.partial(self._on_action, "open"),
             "stop": functools.partial(self._on_action, "stop"),
-            "uninstall": functools.partial(self._on_action, "uninstall"),
+            "uninstall": self._confirm_uninstall,
             "copy_log": self._copy_log,
             "cleanup": self._run_manual_cleanup,
             "background": self._go_background,
             "apply_port": functools.partial(self._on_action, "change_port"),
+            "info": self._show_about,
         }
 
     def _make_button(self, parent: tk.Frame, name: str, command: Callable[[], None]) -> tk.Button:
@@ -360,7 +376,7 @@ class LauncherApp(tk.Tk):
         """Platform-specific Docker diagnostics + actions for the no-docker state."""
         for child in self._docker_help_frame.winfo_children():
             child.destroy()
-        info = actions.check_docker_detailed(self._cfg)
+        info = actions.check_docker_detailed(self._cfg, on_step=self._log)
         text = info.get("detail") or self._t("no_docker")
         if info.get("command"):
             text += "\n" + info["command"]
@@ -394,6 +410,19 @@ class LauncherApp(tk.Tk):
             ).pack(side="left", padx=4)
         if not self._docker_help_frame.winfo_ismapped():
             self._docker_help_frame.pack(pady=(0, 4), before=self._primary_frame)
+
+    def _show_about(self) -> None:
+        """About dialog: version, platform, backend, endpoint - and the next
+        step for a bug report (open the issue tracker) (#30)."""
+        text = "\n".join(about_lines(self._cfg)) + "\n\n" + self._t("about_open_issues")
+        if messagebox.askyesno(self._t("about"), text, parent=self):
+            actions.open_url(issue_tracker_url(self._cfg))
+
+    def _confirm_uninstall(self) -> None:
+        """Uninstall is destructive (containers + images) - one accidental
+        click must not trigger it."""
+        if messagebox.askyesno(self._cfg.app_name, self._t("confirm_uninstall", app=self._cfg.app_name), parent=self):
+            self._on_action("uninstall")
 
     def _fix_docker_permission(self) -> None:
         """Self-repair for the docker-group case (#27): confirm (the docker
@@ -799,6 +828,8 @@ class LauncherApp(tk.Tk):
             self._tray = None
 
     def _quit(self) -> None:
+        with contextlib.suppress(tk.TclError):
+            actions.set_window_geometry(self._cfg, self.winfo_geometry())
         self._stop_tray()
         self.destroy()
 

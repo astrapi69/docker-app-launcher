@@ -125,3 +125,6 @@ docker_group_added: "'docker' grubu eklendi. Değişikliğin etkinleşmesi için
 docker_group_cancelled: "İptal edildi - hiçbir şey değişmedi. Elle: 'sudo usermod -aG docker $USER' çalıştır, sonra oturumu kapatıp yeniden aç."
 docker_group_failed: "'docker' grubuna eklenemedi: {error}. Elle: 'sudo usermod -aG docker $USER' çalıştır, sonra oturumu kapatıp yeniden aç."
 docker_desktop_waiting: "Docker Desktop başlatılıyor - bu biraz sürebilir (VM önyüklemesi)…"
+about: "Hakkında…"
+about_open_issues: "Sorun bildir - issue tracker tarayıcıda açılsın mı?"
+checking_context: "Docker context '{context}' ({endpoint}) denetleniyor…"

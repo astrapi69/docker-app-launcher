@@ -125,3 +125,6 @@ docker_group_added: "Η ομάδα 'docker' προστέθηκε. Αποσυνδ
 docker_group_cancelled: "Ακυρώθηκε - δεν έγινε καμία αλλαγή. Χειροκίνητα: εκτέλεσε 'sudo usermod -aG docker $USER' και μετά αποσυνδέσου και συνδέσου ξανά."
 docker_group_failed: "Αδυναμία προσθήκης στην ομάδα 'docker': {error}. Χειροκίνητα: εκτέλεσε 'sudo usermod -aG docker $USER' και μετά αποσυνδέσου και συνδέσου ξανά."
 docker_desktop_waiting: "Το Docker Desktop ξεκινά - μπορεί να πάρει λίγη ώρα (εκκίνηση VM)…"
+about: "Σχετικά…"
+about_open_issues: "Αναφορά προβλήματος - άνοιγμα του issue tracker στον περιηγητή;"
+checking_context: "Έλεγχος του Docker context '{context}' ({endpoint})…"

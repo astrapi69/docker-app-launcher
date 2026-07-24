@@ -1480,7 +1480,7 @@ class TestDetailedPermissionMessage:
         monkeypatch.setattr("shutil.which", lambda _x: "C:/docker.exe")
         monkeypatch.setattr("os.path.exists", lambda p: True)
         monkeypatch.setattr(actions, "_docker_info_rc", lambda extra_env=None: (1, "permission denied"))
-        monkeypatch.setattr(actions, "_sweep_other_contexts", lambda: None)
+        monkeypatch.setattr(actions, "_sweep_other_contexts", lambda *a, **k: None)
         r = actions.check_docker_detailed(config)
         assert r.get("can_fix_permission", False) is False
 
@@ -1597,3 +1597,35 @@ class TestWaitForDocker:
         ok, _ = actions.wait_for_docker(config, timeout=60.0, on_progress=lambda pct, label: labels.append(label))
         assert ok is True
         assert labels, "waiting progress must be reported"
+
+
+class TestDetectionStepLogging:
+    """The context sweep must report each probed endpoint (#30)."""
+
+    def test_detailed_reports_each_swept_context(self, config, monkeypatch) -> None:
+        monkeypatch.setattr("platform.system", lambda: "Linux")
+        monkeypatch.setattr("shutil.which", lambda _x: "/usr/bin/docker")
+        monkeypatch.setattr(
+            actions, "_docker_info_rc", lambda extra_env=None: (1, "Cannot connect to the Docker daemon")
+        )
+        monkeypatch.setattr(
+            actions,
+            "_docker_contexts",
+            lambda: [
+                ("default", "unix:///dead.sock", True),
+                ("desktop-linux", "unix:///desk.sock", False),
+                ("rootless", "unix:///root.sock", False),
+            ],
+        )
+        steps: list[str] = []
+        result = actions.check_docker_detailed(config, on_step=steps.append)
+        assert result["running"] is False
+        assert sum("desktop-linux" in s for s in steps) == 1
+        assert sum("rootless" in s for s in steps) == 1
+        assert not any("'default'" in s for s in steps)  # active context is not re-probed
+
+    def test_detailed_without_callback_stays_silent_and_working(self, config, monkeypatch) -> None:
+        monkeypatch.setattr("platform.system", lambda: "Linux")
+        monkeypatch.setattr("shutil.which", lambda _x: "/usr/bin/docker")
+        monkeypatch.setattr(actions, "_docker_info_rc", lambda extra_env=None: (0, ""))
+        assert actions.check_docker_detailed(config)["running"] is True

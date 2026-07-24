@@ -125,3 +125,6 @@ docker_group_added: "Grupo 'docker' adicionado. Saia e entre novamente (ou reini
 docker_group_cancelled: "Cancelado - nada foi alterado. Manual: execute 'sudo usermod -aG docker $USER' e depois saia e entre novamente."
 docker_group_failed: "Não foi possível adicionar ao grupo 'docker': {error}. Manual: execute 'sudo usermod -aG docker $USER' e depois saia e entre novamente."
 docker_desktop_waiting: "O Docker Desktop está iniciando - isso pode levar um momento (boot da VM)…"
+about: "Sobre…"
+about_open_issues: "Relatar um problema - abrir o issue tracker no navegador?"
+checking_context: "Verificando o contexto Docker '{context}' ({endpoint})…"

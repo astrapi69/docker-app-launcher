@@ -11,8 +11,10 @@ it with ``"gui_backend": "ctk"`` in the launcher JSON.
 
 from __future__ import annotations
 
+import contextlib
 import functools
 import logging
+import platform as _platform
 import threading
 import tkinter as tk
 from typing import Any
@@ -26,14 +28,17 @@ from docker_app_launcher.ui_model import (
     PRIMARY_BUTTONS,
     PRIMARY_GRID,
     SECONDARY_BUTTONS,
+    about_lines,
     advanced_ports_visible,
     button_enabled,
     default_internal_ports,
     disabled_reason_key,
     dispatch_action,
     internal_port_fields,
+    issue_tracker_url,
     port_editable,
     should_keep_alive_on_close,
+    window_title,
 )
 
 logger = logging.getLogger("docker_app_launcher.frontends.ctk")
@@ -64,8 +69,11 @@ if HAS_CTK:
             self._buttons: dict[str, Any] = {}
             self._tooltips: dict[str, _Tooltip] = {}
 
-            self.title(config.app_name)
+            self.title(window_title(config))
             self.geometry(f"{config.window_width}x{config.window_height}")
+            stored_geometry = actions.resolve_window_geometry(config)
+            if stored_geometry:
+                self.geometry(stored_geometry)
             if not config.window_resizable:
                 self.resizable(False, False)
             self.minsize(min(600, config.window_width), min(420, config.window_height))
@@ -136,6 +144,7 @@ if HAS_CTK:
             for name in SECONDARY_BUTTONS:
                 self._make_button(self._secondary_frame, name, handlers[name]).pack(side="left", padx=4)
 
+            self._log(f"{about_lines(config)[0]} · {config.gui_backend} · {_platform.system()}")
             self._refresh()
             if config.cleanup_on_start:
                 self._offer_cleanup_if_stale()
@@ -150,11 +159,12 @@ if HAS_CTK:
                 "start": functools.partial(self._on_action, "start"),
                 "open_browser": functools.partial(self._on_action, "open"),
                 "stop": functools.partial(self._on_action, "stop"),
-                "uninstall": functools.partial(self._on_action, "uninstall"),
+                "uninstall": self._confirm_uninstall,
                 "copy_log": self._copy_log,
                 "cleanup": self._run_manual_cleanup,
                 "background": self._go_background,
                 "apply_port": functools.partial(self._on_action, "change_port"),
+                "info": self._show_about,
             }
 
         def _make_button(self, parent: Any, name: str, command: Any) -> Any:
@@ -224,7 +234,7 @@ if HAS_CTK:
         def _render_docker_help(self) -> None:
             for child in self._docker_help_frame.winfo_children():
                 child.destroy()
-            info = actions.check_docker_detailed(self._cfg)
+            info = actions.check_docker_detailed(self._cfg, on_step=self._log)
             text = info.get("detail") or self._t("no_docker")
             if info.get("command"):
                 text += "\n" + info["command"]
@@ -277,6 +287,21 @@ if HAS_CTK:
                 self.after(0, lambda: self._on_result("start_docker", result))
 
             threading.Thread(target=worker, daemon=True).start()
+
+        def _show_about(self) -> None:
+            from tkinter import messagebox
+
+            text = "\n".join(about_lines(self._cfg)) + "\n\n" + self._t("about_open_issues")
+            if messagebox.askyesno(self._t("about"), text, parent=self):
+                actions.open_url(issue_tracker_url(self._cfg))
+
+        def _confirm_uninstall(self) -> None:
+            from tkinter import messagebox
+
+            if messagebox.askyesno(
+                self._cfg.app_name, self._t("confirm_uninstall", app=self._cfg.app_name), parent=self
+            ):
+                self._on_action("uninstall")
 
         def _fix_docker_permission(self) -> None:
             """Self-repair for the docker-group case (#27): confirm (docker
@@ -555,6 +580,8 @@ if HAS_CTK:
             self._refresh()
 
         def _quit(self) -> None:
+            with contextlib.suppress(tk.TclError):
+                actions.set_window_geometry(self._cfg, self.winfo_geometry())
             if self._tray is not None:
                 self._tray.stop()
                 self._tray = None

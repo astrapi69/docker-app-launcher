@@ -94,6 +94,18 @@ test-xml: ## Run tests with XML coverage (for CI)
 test-gui: ## Run the real-window GUI tests (needs a display or xvfb-run)
 	poetry run pytest tests/test_gui_window.py -v --no-cov
 
+.PHONY: xvfb-up
+xvfb-up: ## Start the invisible test display (Xvfb in docker, localhost:6099)
+	docker rm -f dal-xvfb 2>/dev/null || true
+	docker run -d --name dal-xvfb --restart unless-stopped -p 127.0.0.1:6099:6099 ubuntu:24.04 \
+		bash -c "apt-get update -qq > /dev/null && apt-get install -y -qq xvfb > /dev/null 2>&1 && exec Xvfb :99 -screen 0 1920x1080x24 -listen tcp -ac"
+	@echo "Waiting for Xvfb..."; until docker exec dal-xvfb pgrep Xvfb > /dev/null 2>&1; do sleep 2; done
+	@echo "Invisible test display ready on 127.0.0.1:99 (conftest picks it up automatically)."
+
+.PHONY: xvfb-down
+xvfb-down: ## Stop the invisible test display
+	docker rm -f dal-xvfb 2>/dev/null || true
+
 .PHONY: screenshots
 screenshots: ## GUI screenshots (all three frontends, dark) into test-screenshots/
 	rm -rf test-screenshots/

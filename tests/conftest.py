@@ -87,3 +87,30 @@ def _reset_docker_host_override():
     actions._reset_docker_host_override()
     yield
     actions._reset_docker_host_override()
+
+
+def _prefer_invisible_display() -> None:
+    """Route every GUI test to the containerized Xvfb when it is reachable.
+
+    Test windows must never appear on a developer's desktop. The off-screen
+    helper in test_gui_window covers plain Tk, but CustomTkinter maps its
+    window DURING __init__ - before any test code can reposition it - so the
+    only complete fix is a display humans cannot see. ``make xvfb-up`` starts
+    Xvfb in a docker container on localhost:6099 (TCP, snap-docker cannot
+    share /tmp/.X11-unix); when that port answers, all GUI tests use it.
+    DAL_SHOW_TEST_WINDOWS=1 keeps the real display for debugging.
+    """
+    import os
+    import socket
+
+    if os.environ.get("DAL_SHOW_TEST_WINDOWS"):
+        return
+    try:
+        with socket.create_connection(("127.0.0.1", 6099), timeout=0.3):
+            pass
+    except OSError:
+        return
+    os.environ["DISPLAY"] = "127.0.0.1:99"
+
+
+_prefer_invisible_display()

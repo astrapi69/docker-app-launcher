@@ -90,3 +90,13 @@ def test_render_spec_rejects_unrendered_markers(monkeypatch, tmp_path) -> None:
     monkeypatch.setattr(pyinstaller, "spec_template_path", lambda: Path(template))
     with pytest.raises(ValueError, match="unrendered marker"):
         pyinstaller.render_spec(app_slug="x", entry_script="run.py", icon_path="icon.png", config_json="launcher.json")
+
+
+def test_spec_bundles_the_package_data() -> None:
+    # Frozen binaries showed raw i18n keys because the catalogs were never
+    # packaged (#34) - the spec must collect the package data files.
+    spec = pyinstaller.render_spec(
+        app_slug="my-app", entry_script="run.py", icon_path="icon.png", config_json="launcher.json"
+    )
+    assert "collect_data_files" in spec
+    assert '"docker_app_launcher"' in spec or "'docker_app_launcher'" in spec

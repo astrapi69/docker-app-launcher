@@ -128,3 +128,4 @@ docker_desktop_waiting: "Το Docker Desktop ξεκινά - μπορεί να π
 about: "Σχετικά…"
 about_open_issues: "Αναφορά προβλήματος - άνοιγμα του issue tracker στον περιηγητή;"
 checking_context: "Έλεγχος του Docker context '{context}' ({endpoint})…"
+cleanup_now: "Εκκαθάριση τώρα"

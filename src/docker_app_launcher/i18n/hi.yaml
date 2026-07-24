@@ -128,3 +128,4 @@ docker_desktop_waiting: "Docker Desktop शुरू हो रहा है - �
 about: "जानकारी…"
 about_open_issues: "समस्या रिपोर्ट करें - ब्राउज़र में issue tracker खोलें?"
 checking_context: "Docker context '{context}' ({endpoint}) की जाँच हो रही है…"
+cleanup_now: "अभी साफ़ करें"

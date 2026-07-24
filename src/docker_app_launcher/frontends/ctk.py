@@ -431,7 +431,7 @@ if HAS_CTK:
                 offer.destroy()
                 self._log(self._t("cleanup_skipped"))
 
-            ctk.CTkButton(offer, text=self._t("cleanup"), width=170, command=run_cleanup).pack(side="left", padx=4)
+            ctk.CTkButton(offer, text=self._t("cleanup_now"), width=170, command=run_cleanup).pack(side="left", padx=4)
             ctk.CTkButton(offer, text=self._t("skip"), width=170, command=skip).pack(side="left", padx=4)
 
         def _run_cleanup(self, stale: dict[str, list[object]]) -> None:

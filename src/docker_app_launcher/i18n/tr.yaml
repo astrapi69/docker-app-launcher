@@ -128,3 +128,4 @@ docker_desktop_waiting: "Docker Desktop başlatılıyor - bu biraz sürebilir (V
 about: "Hakkında…"
 about_open_issues: "Sorun bildir - issue tracker tarayıcıda açılsın mı?"
 checking_context: "Docker context '{context}' ({endpoint}) denetleniyor…"
+cleanup_now: "Şimdi temizle"

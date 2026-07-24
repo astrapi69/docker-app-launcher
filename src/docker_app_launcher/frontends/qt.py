@@ -483,7 +483,7 @@ if HAS_QT:
                 offer.deleteLater()
                 self._log(self._t("cleanup_skipped"))
 
-            run_btn = QPushButton(self._t("cleanup"))
+            run_btn = QPushButton(self._t("cleanup_now"))
             run_btn.clicked.connect(run_cleanup)
             offer_row.addWidget(run_btn)
             skip_btn = QPushButton(self._t("skip"))

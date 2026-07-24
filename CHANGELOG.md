@@ -6,6 +6,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Two identically labelled "cleanup" buttons (#33).** With the startup
+  cleanup offer visible, the fixed scan button and the transient offer button
+  both read "cleanup" — two different actions, one label. The offer button
+  now says "Clean up now" (`cleanup_now`, all 11 languages) in all three
+  frontends; the fixed scan button keeps its label.
+- **Frozen binaries showed raw i18n keys (#34).** The PyInstaller spec
+  template never bundled the package data, so every frozen build was missing
+  all 11 translation catalogs and `i18n.t` fell back to the key names
+  (`not_installed`, `log_copy`, …). The template now collects the package
+  data files (`collect_data_files("docker_app_launcher")`).
+
 ### Added
 
 - **Version visible everywhere (#30).** The window title now reads

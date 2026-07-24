@@ -128,3 +128,4 @@ docker_desktop_waiting: "Docker Desktop sedang dimulai - ini bisa memakan waktu 
 about: "Tentang…"
 about_open_issues: "Laporkan masalah - buka issue tracker di browser?"
 checking_context: "Memeriksa Docker context '{context}' ({endpoint})…"
+cleanup_now: "Bersihkan sekarang"

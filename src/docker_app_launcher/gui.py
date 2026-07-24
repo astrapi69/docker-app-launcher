@@ -637,7 +637,7 @@ class LauncherApp(tk.Tk):
             offer.destroy()
             self._log(self._t("cleanup_skipped"))
 
-        tk.Button(offer, text=self._t("cleanup"), width=18, command=run_cleanup).pack(side="left", padx=4)
+        tk.Button(offer, text=self._t("cleanup_now"), width=18, command=run_cleanup).pack(side="left", padx=4)
         tk.Button(offer, text=self._t("skip"), width=18, command=skip).pack(side="left", padx=4)
 
     def _run_cleanup(self, stale: dict[str, list[object]]) -> None:

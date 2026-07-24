@@ -128,3 +128,4 @@ docker_desktop_waiting: "Docker Desktop を起動しています。しばらく�
 about: "情報…"
 about_open_issues: "問題を報告 - ブラウザで issue tracker を開きますか？"
 checking_context: "Docker コンテキスト '{context}'（{endpoint}）を確認中…"
+cleanup_now: "今すぐクリーンアップ"

@@ -128,3 +128,4 @@ docker_desktop_waiting: "Docker Desktop startet - das kann einen Moment dauern (
 about: "Über…"
 about_open_issues: "Problem melden - Issue-Tracker im Browser öffnen?"
 checking_context: "Prüfe Docker-Context '{context}' ({endpoint})…"
+cleanup_now: "Jetzt aufräumen"

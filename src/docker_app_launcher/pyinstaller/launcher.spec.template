@@ -5,6 +5,8 @@
 # docker_app_launcher.pyinstaller.render_spec(...). The double-brace markers
 # below are substituted at render time; everything else is a normal spec.
 
+from PyInstaller.utils.hooks import collect_data_files
+
 from docker_app_launcher.pyinstaller.build_info import hidden_imports
 
 block_cipher = None
@@ -16,7 +18,10 @@ a = Analysis(
     datas=[
         ("{{CONFIG_JSON}}", "."),
         ("{{ICON_PATH}}", "."),
-    ],
+    ]
+    # Package data (the 11 i18n catalogs, py.typed): without this a frozen
+    # binary shows raw i18n keys instead of translations (#34).
+    + collect_data_files("docker_app_launcher"),
     hiddenimports=hidden_imports(),
     hookspath=[],
     runtime_hooks=[],

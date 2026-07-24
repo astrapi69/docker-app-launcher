@@ -462,14 +462,8 @@ class TestCleanupOffer:
         stale = {"containers": ["old-app"]}
         app._show_cleanup_offer(stale)
         app.update()
-        # The fixed grid also has a cleanup button with the same label - take
-        # the TRANSIENT one (its parent is the offer frame, not the fixed rows).
-        fixed_parents = {str(app._primary_frame), str(app._secondary_frame)}
-        run_buttons = [
-            b
-            for b in app._iter_buttons()
-            if b["text"] == app._t("cleanup") and str(b.winfo_parent()) not in fixed_parents
-        ]
+        # Since #33 the offer button has its own unambiguous label.
+        run_buttons = [b for b in app._iter_buttons() if b["text"] == app._t("cleanup_now")]
         assert len(run_buttons) == 1
         run_buttons[0].invoke()
         app.update()
@@ -768,3 +762,24 @@ class TestWindowGeometryMemory:
         window._quit()  # destroys the window itself - no fixture double-destroy
         assert len(saved) == 1
         assert "x" in saved[0] and "+" in saved[0]
+
+
+class TestNoDuplicateButtonLabels:
+    """Two different actions must never share one label (#33): the fixed
+    cleanup (scan) button and the transient offer button collided as
+    'cleanup'."""
+
+    def test_offer_creates_no_identically_labelled_buttons(self, app, gui_state) -> None:
+        app._show_cleanup_offer({"containers": ["old-app"]})
+        app.update()
+        labels = [str(b["text"]) for b in app._iter_buttons()]
+        duplicates = {label for label in labels if labels.count(label) > 1}
+        assert duplicates == set(), f"identically labelled buttons: {duplicates}"
+        _screenshot(app, "cleanup_offer_labels_en")
+
+    def test_offer_button_says_clean_up_now(self, app, gui_state) -> None:
+        app._show_cleanup_offer({"containers": ["old-app"]})
+        app.update()
+        labels = [str(b["text"]) for b in app._iter_buttons()]
+        assert app._t("cleanup_now") in labels  # the offer acts on FOUND artifacts
+        assert labels.count(app._t("cleanup")) == 1  # the fixed scan button keeps its label

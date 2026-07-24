@@ -1629,3 +1629,79 @@ class TestDetectionStepLogging:
         monkeypatch.setattr("shutil.which", lambda _x: "/usr/bin/docker")
         monkeypatch.setattr(actions, "_docker_info_rc", lambda extra_env=None: (0, ""))
         assert actions.check_docker_detailed(config)["running"] is True
+
+
+class TestGetAppVersion:
+    """#35: the About surface must report the ACTUALLY RUNNING app version.
+
+    Ladder: running health payload -> install manifest -> config.app_version
+    -> unknown. Each step fails open to the next.
+    """
+
+    def _cfg(self, **kw):
+        from docker_app_launcher.config import LauncherConfig
+
+        defaults = {"app_name": "X", "app_version": "9.0.0"}
+        defaults.update(kw)
+        return LauncherConfig(**defaults).resolve()
+
+    def test_running_health_payload_wins(self, monkeypatch):
+        from docker_app_launcher import actions
+
+        cfg = self._cfg()
+        monkeypatch.setattr(
+            actions, "_health_payload", lambda config, port, timeout=1.5: {"status": "ok", "version": "2.6.0"}
+        )
+        assert actions.get_app_version(cfg) == ("2.6.0", "running")
+
+    def test_empty_health_key_disables_probe(self, monkeypatch):
+        from docker_app_launcher import actions
+
+        cfg = self._cfg(app_version_health_key="")
+
+        def boom(*a, **kw):  # pragma: no cover - must not be called
+            raise AssertionError("health probe must be skipped")
+
+        monkeypatch.setattr(actions, "_health_payload", boom)
+        monkeypatch.setattr(actions, "read_manifest", lambda config: {"app_version": "1.2.3"})
+        assert actions.get_app_version(cfg) == ("1.2.3", "installed")
+
+    def test_stopped_falls_back_to_manifest(self, monkeypatch):
+        from docker_app_launcher import actions
+
+        cfg = self._cfg()
+        monkeypatch.setattr(actions, "_health_payload", lambda config, port, timeout=1.5: None)
+        monkeypatch.setattr(actions, "read_manifest", lambda config: {"app_version": "1.2.3"})
+        assert actions.get_app_version(cfg) == ("1.2.3", "installed")
+
+    def test_not_installed_falls_back_to_config(self, monkeypatch):
+        from docker_app_launcher import actions
+
+        cfg = self._cfg()
+        monkeypatch.setattr(actions, "_health_payload", lambda config, port, timeout=1.5: None)
+        monkeypatch.setattr(actions, "read_manifest", lambda config: None)
+        assert actions.get_app_version(cfg) == ("9.0.0", "expected")
+
+    def test_nothing_known_is_unknown(self, monkeypatch):
+        from docker_app_launcher import actions
+
+        cfg = self._cfg(app_version="")
+        monkeypatch.setattr(actions, "_health_payload", lambda config, port, timeout=1.5: None)
+        monkeypatch.setattr(actions, "read_manifest", lambda config: None)
+        assert actions.get_app_version(cfg) == ("", "unknown")
+
+    def test_health_payload_without_version_key_falls_through(self, monkeypatch):
+        from docker_app_launcher import actions
+
+        cfg = self._cfg()
+        monkeypatch.setattr(actions, "_health_payload", lambda config, port, timeout=1.5: {"status": "ok"})
+        monkeypatch.setattr(actions, "read_manifest", lambda config: {"app_version": "1.2.3"})
+        assert actions.get_app_version(cfg) == ("1.2.3", "installed")
+
+    def test_uninstalled_manifest_is_ignored(self, monkeypatch):
+        from docker_app_launcher import actions
+
+        cfg = self._cfg()
+        monkeypatch.setattr(actions, "_health_payload", lambda config, port, timeout=1.5: None)
+        monkeypatch.setattr(actions, "read_manifest", lambda config: {"app_version": "0.3.0", "status": "uninstalled"})
+        assert actions.get_app_version(cfg) == ("9.0.0", "expected")

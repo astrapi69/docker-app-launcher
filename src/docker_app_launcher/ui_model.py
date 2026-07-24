@@ -71,9 +71,13 @@ def window_title(config: LauncherConfig) -> str:
 
 def about_lines(config: LauncherConfig) -> list[str]:
     """Diagnostic facts for the About dialog: what a bug report needs (#30)."""
+    app_ver, source = actions.get_app_version(config)
+    app_line = f"App: {config.app_name}"
+    if app_ver:
+        app_line = f"App: {config.app_name} {app_ver} ({source})"
     lines = [
-        f"docker-app-launcher v{launcher_version()}",
-        f"App: {config.app_name} {config.app_version}".strip(),
+        f"Launcher: docker-app-launcher v{launcher_version()}",
+        app_line,
         f"Platform: {platform.system()} ({platform.machine()})",
         f"GUI backend: {config.gui_backend}",
     ]

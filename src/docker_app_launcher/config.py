@@ -169,6 +169,10 @@ class LauncherConfig:
     # check compares it against the latest GitHub release of ``repo_url``.
     update_check_enabled: bool = True
     app_version: str = ""
+    # JSON key in the health_check_path response that carries the RUNNING
+    # app's version (#35). Empty disables the runtime probe; the About
+    # surface then falls back to the install manifest / app_version.
+    app_version_health_key: str = "version"
 
     # === Cleanup ===
     cleanup_on_start: bool = True

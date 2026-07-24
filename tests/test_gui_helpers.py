@@ -468,3 +468,26 @@ class TestInfoButtonModel:
     def test_info_enabled_in_every_state_including_no_docker(self) -> None:
         for state in ("no_docker", "not_installed", "stopped", "running"):
             assert gui.button_enabled(state, "info") is True, f"info must stay clickable in {state}"
+
+
+class TestAboutAppVersion:
+    """#35: about_lines label launcher vs actually-running app version."""
+
+    def test_about_lines_show_running_app_version(self, monkeypatch) -> None:
+        from docker_app_launcher import actions, ui_model
+
+        monkeypatch.setattr(actions, "get_app_version", lambda cfg: ("2.6.0", "running"))
+        cfg = LauncherConfig(app_name="X", app_version="9.9.9").resolve()
+        text = "\n".join(ui_model.about_lines(cfg))
+        assert "App: X 2.6.0 (running)" in text
+        assert "9.9.9" not in text
+        assert any(line.startswith("Launcher: docker-app-launcher v") for line in text.splitlines())
+
+    def test_about_lines_fail_open_without_any_version(self, monkeypatch) -> None:
+        from docker_app_launcher import actions, ui_model
+
+        monkeypatch.setattr(actions, "get_app_version", lambda cfg: ("", "unknown"))
+        cfg = LauncherConfig(app_name="X", app_version="").resolve()
+        text = "\n".join(ui_model.about_lines(cfg))
+        assert "App: X" in text
+        assert "(unknown)" not in text

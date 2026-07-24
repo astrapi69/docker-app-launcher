@@ -1370,6 +1370,50 @@ def get_version(config: LauncherConfig) -> str:
     return __version__
 
 
+def _health_payload(config: LauncherConfig, port: int, timeout: float = 1.5) -> dict[str, Any] | None:
+    """The parsed health-endpoint JSON body, or None (fail-open, #35).
+
+    A short timeout keeps a synchronous caller (the About dialog) snappy;
+    a stopped stack fails instantly with connection-refused on localhost.
+    """
+    url = f"http://localhost:{port}{config.health_check_path}"
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as resp:  # localhost only
+            if resp.status != 200:
+                return None
+            payload = json.loads(resp.read().decode("utf-8"))
+    except Exception:  # noqa: BLE001 - any failure means no runtime answer
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def get_app_version(config: LauncherConfig) -> tuple[str, str]:
+    """The managed app's version plus its source (#35).
+
+    Ladder, each step failing open to the next:
+
+    1. ("2.6.0", "running") - the running stack's own claim, read from
+       app_version_health_key in the health-endpoint JSON. The only
+       source that survives out-of-band rebuilds (git pull + compose build).
+    2. (.., "installed") - the install manifest's snapshot.
+    3. (.., "expected") - config.app_version, what the NEXT install
+       would deploy.
+    4. ("", "unknown") - nothing known.
+    """
+    if config.app_version_health_key:
+        payload = _health_payload(config, resolve_port(config))
+        if payload:
+            running = payload.get(config.app_version_health_key)
+            if running:
+                return str(running), "running"
+    manifest = read_manifest(config)
+    if manifest and manifest.get("app_version") and manifest.get("status") != "uninstalled":
+        return str(manifest["app_version"]), "installed"
+    if config.app_version:
+        return config.app_version, "expected"
+    return "", "unknown"
+
+
 # --- Install manifest -----------------------------------------------------
 
 

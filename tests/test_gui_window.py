@@ -99,6 +99,22 @@ def apply_dark_theme(root: tk.Misc) -> None:
             pass
 
 
+def _keep_off_screen(window: tk.Tk) -> None:
+    """Test windows must never flash on a developer's desktop.
+
+    Bypass the window manager (override-redirect - the WM would clamp an
+    off-screen position back into view) and map far outside the visible
+    screen. Skipped for DAL_SCREENSHOTS runs: the capture backends can only
+    grab what lies inside the X root, and those runs are explicitly asked
+    for. Set DAL_SHOW_TEST_WINDOWS=1 to watch the windows for debugging.
+    """
+    if os.environ.get("DAL_SCREENSHOTS") or os.environ.get("DAL_SHOW_TEST_WINDOWS"):
+        return
+    with contextlib.suppress(tk.TclError):
+        window.wm_overrideredirect(True)
+        window.geometry("+6000+6000")
+
+
 def _screenshot(app: gui.LauncherApp, name: str) -> None:
     """Best-effort window screenshot; never fails the test.
 
@@ -185,6 +201,7 @@ def app(gui_state):
         update_check_enabled=False,
     )
     window = gui.LauncherApp(config)
+    _keep_off_screen(window)
     apply_dark_theme(window)
     window.update()
     yield window
@@ -334,6 +351,7 @@ def test_screenshot_every_language(gui_state, locale) -> None:
         update_check_enabled=False,
     )
     window = gui.LauncherApp(config)
+    _keep_off_screen(window)
     try:
         window.update()
         assert window._buttons["install"]["text"], "button label must not be empty"
@@ -744,6 +762,7 @@ class TestWindowGeometryMemory:
             app_name="Geo App", default_port=8080, locale="en", cleanup_on_start=False, update_check_enabled=False
         )
         window = gui.LauncherApp(config)
+        _keep_off_screen(window)
         try:
             window.update()
             geometry = window.winfo_geometry()
@@ -758,6 +777,7 @@ class TestWindowGeometryMemory:
             app_name="Geo App", default_port=8080, locale="en", cleanup_on_start=False, update_check_enabled=False
         )
         window = gui.LauncherApp(config)
+        _keep_off_screen(window)
         window.update()
         window._quit()  # destroys the window itself - no fixture double-destroy
         assert len(saved) == 1

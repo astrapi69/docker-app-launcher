@@ -14,7 +14,7 @@ import pytest
 from docker_app_launcher import actions, frontends
 from docker_app_launcher.config import LOCALE_LABELS, LauncherConfig
 from docker_app_launcher.frontends import ctk as ctk_frontend
-from tests.test_gui_window import _display_available, _screenshot
+from tests.test_gui_window import _display_available, _keep_off_screen, _screenshot
 
 
 class _InlineThread:
@@ -72,6 +72,7 @@ def app(gui_state):
         update_check_enabled=False,
     )
     window = ctk_frontend.CtkLauncherApp(config)
+    _keep_off_screen(window)
     window.update()
     yield window
     window.destroy()

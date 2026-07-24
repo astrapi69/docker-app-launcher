@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 from typing import Any
 
 import pytest
@@ -173,7 +174,11 @@ def test_log_diagnostics_never_raises() -> None:
 
 
 class _FakeTrayIcon:
-    """Deterministic pystray.Icon stand-in: run() invokes setup synchronously."""
+    """Deterministic pystray.Icon stand-in mirroring the real contract:
+    ``run()`` invokes setup, then BLOCKS until ``stop()``. The earlier
+    return-immediately fake let the controller's daemon thread die right
+    after ``ready.set()``, a timing window that flaked on loaded CI runners
+    (#29)."""
 
     __module__ = "tests.fake_backend"
 
@@ -184,12 +189,15 @@ class _FakeTrayIcon:
         self.menu = menu
         self.visible = False
         self.stopped = False
+        self._stop_requested = threading.Event()
 
     def run(self, setup) -> None:
         setup(self)
+        self._stop_requested.wait(timeout=5.0)
 
     def stop(self) -> None:
         self.stopped = True
+        self._stop_requested.set()
 
 
 def _controller(**kwargs: Any) -> tray.TrayController:

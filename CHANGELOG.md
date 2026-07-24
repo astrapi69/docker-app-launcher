@@ -6,6 +6,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Systematic rendering matrix (#37).** `tests/test_state_matrix.py` drives
+  every frontend through every state in the central `BUTTON_STATES` table
+  and inspects the rendered widget tree: title (product name + installed
+  version, no placeholder), complete button set, label uniqueness across the
+  whole window including transient buttons, exact enablement equality, and
+  detection-log streaming. Proven against the old faulty commits: the
+  missing-version and duplicate-label bugs fail the matrix in all three
+  frontends. Frozen-binary CI verification tracked separately (#38).
+
 ### Fixed
 
 - **Two identically labelled "cleanup" buttons (#33).** With the startup

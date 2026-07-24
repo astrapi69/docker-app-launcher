@@ -102,7 +102,7 @@ update_available: 'Pembaruan tersedia: {tag} - {url}'
 step_skip_volume: "Volume '{name}' dilewati (tidak dipilih)."
 step_skip_volume_active: "Volume '{name}' dilewati (proyek aktif)."
 docker_not_running: "Docker terpasang tetapi belum dijalankan."
-docker_no_permission: "Docker terpasang, tetapi Anda tidak memiliki izin."
+docker_no_permission: "Docker sedang berjalan, tetapi pengguna Anda tidak punya izin (bukan anggota grup 'docker'). Jalankan 'sudo usermod -aG docker $USER' DAN setelah itu keluar lalu masuk lagi (atau mulai ulang) - perubahan grup hanya aktif di sesi login baru. Hanya untuk terminal saat ini: 'newgrp docker'."
 docker_no_path: "Docker Desktop terpasang tetapi tidak ada di PATH."
 start_docker: "Jalankan Docker"
 open_install_guide: "Buka panduan instalasi"
@@ -119,3 +119,9 @@ tooltip_only_running: "Hanya tersedia saat aplikasi berjalan"
 tooltip_no_log: "Belum ada log untuk disalin"
 docker_not_running_detail: 'Docker tidak berjalan. Context yang diperiksa ''{context}'' ({endpoint}): {error}'
 docker_running_other_context: 'Docker berjalan melalui context ''{context}'' - context aktif tidak dapat dijangkau, launcher terhubung secara otomatis.'
+fix_docker_permission: "Siapkan akses Docker…"
+docker_group_confirm: "Akun Anda akan ditambahkan ke grup 'docker'. Ini praktis memberikan hak root pada sistem ini (praktik standar Docker). Lanjutkan?"
+docker_group_added: "Grup 'docker' ditambahkan. Keluar lalu masuk lagi (atau mulai ulang) agar perubahan berlaku - Docker belum dapat digunakan di sesi ini."
+docker_group_cancelled: "Dibatalkan - tidak ada perubahan. Manual: jalankan 'sudo usermod -aG docker $USER', lalu keluar dan masuk lagi."
+docker_group_failed: "Gagal menambahkan ke grup 'docker': {error}. Manual: jalankan 'sudo usermod -aG docker $USER', lalu keluar dan masuk lagi."
+docker_desktop_waiting: "Docker Desktop sedang dimulai - ini bisa memakan waktu sejenak (boot VM)…"

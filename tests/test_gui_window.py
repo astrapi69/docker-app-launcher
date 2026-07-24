@@ -535,3 +535,115 @@ class TestBackgroundAndClose:
         assert fake.stopped is True
         assert app._tray is None
         assert app.state() == "normal"
+
+
+class TestFixDockerPermission:
+    """Self-repair button for the docker-group case (#27)."""
+
+    def _permission_state(self, app, gui_state, monkeypatch) -> None:
+        gui_state["value"] = "no_docker"
+        monkeypatch.setattr(
+            actions,
+            "check_docker_detailed",
+            lambda c: {
+                "status": "no_permission",
+                "platform": "Linux",
+                "detail": "no permission",
+                "command": "sudo usermod -aG docker $USER",
+                "can_start": False,
+                "installed": True,
+                "can_fix_permission": True,
+            },
+        )
+        app._refresh()
+        app.update()
+
+    def _fix_buttons(self, app) -> list[tk.Button]:
+        label = app._t("fix_docker_permission")
+        return [b for b in app._iter_buttons() if b["text"] == label]
+
+    def test_button_shown_when_fixable(self, app, gui_state, monkeypatch) -> None:
+        self._permission_state(app, gui_state, monkeypatch)
+        assert len(self._fix_buttons(app)) == 1
+        _screenshot(app, "no_docker_permission_en")
+
+    def test_button_absent_without_fix_capability(self, app, gui_state) -> None:
+        gui_state["value"] = "no_docker"
+        app._refresh()  # fixture's default mock has no can_fix_permission
+        app.update()
+        assert self._fix_buttons(app) == []
+
+    def test_decline_logs_cancel_and_changes_nothing(self, app, gui_state, monkeypatch) -> None:
+        self._permission_state(app, gui_state, monkeypatch)
+        monkeypatch.setattr("tkinter.messagebox.askyesno", lambda *a, **k: False)
+        called: list[str] = []
+
+        def record_call(c):
+            called.append("x")
+            return (True, "no")
+
+        monkeypatch.setattr(actions, "add_user_to_docker_group", record_call)
+        self._fix_buttons(app)[0].invoke()
+        app.update()
+        assert called == []
+        assert app._t("docker_group_cancelled") in app._status.get("1.0", "end")
+
+    def test_accept_runs_repair_and_keeps_relogin_message(self, app, gui_state, monkeypatch) -> None:
+        self._permission_state(app, gui_state, monkeypatch)
+        monkeypatch.setattr("tkinter.messagebox.askyesno", lambda *a, **k: True)
+        monkeypatch.setattr(_threading, "Thread", _InlineThread)
+
+        from docker_app_launcher import i18n
+
+        def fake_repair(cfg):
+            return (True, i18n.t("docker_group_added", cfg))
+
+        monkeypatch.setattr(actions, "add_user_to_docker_group", fake_repair)
+        self._fix_buttons(app)[0].invoke()
+        app.update()
+        log = app._status.get("1.0", "end").lower()
+        assert "log out" in log  # success message still demands the re-login
+        assert "ready" not in log
+
+    def test_repair_failure_is_reported(self, app, gui_state, monkeypatch) -> None:
+        self._permission_state(app, gui_state, monkeypatch)
+        monkeypatch.setattr("tkinter.messagebox.askyesno", lambda *a, **k: True)
+        monkeypatch.setattr(_threading, "Thread", _InlineThread)
+        monkeypatch.setattr(actions, "add_user_to_docker_group", lambda c: (False, "pkexec dismissed"))
+        self._fix_buttons(app)[0].invoke()
+        app.update()
+        assert "pkexec dismissed" in app._status.get("1.0", "end")
+
+
+class TestStartDockerWaits:
+    """After a successful Docker-Desktop/daemon start the GUI must WAIT for
+    the daemon (VM boot) instead of instantly reporting 'not started' (#28)."""
+
+    def test_successful_start_polls_until_ready(self, app, gui_state, monkeypatch) -> None:
+        monkeypatch.setattr(_threading, "Thread", _InlineThread)
+        monkeypatch.setattr(actions, "start_docker_desktop", lambda c: (True, "Docker Desktop starting..."))
+        waited: list[str] = []
+
+        def fake_wait(cfg, *, on_progress=None):
+            if on_progress is not None:
+                on_progress(None, "waiting label")
+            waited.append("polled")
+            return (True, "Docker is running.")
+
+        monkeypatch.setattr(actions, "wait_for_docker", fake_wait)
+        app._start_docker({"platform": "Darwin"})
+        app.update()
+        assert waited == ["polled"]
+        assert "Docker is running." in app._status.get("1.0", "end")
+
+    def test_failed_start_does_not_poll(self, app, gui_state, monkeypatch) -> None:
+        monkeypatch.setattr(_threading, "Thread", _InlineThread)
+        monkeypatch.setattr(actions, "start_docker_desktop", lambda c: (False, "Docker Desktop not found."))
+
+        def must_not_poll(cfg, **k):
+            raise AssertionError("wait_for_docker must not run after a failed start")
+
+        monkeypatch.setattr(actions, "wait_for_docker", must_not_poll)
+        app._start_docker({"platform": "Darwin"})
+        app.update()
+        assert "not found" in app._status.get("1.0", "end")

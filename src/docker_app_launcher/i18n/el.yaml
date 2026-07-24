@@ -102,7 +102,7 @@ update_available: 'Διαθέσιμη ενημέρωση: {tag} - {url}'
 step_skip_volume: "Ο τόμος '{name}' παραλείφθηκε (δεν επιλέχθηκε)."
 step_skip_volume_active: "Ο τόμος '{name}' παραλείφθηκε (ενεργό έργο)."
 docker_not_running: "Το Docker είναι εγκατεστημένο αλλά δεν έχει ξεκινήσει."
-docker_no_permission: "Το Docker είναι εγκατεστημένο, αλλά δεν έχετε δικαίωμα."
+docker_no_permission: "Το Docker εκτελείται, αλλά ο χρήστης σου δεν έχει δικαίωμα (δεν ανήκει στην ομάδα 'docker'). Εκτέλεσε 'sudo usermod -aG docker $USER' ΚΑΙ μετά αποσυνδέσου και συνδέσου ξανά (ή κάνε επανεκκίνηση) - η αλλαγή ομάδας ενεργοποιείται μόνο σε νέα συνεδρία. Μόνο για το τρέχον τερματικό: 'newgrp docker'."
 docker_no_path: "Το Docker Desktop είναι εγκατεστημένο αλλά όχι στο PATH."
 start_docker: "Εκκίνηση Docker"
 open_install_guide: "Άνοιγμα οδηγού εγκατάστασης"
@@ -119,3 +119,9 @@ tooltip_only_running: "Διαθέσιμο μόνο όταν εκτελείται
 tooltip_no_log: "Δεν υπάρχει ακόμη αρχείο καταγραφής για αντιγραφή"
 docker_not_running_detail: 'Το Docker δεν εκτελείται. Ελεγμένο context ''{context}'' ({endpoint}): {error}'
 docker_running_other_context: 'Το Docker εκτελείται μέσω του context ''{context}'' - το ενεργό context δεν ήταν προσβάσιμο, ο launcher συνδέθηκε αυτόματα.'
+fix_docker_permission: "Ρύθμιση πρόσβασης Docker…"
+docker_group_confirm: "Ο λογαριασμός σου θα προστεθεί στην ομάδα 'docker'. Αυτό δίνει πρακτικά δικαιώματα root σε αυτό το σύστημα (συνηθισμένη πρακτική με το Docker). Συνέχεια;"
+docker_group_added: "Η ομάδα 'docker' προστέθηκε. Αποσυνδέσου και συνδέσου ξανά (ή κάνε επανεκκίνηση) για να ισχύσει η αλλαγή - το Docker δεν είναι ακόμη διαθέσιμο σε αυτή τη συνεδρία."
+docker_group_cancelled: "Ακυρώθηκε - δεν έγινε καμία αλλαγή. Χειροκίνητα: εκτέλεσε 'sudo usermod -aG docker $USER' και μετά αποσυνδέσου και συνδέσου ξανά."
+docker_group_failed: "Αδυναμία προσθήκης στην ομάδα 'docker': {error}. Χειροκίνητα: εκτέλεσε 'sudo usermod -aG docker $USER' και μετά αποσυνδέσου και συνδέσου ξανά."
+docker_desktop_waiting: "Το Docker Desktop ξεκινά - μπορεί να πάρει λίγη ώρα (εκκίνηση VM)…"

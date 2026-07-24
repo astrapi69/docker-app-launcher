@@ -102,7 +102,7 @@ update_available: 'Update verfügbar: {tag} - {url}'
 step_skip_volume: "Volume '{name}' übersprungen (nicht ausgewählt)."
 step_skip_volume_active: "Volume '{name}' übersprungen (aktives Projekt)."
 docker_not_running: "Docker ist installiert, aber nicht gestartet."
-docker_no_permission: "Docker ist installiert, aber du hast keine Berechtigung."
+docker_no_permission: "Docker läuft, aber dein Benutzer hat keine Berechtigung (nicht in der Gruppe 'docker'). Führe 'sudo usermod -aG docker $USER' aus UND melde dich danach ab und wieder an (oder starte neu) - die Gruppenänderung wird erst in einer neuen Anmeldesitzung aktiv. Nur fürs aktuelle Terminal: 'newgrp docker'."
 docker_no_path: "Docker Desktop ist installiert, aber nicht im PATH."
 start_docker: "Docker starten"
 open_install_guide: "Installationsanleitung öffnen"
@@ -119,3 +119,9 @@ tooltip_only_running: "Nur verfügbar, während die App läuft"
 tooltip_no_log: "Noch kein Log zum Kopieren"
 docker_not_running_detail: 'Docker läuft nicht. Geprüfter Kontext ''{context}'' ({endpoint}): {error}'
 docker_running_other_context: 'Docker läuft über Kontext ''{context}'' - der aktive Kontext war nicht erreichbar, der Launcher hat sich automatisch verbunden.'
+fix_docker_permission: "Docker-Zugriff einrichten…"
+docker_group_confirm: "Dein Konto wird der Gruppe 'docker' hinzugefügt. Das gibt praktisch Root-Rechte auf diesem System (bei Docker üblich). Fortfahren?"
+docker_group_added: "Gruppe 'docker' hinzugefügt. Melde dich jetzt ab und wieder an (oder starte neu), damit die Änderung wirksam wird - in dieser Sitzung ist Docker noch nicht nutzbar."
+docker_group_cancelled: "Abgebrochen - nichts geändert. Manuell: 'sudo usermod -aG docker $USER' ausführen, danach ab- und wieder anmelden."
+docker_group_failed: "Konnte dich nicht zur Gruppe 'docker' hinzufügen: {error}. Manuell: 'sudo usermod -aG docker $USER' ausführen, danach ab- und wieder anmelden."
+docker_desktop_waiting: "Docker Desktop startet - das kann einen Moment dauern (VM-Boot)…"

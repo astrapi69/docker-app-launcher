@@ -24,6 +24,7 @@ cares.
 from __future__ import annotations
 
 import contextlib
+import getpass
 import json
 import logging
 import os
@@ -345,10 +346,18 @@ def check_docker() -> tuple[bool, str]:
     if rc is None:
         return False, "Docker is not responding (Docker Desktop may still be starting)."
     if rc != 0:
-        if "permission denied" not in stderr.lower():
-            fallback = _sweep_other_contexts()
-            if fallback is not None:
-                return True, f"Docker is running (via context '{fallback[0]}')."
+        if "permission denied" in stderr.lower():
+            # The daemon is (very likely) up - the socket exists but refused
+            # us. Reporting "not started" here sends the user chasing
+            # systemctl for a service that already runs (#27).
+            return False, (
+                "Docker is running, but your user lacks permission (not in the 'docker' group). "
+                "Run 'sudo usermod -aG docker $USER' AND then log out and back in (or reboot) - "
+                "the group change only becomes active in a new login session."
+            )
+        fallback = _sweep_other_contexts()
+        if fallback is not None:
+            return True, f"Docker is running (via context '{fallback[0]}')."
         return False, "Docker is not started."
     return True, "Docker is running."
 
@@ -393,6 +402,7 @@ def check_docker_detailed(config: LauncherConfig) -> dict[str, Any]:
         "command": "",
         "install_url": config.docker_install_url or _DOCKER_INSTALL_URLS.get(system, _DOCKER_INSTALL_URLS["Linux"]),
         "can_start": False,
+        "can_fix_permission": False,
     }
     has_cli = shutil.which("docker") is not None
 
@@ -412,6 +422,7 @@ def check_docker_detailed(config: LauncherConfig) -> dict[str, Any]:
         elif "permission denied" in stderr.lower():
             out["detail"] = _t(config, "docker_no_permission")
             out["command"] = "sudo usermod -aG docker $USER"
+            out["can_fix_permission"] = True
         else:
             fallback = _sweep_other_contexts()
             if fallback is not None:
@@ -498,6 +509,69 @@ def start_docker_desktop(config: LauncherConfig) -> tuple[bool, str]:
                 subprocess.Popen(["open", app], **subprocess_kwargs())
                 return True, "Docker Desktop starting..."
     return False, "Docker Desktop not found."
+
+
+def wait_for_docker(
+    config: LauncherConfig,
+    *,
+    timeout: float = 90.0,
+    interval: float = 2.0,
+    on_progress: ProgressPctFn | None = None,
+) -> tuple[bool, str]:
+    """Poll :func:`check_docker` until the daemon answers or ``timeout`` hits.
+
+    Docker Desktop boots a VM after ``open -a Docker`` - seconds to minutes -
+    so rechecking immediately after a successful start would report "not
+    started" again although the start worked (#28). ``on_progress`` receives
+    indeterminate updates (``percent=None``) with a localized waiting label.
+    """
+    deadline = time.monotonic() + timeout
+    while True:
+        ok, message = check_docker()
+        if ok:
+            return True, _t(config, "docker_running")
+        if time.monotonic() >= deadline:
+            return False, message
+        if on_progress is not None:
+            with contextlib.suppress(Exception):
+                on_progress(None, _t(config, "docker_desktop_waiting"))
+        time.sleep(interval)
+
+
+def add_user_to_docker_group(config: LauncherConfig) -> tuple[bool, str]:
+    """Linux self-repair for the socket-permission case (#27): add the current
+    user to the ``docker`` group via ``pkexec usermod`` and VERIFY it stuck.
+
+    The caller must have confirmed the security implication first (docker
+    group membership is effectively root). Success is verified against
+    ``getent group docker`` and the success message still demands a re-login:
+    the group change only becomes active in a NEW login session, so this
+    function must never suggest Docker is usable already.
+    """
+    if platform.system() != "Linux":
+        return False, _t(config, "docker_group_failed", error="Linux only")
+    user = getpass.getuser()
+    try:
+        result = _run(["pkexec", "usermod", "-aG", "docker", user], timeout=120.0)
+    except FileNotFoundError:
+        return False, _t(config, "docker_group_failed", error="pkexec not found")
+    except subprocess.TimeoutExpired:
+        return False, _t(config, "docker_group_failed", error="timed out")
+    if result.returncode in (126, 127):  # polkit dialog dismissed / not authorized
+        return False, _t(config, "docker_group_cancelled")
+    if result.returncode != 0:
+        stderr = (result.stderr or "").strip()
+        error = stderr.splitlines()[-1] if stderr else f"exit {result.returncode}"
+        return False, _t(config, "docker_group_failed", error=error)
+    try:
+        verify = _run(["getent", "group", "docker"], timeout=15.0)
+        members_field = (verify.stdout or "").strip().split(":")[-1] if verify.returncode == 0 else ""
+        members = [m.strip() for m in members_field.split(",") if m.strip()]
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        members = []
+    if user not in members:
+        return False, _t(config, "docker_group_failed", error="verification failed (user not in group)")
+    return True, _t(config, "docker_group_added")
 
 
 def _name_filter_args(config: LauncherConfig) -> list[str]:

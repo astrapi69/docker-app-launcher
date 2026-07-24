@@ -102,7 +102,7 @@ update_available: 'Güncelleme mevcut: {tag} - {url}'
 step_skip_volume: "'{name}' birimi atlandı (seçilmedi)."
 step_skip_volume_active: "'{name}' birimi atlandı (etkin proje)."
 docker_not_running: "Docker kurulu ama başlatılmadı."
-docker_no_permission: "Docker kurulu, ancak yetkiniz yok."
+docker_no_permission: "Docker çalışıyor ama kullanıcının izni yok ('docker' grubunda değil). 'sudo usermod -aG docker $USER' komutunu çalıştır VE ardından oturumu kapatıp yeniden aç (veya yeniden başlat) - grup değişikliği yalnızca yeni bir oturumda etkinleşir. Yalnızca geçerli terminal için: 'newgrp docker'."
 docker_no_path: "Docker Desktop kurulu ama PATH'te değil."
 start_docker: "Docker'ı başlat"
 open_install_guide: "Kurulum kılavuzunu aç"
@@ -119,3 +119,9 @@ tooltip_only_running: "Yalnızca uygulama çalışırken kullanılabilir"
 tooltip_no_log: "Henüz kopyalanacak günlük yok"
 docker_not_running_detail: 'Docker çalışmıyor. Denetlenen context ''{context}'' ({endpoint}): {error}'
 docker_running_other_context: 'Docker ''{context}'' context''i üzerinden çalışıyor - etkin context erişilebilir değildi, başlatıcı otomatik olarak bağlandı.'
+fix_docker_permission: "Docker erişimini ayarla…"
+docker_group_confirm: "Hesabın 'docker' grubuna eklenecek. Bu, pratikte bu sistemde root yetkisi vermek demektir (Docker'da standart uygulama). Devam edilsin mi?"
+docker_group_added: "'docker' grubu eklendi. Değişikliğin etkinleşmesi için oturumu kapatıp yeniden aç (veya yeniden başlat) - bu oturumda Docker henüz kullanılamaz."
+docker_group_cancelled: "İptal edildi - hiçbir şey değişmedi. Elle: 'sudo usermod -aG docker $USER' çalıştır, sonra oturumu kapatıp yeniden aç."
+docker_group_failed: "'docker' grubuna eklenemedi: {error}. Elle: 'sudo usermod -aG docker $USER' çalıştır, sonra oturumu kapatıp yeniden aç."
+docker_desktop_waiting: "Docker Desktop başlatılıyor - bu biraz sürebilir (VM önyüklemesi)…"

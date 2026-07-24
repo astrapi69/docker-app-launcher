@@ -242,6 +242,13 @@ if HAS_CTK:
                     width=150,
                     command=functools.partial(self._start_docker, info),
                 ).pack(side="left", padx=4)
+            if info.get("can_fix_permission"):
+                ctk.CTkButton(
+                    self._docker_help_frame,
+                    text=self._t("fix_docker_permission"),
+                    width=150,
+                    command=self._fix_docker_permission,
+                ).pack(side="left", padx=4)
             if not info.get("installed"):
                 ctk.CTkButton(
                     self._docker_help_frame,
@@ -264,7 +271,26 @@ if HAS_CTK:
                     result = actions.start_docker_daemon()
                 else:
                     result = actions.start_docker_desktop(self._cfg)
+                if result[0]:  # started - now wait for the daemon (VM boot, #28)
+                    result = actions.wait_for_docker(self._cfg, on_progress=self._on_progress)
+                    self.after(0, self._hide_progress)
                 self.after(0, lambda: self._on_result("start_docker", result))
+
+            threading.Thread(target=worker, daemon=True).start()
+
+        def _fix_docker_permission(self) -> None:
+            """Self-repair for the docker-group case (#27): confirm (docker
+            group = effectively root), then pkexec usermod off-thread."""
+            from tkinter import messagebox
+
+            if not messagebox.askyesno(self._t("fix_docker_permission"), self._t("docker_group_confirm"), parent=self):
+                self._log(self._t("docker_group_cancelled"))
+                return
+            self._set_busy(True)
+
+            def worker() -> None:
+                result = actions.add_user_to_docker_group(self._cfg)
+                self.after(0, lambda: self._on_result("fix_permission", result))
 
             threading.Thread(target=worker, daemon=True).start()
 

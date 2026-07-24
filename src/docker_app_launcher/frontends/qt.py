@@ -285,11 +285,39 @@ if HAS_QT:
                 start_btn.clicked.connect(functools.partial(self._start_docker, info))
                 self._docker_help_row.insertWidget(offset, start_btn)
                 offset += 1
+            if info.get("can_fix_permission"):
+                fix_btn = QPushButton(self._t("fix_docker_permission"))
+                fix_btn.clicked.connect(self._fix_docker_permission)
+                self._docker_help_row.insertWidget(offset, fix_btn)
+                offset += 1
             if not info.get("installed"):
                 guide = QPushButton(self._t("open_install_guide"))
                 guide.clicked.connect(lambda: actions.open_url(self._cfg.docker_install_url))
                 self._docker_help_row.insertWidget(offset, guide)
             self._docker_help.show()
+
+        def _fix_docker_permission(self) -> None:
+            """Self-repair for the docker-group case (#27): confirm (docker
+            group = effectively root), then pkexec usermod off-thread."""
+            from PySide6.QtWidgets import QMessageBox
+
+            answer = QMessageBox.question(
+                self,
+                self._t("fix_docker_permission"),
+                self._t("docker_group_confirm"),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                self._log(self._t("docker_group_cancelled"))
+                return
+            self._set_busy(True)
+
+            def worker() -> None:
+                result = actions.add_user_to_docker_group(self._cfg)
+                self._post(lambda: self._on_result("fix_permission", result))
+
+            threading.Thread(target=worker, daemon=True).start()
 
         def _start_docker(self, info: dict[str, Any]) -> None:
             self._set_busy(True)
@@ -299,6 +327,9 @@ if HAS_QT:
                     result = actions.start_docker_daemon()
                 else:
                     result = actions.start_docker_desktop(self._cfg)
+                if result[0]:  # started - now wait for the daemon (VM boot, #28)
+                    result = actions.wait_for_docker(self._cfg, on_progress=self._on_progress)
+                    self._post(self._hide_progress)
                 self._post(lambda: self._on_result("start_docker", result))
 
             threading.Thread(target=worker, daemon=True).start()

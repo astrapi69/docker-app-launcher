@@ -102,7 +102,7 @@ update_available: 'アップデートがあります: {tag} - {url}'
 step_skip_volume: "ボリューム '{name}' をスキップしました（未選択）。"
 step_skip_volume_active: "ボリューム '{name}' をスキップしました（アクティブなプロジェクト）。"
 docker_not_running: "Docker はインストールされていますが起動していません。"
-docker_no_permission: "Docker はインストールされていますが、権限がありません。"
+docker_no_permission: "Docker は起動していますが、ユーザーに権限がありません（'docker' グループに未所属）。'sudo usermod -aG docker $USER' を実行し、その後必ずログアウトして再ログイン（または再起動）してください。グループ変更は新しいログインセッションでのみ有効になります。現在のターミナルだけなら 'newgrp docker' も使えます。"
 docker_no_path: "Docker Desktop はインストールされていますが PATH にありません。"
 start_docker: "Docker を起動"
 open_install_guide: "インストールガイドを開く"
@@ -119,3 +119,9 @@ tooltip_only_running: "アプリの実行中のみ利用できます"
 tooltip_no_log: "コピーするログがまだありません"
 docker_not_running_detail: 'Docker が実行されていません。確認したコンテキスト ''{context}'' ({endpoint}): {error}'
 docker_running_other_context: 'Docker はコンテキスト ''{context}'' 経由で実行中です - アクティブなコンテキストに接続できなかったため、ランチャーが自動的に接続しました。'
+fix_docker_permission: "Docker アクセスを設定…"
+docker_group_confirm: "アカウントを 'docker' グループに追加します。これは実質的にこのシステムの root 権限を与えることになります（Docker では標準的な運用です）。続行しますか？"
+docker_group_added: "'docker' グループに追加しました。変更を有効にするにはログアウトして再ログイン（または再起動）してください。このセッションではまだ Docker は使えません。"
+docker_group_cancelled: "キャンセルしました。変更はありません。手動での対処: 'sudo usermod -aG docker $USER' を実行し、ログアウトして再ログインしてください。"
+docker_group_failed: "'docker' グループへの追加に失敗しました: {error}。手動での対処: 'sudo usermod -aG docker $USER' を実行し、ログアウトして再ログインしてください。"
+docker_desktop_waiting: "Docker Desktop を起動しています。しばらくかかることがあります（VM 起動）…"

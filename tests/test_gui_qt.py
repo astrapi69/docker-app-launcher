@@ -249,3 +249,56 @@ def test_screenshot_states(app, qapp, gui_state, state) -> None:
     app._refresh()
     qapp.processEvents()
     _qt_screenshot(app, f"qt_{state}_en")
+
+
+class TestFixDockerPermissionQt:
+    def _permission_state(self, app, qapp, gui_state, monkeypatch) -> None:
+        gui_state["value"] = "no_docker"
+        monkeypatch.setattr(
+            actions,
+            "check_docker_detailed",
+            lambda c: {
+                "status": "no_permission",
+                "platform": "Linux",
+                "detail": "no permission",
+                "command": "sudo usermod -aG docker $USER",
+                "can_start": False,
+                "installed": True,
+                "can_fix_permission": True,
+            },
+        )
+        app._refresh()
+        qapp.processEvents()
+
+    def test_button_shown_and_accept_flow(self, app, qapp, gui_state, monkeypatch) -> None:
+        from PySide6.QtWidgets import QMessageBox, QPushButton
+
+        self._permission_state(app, qapp, gui_state, monkeypatch)
+        label = app._t("fix_docker_permission")
+        buttons = [b for b in app.findChildren(QPushButton) if b.text() == label]
+        assert len(buttons) == 1
+        monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: QMessageBox.StandardButton.Yes))
+        monkeypatch.setattr(_threading, "Thread", _InlineThread)
+        monkeypatch.setattr(actions, "add_user_to_docker_group", lambda c: (True, "group added - log out and back in"))
+        buttons[0].click()
+        qapp.processEvents()
+        assert "log out" in app._status.toPlainText()
+
+    def test_decline_logs_cancel(self, app, qapp, gui_state, monkeypatch) -> None:
+        from PySide6.QtWidgets import QMessageBox, QPushButton
+
+        self._permission_state(app, qapp, gui_state, monkeypatch)
+        label = app._t("fix_docker_permission")
+        buttons = [b for b in app.findChildren(QPushButton) if b.text() == label]
+        monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: QMessageBox.StandardButton.No))
+        called: list[str] = []
+
+        def record_call(c):
+            called.append("x")
+            return (True, "no")
+
+        monkeypatch.setattr(actions, "add_user_to_docker_group", record_call)
+        buttons[0].click()
+        qapp.processEvents()
+        assert called == []
+        assert app._t("docker_group_cancelled") in app._status.toPlainText()

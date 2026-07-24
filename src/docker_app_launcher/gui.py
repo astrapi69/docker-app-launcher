@@ -378,6 +378,13 @@ class LauncherApp(tk.Tk):
                 width=16,
                 command=functools.partial(self._start_docker, info),
             ).pack(side="left", padx=4)
+        if info.get("can_fix_permission"):
+            tk.Button(
+                self._docker_help_frame,
+                text=self._t("fix_docker_permission"),
+                width=22,
+                command=self._fix_docker_permission,
+            ).pack(side="left", padx=4)
         if not info.get("installed"):
             tk.Button(
                 self._docker_help_frame,
@@ -388,12 +395,29 @@ class LauncherApp(tk.Tk):
         if not self._docker_help_frame.winfo_ismapped():
             self._docker_help_frame.pack(pady=(0, 4), before=self._primary_frame)
 
+    def _fix_docker_permission(self) -> None:
+        """Self-repair for the docker-group case (#27): confirm (the docker
+        group effectively grants root), then ``pkexec usermod`` off-thread.
+        The result message always keeps the re-login requirement visible."""
+        if not messagebox.askyesno(self._t("fix_docker_permission"), self._t("docker_group_confirm"), parent=self):
+            self._log(self._t("docker_group_cancelled"))
+            return
+        self._set_busy(True)
+
+        def worker() -> None:
+            result = actions.add_user_to_docker_group(self._cfg)
+            self.after(0, lambda: self._on_result("fix_permission", result))
+
+        threading.Thread(target=worker, daemon=True).start()
+
     def _hide_docker_help(self) -> None:
         if self._docker_help_frame.winfo_ismapped():
             self._docker_help_frame.pack_forget()
 
     def _start_docker(self, info: dict[str, object]) -> None:
-        """Start the Docker daemon (Linux) or Docker Desktop (Win/macOS), then recheck."""
+        """Start the Docker daemon (Linux) or Docker Desktop (Win/macOS), then
+        WAIT for it: Docker Desktop boots a VM, so an immediate recheck would
+        report "not started" again although the start worked (#28)."""
         self._set_busy(True)
 
         def worker() -> None:
@@ -401,6 +425,9 @@ class LauncherApp(tk.Tk):
                 result = actions.start_docker_daemon()
             else:
                 result = actions.start_docker_desktop(self._cfg)
+            if result[0]:
+                result = actions.wait_for_docker(self._cfg, on_progress=self._on_progress)
+                self.after(0, self._hide_progress)
             self.after(0, lambda: self._on_result("start_docker", result))
 
         threading.Thread(target=worker, daemon=True).start()

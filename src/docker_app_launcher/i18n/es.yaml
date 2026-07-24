@@ -102,7 +102,7 @@ update_available: 'Actualización disponible: {tag} - {url}'
 step_skip_volume: "Volumen '{name}' omitido (no seleccionado)."
 step_skip_volume_active: "Volumen '{name}' omitido (proyecto activo)."
 docker_not_running: "Docker está instalado pero no iniciado."
-docker_no_permission: "Docker está instalado, pero no tienes permiso."
+docker_no_permission: "Docker está en ejecución, pero tu usuario no tiene permiso (no está en el grupo 'docker'). Ejecuta 'sudo usermod -aG docker $USER' Y luego cierra sesión y vuelve a entrar (o reinicia): el cambio de grupo solo se activa en una nueva sesión. Solo para la terminal actual: 'newgrp docker'."
 docker_no_path: "Docker Desktop está instalado pero no está en el PATH."
 start_docker: "Iniciar Docker"
 open_install_guide: "Abrir guía de instalación"
@@ -119,3 +119,9 @@ tooltip_only_running: "Solo disponible mientras la aplicación se ejecuta"
 tooltip_no_log: "Aún no hay registro para copiar"
 docker_not_running_detail: 'Docker no está en ejecución. Contexto comprobado ''{context}'' ({endpoint}): {error}'
 docker_running_other_context: 'Docker está en ejecución a través del contexto ''{context}'' - el contexto activo no era accesible, el lanzador se conectó automáticamente.'
+fix_docker_permission: "Configurar acceso a Docker…"
+docker_group_confirm: "Tu cuenta se añadirá al grupo 'docker'. Esto otorga en la práctica privilegios de root en este sistema (práctica estándar con Docker). ¿Continuar?"
+docker_group_added: "Grupo 'docker' añadido. Cierra sesión y vuelve a entrar (o reinicia) para que el cambio surta efecto; Docker aún no es utilizable en esta sesión."
+docker_group_cancelled: "Cancelado, no se cambió nada. Manual: ejecuta 'sudo usermod -aG docker $USER' y luego cierra sesión y vuelve a entrar."
+docker_group_failed: "No se pudo añadir al grupo 'docker': {error}. Manual: ejecuta 'sudo usermod -aG docker $USER' y luego cierra sesión y vuelve a entrar."
+docker_desktop_waiting: "Docker Desktop se está iniciando; esto puede tardar un momento (arranque de la VM)…"

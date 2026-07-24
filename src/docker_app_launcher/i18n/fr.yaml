@@ -102,7 +102,7 @@ update_available: 'Mise à jour disponible : {tag} - {url}'
 step_skip_volume: "Volume '{name}' ignoré (non sélectionné)."
 step_skip_volume_active: "Volume '{name}' ignoré (projet actif)."
 docker_not_running: "Docker est installé mais non démarré."
-docker_no_permission: "Docker est installé, mais vous n'avez pas la permission."
+docker_no_permission: "Docker fonctionne, mais votre utilisateur n'a pas la permission (absent du groupe 'docker'). Exécutez 'sudo usermod -aG docker $USER' PUIS déconnectez-vous et reconnectez-vous (ou redémarrez) : le changement de groupe ne prend effet que dans une nouvelle session. Raccourci pour le terminal actuel uniquement : 'newgrp docker'."
 docker_no_path: "Docker Desktop est installé mais pas dans le PATH."
 start_docker: "Démarrer Docker"
 open_install_guide: "Ouvrir le guide d'installation"
@@ -119,3 +119,9 @@ tooltip_only_running: "Disponible uniquement lorsque l'application est en cours 
 tooltip_no_log: "Aucun journal à copier pour l'instant"
 docker_not_running_detail: 'Docker n''est pas en cours d''exécution. Contexte vérifié ''{context}'' ({endpoint}) : {error}'
 docker_running_other_context: 'Docker fonctionne via le contexte ''{context}'' - le contexte actif était inaccessible, le lanceur s''est connecté automatiquement.'
+fix_docker_permission: "Configurer l'accès Docker…"
+docker_group_confirm: "Votre compte sera ajouté au groupe 'docker'. Cela donne en pratique les droits root sur ce système (pratique standard avec Docker). Continuer ?"
+docker_group_added: "Groupe 'docker' ajouté. Déconnectez-vous puis reconnectez-vous (ou redémarrez) pour que le changement prenne effet ; Docker n'est pas encore utilisable dans cette session."
+docker_group_cancelled: "Annulé, rien n'a été modifié. Manuel : exécutez 'sudo usermod -aG docker $USER', puis déconnectez-vous et reconnectez-vous."
+docker_group_failed: "Impossible d'ajouter au groupe 'docker' : {error}. Manuel : exécutez 'sudo usermod -aG docker $USER', puis déconnectez-vous et reconnectez-vous."
+docker_desktop_waiting: "Docker Desktop démarre - cela peut prendre un moment (démarrage de la VM)…"

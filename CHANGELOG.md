@@ -6,6 +6,36 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Self-repair for missing docker-group membership (Linux, #27).** The
+  no-docker help panel (all three frontends) gains a "Set up Docker access…"
+  button when a socket-permission error is detected: a confirmation dialog
+  states honestly that docker-group membership effectively grants root
+  privileges, then `pkexec usermod -aG docker $USER` runs and the result is
+  VERIFIED against `getent group docker`. The success message still demands
+  logging out and back in — it never claims Docker is usable already, because
+  the group change only becomes active in a new login session. Dismissing the
+  polkit dialog or a failure falls back to the manual instructions, never
+  silently.
+- **Waiting for Docker Desktop after starting it (#28).** After a successful
+  daemon/Desktop start every frontend now polls (`actions.wait_for_docker`)
+  with an indeterminate progress and a localized "Docker Desktop is
+  starting…" note instead of instantly reporting "not started" again while
+  the VM boots.
+
+### Fixed
+
+- **Permission-denied no longer reads as "Docker is not started" (#27).**
+  `docker-app-launcher --check` (and every `check_docker` caller) now has a
+  dedicated permission branch; previously a permission error fell through to
+  the generic message, sending users to `systemctl start docker` although the
+  daemon was already running. The localized `docker_no_permission` message
+  (all 11 languages) now carries the complete fix: the `usermod` command AND
+  the explicit log-out/log-in (or reboot) requirement, plus the
+  `newgrp docker` terminal-only shortcut — running usermod alone changes
+  nothing in the current session, which was exactly the confusion observed.
+
 ## [0.14.1] - 2026-07-23
 
 ### Fixed

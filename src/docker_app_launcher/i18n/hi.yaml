@@ -102,7 +102,7 @@ update_available: 'अपडेट उपलब्ध: {tag} - {url}'
 step_skip_volume: "वॉल्यूम '{name}' छोड़ा गया (चयनित नहीं)."
 step_skip_volume_active: "वॉल्यूम '{name}' छोड़ा गया (सक्रिय प्रोजेक्ट)."
 docker_not_running: "Docker इंस्टॉल है लेकिन शुरू नहीं हुआ।"
-docker_no_permission: "Docker इंस्टॉल है, लेकिन आपके पास अनुमति नहीं है।"
+docker_no_permission: "Docker चल रहा है, लेकिन आपके उपयोगकर्ता के पास अनुमति नहीं है ('docker' समूह में नहीं)। 'sudo usermod -aG docker $USER' चलाएँ और उसके बाद लॉग आउट करके फिर से लॉग इन करें (या रीस्टार्ट करें) - समूह परिवर्तन केवल नए लॉगिन सत्र में सक्रिय होता है। केवल वर्तमान टर्मिनल के लिए: 'newgrp docker'।"
 docker_no_path: "Docker Desktop इंस्टॉल है लेकिन PATH में नहीं है।"
 start_docker: "Docker शुरू करें"
 open_install_guide: "इंस्टॉलेशन गाइड खोलें"
@@ -119,3 +119,9 @@ tooltip_only_running: "केवल तभी उपलब्ध जब ऐप �
 tooltip_no_log: "कॉपी करने के लिए अभी कोई लॉग नहीं"
 docker_not_running_detail: 'Docker नहीं चल रहा है। जाँचा गया context ''{context}'' ({endpoint}): {error}'
 docker_running_other_context: 'Docker context ''{context}'' के माध्यम से चल रहा है - सक्रिय context पहुँच योग्य नहीं था, launcher स्वचालित रूप से जुड़ गया।'
+fix_docker_permission: "Docker पहुँच सेट करें…"
+docker_group_confirm: "आपका खाता 'docker' समूह में जोड़ा जाएगा। इससे व्यावहारिक रूप से इस सिस्टम पर root अधिकार मिलते हैं (Docker में सामान्य प्रथा)। जारी रखें?"
+docker_group_added: "'docker' समूह जोड़ा गया। परिवर्तन लागू करने के लिए लॉग आउट करके फिर से लॉग इन करें (या रीस्टार्ट करें) - इस सत्र में Docker अभी उपयोग योग्य नहीं है।"
+docker_group_cancelled: "रद्द किया गया - कुछ नहीं बदला। मैन्युअल: 'sudo usermod -aG docker $USER' चलाएँ, फिर लॉग आउट करके फिर से लॉग इन करें।"
+docker_group_failed: "'docker' समूह में जोड़ा नहीं जा सका: {error}। मैन्युअल: 'sudo usermod -aG docker $USER' चलाएँ, फिर लॉग आउट करके फिर से लॉग इन करें।"
+docker_desktop_waiting: "Docker Desktop शुरू हो रहा है - इसमें थोड़ा समय लग सकता है (VM बूट)…"

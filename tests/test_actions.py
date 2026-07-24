@@ -12,10 +12,12 @@ import shutil
 import socket
 import subprocess
 import threading
+import time
 import urllib.request
 import webbrowser
 from collections.abc import Iterator
 from contextlib import contextmanager
+from typing import Any
 
 import pytest
 
@@ -1413,3 +1415,185 @@ class TestStartDockerDesktop:
         monkeypatch.setattr(subprocess, "Popen", boom)
         ok, msg = actions.start_docker_desktop(config)
         assert ok is False and "not found" in msg
+
+
+# --- permission-denied on the docker socket (#27) --------------------------
+
+
+class TestCheckDockerPermission:
+    """CLI path: permission denied must NOT read as 'Docker is not started'."""
+
+    def test_permission_message_names_group_usermod_and_relogin(self, monkeypatch) -> None:
+        monkeypatch.setattr(
+            actions,
+            "_docker_info_rc",
+            lambda extra_env=None: (1, "permission denied while trying to connect to the docker API"),
+        )
+        ok, msg = actions.check_docker()
+        assert ok is False
+        assert "not started" not in msg
+        assert "docker" in msg and "usermod -aG docker" in msg
+        assert "log out" in msg.lower()  # the mandatory re-login hint
+
+    def test_permission_never_triggers_context_sweep(self, monkeypatch) -> None:
+        def contexts_must_not_be_called():
+            raise AssertionError("permission failures must not trigger the context sweep")
+
+        monkeypatch.setattr(
+            actions, "_docker_info_rc", lambda extra_env=None: (1, "permission denied while connecting")
+        )
+        monkeypatch.setattr(actions, "_docker_contexts", contexts_must_not_be_called)
+        ok, _ = actions.check_docker()
+        assert ok is False
+
+
+class TestDetailedPermissionMessage:
+    """GUI path: the localized message must carry usermod AND the re-login hint."""
+
+    def _permission_result(self, config, monkeypatch) -> dict[str, Any]:
+        monkeypatch.setattr("platform.system", lambda: "Linux")
+        monkeypatch.setattr("shutil.which", lambda _x: "/usr/bin/docker")
+        monkeypatch.setattr(
+            actions,
+            "_docker_info_rc",
+            lambda extra_env=None: (1, "permission denied while trying to connect to the docker API"),
+        )
+        return actions.check_docker_detailed(config)
+
+    def test_detail_contains_usermod_and_relogin(self, config, monkeypatch) -> None:
+        r = self._permission_result(config, monkeypatch)
+        assert "usermod -aG docker" in r["detail"]
+        assert "log out" in r["detail"].lower()
+        assert "newgrp docker" in r["detail"]
+
+    def test_no_false_systemctl_suggestion(self, config, monkeypatch) -> None:
+        r = self._permission_result(config, monkeypatch)
+        assert "systemctl start" not in r["command"]
+        assert r["can_start"] is False
+
+    def test_linux_offers_self_repair(self, config, monkeypatch) -> None:
+        r = self._permission_result(config, monkeypatch)
+        assert r["can_fix_permission"] is True
+
+    def test_windows_has_no_self_repair(self, config, monkeypatch) -> None:
+        monkeypatch.setattr("platform.system", lambda: "Windows")
+        monkeypatch.setattr("shutil.which", lambda _x: "C:/docker.exe")
+        monkeypatch.setattr("os.path.exists", lambda p: True)
+        monkeypatch.setattr(actions, "_docker_info_rc", lambda extra_env=None: (1, "permission denied"))
+        monkeypatch.setattr(actions, "_sweep_other_contexts", lambda: None)
+        r = actions.check_docker_detailed(config)
+        assert r.get("can_fix_permission", False) is False
+
+
+class TestAddUserToDockerGroup:
+    """Self-repair (Linux, pkexec): confirmed, verified, honest about re-login."""
+
+    def _patch_linux(self, monkeypatch) -> None:
+        monkeypatch.setattr(platform, "system", lambda: "Linux")
+        monkeypatch.setattr("getpass.getuser", lambda: "testuser")
+
+    def test_success_verifies_and_demands_relogin(self, config, monkeypatch) -> None:
+        self._patch_linux(monkeypatch)
+        calls: list[list[str]] = []
+
+        def fake_run(cmd, **k):
+            calls.append(cmd)
+            if cmd[0] == "pkexec":
+                return make_result()
+            return make_result(stdout="docker:x:991:otheruser,testuser\n")
+
+        monkeypatch.setattr(actions, "_run", fake_run)
+        ok, msg = actions.add_user_to_docker_group(config)
+        assert ok is True
+        assert calls[0][:2] == ["pkexec", "usermod"]
+        assert calls[1][:3] == ["getent", "group", "docker"]
+        low = msg.lower()
+        assert ("log out" in low or "abmelden" in low) or "melde" in low
+        assert "ready" not in low  # never claim docker is usable already
+
+    def test_pkexec_dismissed_is_a_clean_cancel(self, config, monkeypatch) -> None:
+        self._patch_linux(monkeypatch)
+        monkeypatch.setattr(actions, "_run", lambda cmd, **k: make_result(returncode=126))
+        ok, msg = actions.add_user_to_docker_group(config)
+        assert ok is False
+        assert "usermod -aG docker" in msg  # fallback to the manual instruction
+
+    def test_pkexec_failure_reports_error(self, config, monkeypatch) -> None:
+        self._patch_linux(monkeypatch)
+        monkeypatch.setattr(
+            actions, "_run", lambda cmd, **k: make_result(returncode=1, stderr="usermod: group 'docker' does not exist")
+        )
+        ok, msg = actions.add_user_to_docker_group(config)
+        assert ok is False and "does not exist" in msg
+
+    def test_verification_failure_is_not_success(self, config, monkeypatch) -> None:
+        self._patch_linux(monkeypatch)
+
+        def fake_run(cmd, **k):
+            if cmd[0] == "pkexec":
+                return make_result()
+            return make_result(stdout="docker:x:991:someoneelse\n")
+
+        monkeypatch.setattr(actions, "_run", fake_run)
+        ok, _ = actions.add_user_to_docker_group(config)
+        assert ok is False
+
+    def test_non_linux_refuses(self, config, monkeypatch) -> None:
+        monkeypatch.setattr(platform, "system", lambda: "Windows")
+        ok, _ = actions.add_user_to_docker_group(config)
+        assert ok is False
+
+    def test_pkexec_missing_reports_error(self, config, monkeypatch) -> None:
+        self._patch_linux(monkeypatch)
+        monkeypatch.setattr(actions, "_run", lambda cmd, **k: (_ for _ in ()).throw(FileNotFoundError()))
+        ok, msg = actions.add_user_to_docker_group(config)
+        assert ok is False and "usermod -aG docker" in msg
+
+
+class TestWaitForDocker:
+    """After starting Docker Desktop/daemon: poll instead of instantly failing (#28)."""
+
+    def _no_sleep(self, monkeypatch) -> None:
+        monkeypatch.setattr(time, "sleep", lambda s: None)
+
+    def test_immediately_running(self, config, monkeypatch) -> None:
+        self._no_sleep(monkeypatch)
+        monkeypatch.setattr(actions, "check_docker", lambda: (True, "Docker is running."))
+        ok, msg = actions.wait_for_docker(config, timeout=10.0)
+        assert ok is True and msg
+
+    def test_becomes_ready_after_a_few_polls(self, config, monkeypatch) -> None:
+        self._no_sleep(monkeypatch)
+        attempts = {"n": 0}
+
+        def flaky():
+            attempts["n"] += 1
+            return (attempts["n"] >= 3, "Docker is running." if attempts["n"] >= 3 else "not yet")
+
+        monkeypatch.setattr(actions, "check_docker", flaky)
+        ok, _ = actions.wait_for_docker(config, timeout=60.0, interval=0.1)
+        assert ok is True
+        assert attempts["n"] == 3
+
+    def test_timeout_reports_honestly(self, config, monkeypatch) -> None:
+        self._no_sleep(monkeypatch)
+        ticks = iter(range(0, 1000, 10))  # monotonic jumps 10s per call -> timeout fast
+        monkeypatch.setattr(time, "monotonic", lambda: next(ticks))
+        monkeypatch.setattr(actions, "check_docker", lambda: (False, "still down"))
+        ok, msg = actions.wait_for_docker(config, timeout=30.0)
+        assert ok is False
+        assert msg  # never empty - the user must see WHY
+
+    def test_progress_callback_receives_waiting_label(self, config, monkeypatch) -> None:
+        self._no_sleep(monkeypatch)
+        attempts = {"n": 0}
+
+        def flaky():
+            attempts["n"] += 1
+            return (attempts["n"] >= 2, "ok" if attempts["n"] >= 2 else "not yet")
+
+        monkeypatch.setattr(actions, "check_docker", flaky)
+        labels: list[str] = []
+        ok, _ = actions.wait_for_docker(config, timeout=60.0, on_progress=lambda pct, label: labels.append(label))
+        assert ok is True
+        assert labels, "waiting progress must be reported"

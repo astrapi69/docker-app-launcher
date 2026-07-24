@@ -1640,7 +1640,7 @@ class TestReloginTransitionSimulation:
     simulated here).
     """
 
-    def _docker_env(self, monkeypatch, session: dict) -> None:
+    def _docker_env(self, monkeypatch, session: dict[str, bool]) -> None:
         monkeypatch.setattr("platform.system", lambda: "Linux")
         monkeypatch.setattr("shutil.which", lambda _x: "/usr/bin/docker")
 

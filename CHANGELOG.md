@@ -6,7 +6,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-07-24
+
 ### Added
+
+- **The About dialog reports the ACTUALLY RUNNING app version, clearly
+  labelled (#36).** `actions.get_app_version()` resolves the app version
+  with an explicit source label — `running` (probed from the live app's
+  health endpoint via the new `app_version_health_key` config field),
+  `installed` (install manifest), or `expected` (the static
+  `app_version` the wrapper ships) — so the dialog can no longer claim a
+  version nobody is running. New line format: `App: <name> <version>
+  (<source>)` plus a separate `Launcher: docker-app-launcher vX.Y.Z` line.
 
 - **Systematic rendering matrix (#37).** `tests/test_state_matrix.py` drives
   every frontend through every state in the central `BUTTON_STATES` table
@@ -541,7 +552,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - CLI ↔ GUI parity: both route through the same actions.
 - 160+ tests (no display required), mypy strict, ruff clean.
 
-[Unreleased]: https://github.com/astrapi69/docker-app-launcher/compare/v0.15.0...HEAD
+[Unreleased]: https://github.com/astrapi69/docker-app-launcher/compare/v0.16.0...HEAD
+[0.16.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.14.1...v0.15.0
 [0.14.1]: https://github.com/astrapi69/docker-app-launcher/compare/v0.14.0...v0.14.1
 [0.14.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.13.0...v0.14.0

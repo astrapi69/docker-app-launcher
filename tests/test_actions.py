@@ -1743,7 +1743,5 @@ class TestGetAppVersion:
     def test_uninstalled_manifest_is_ignored(self, monkeypatch: pytest.MonkeyPatch) -> None:
         cfg = self._cfg()
         monkeypatch.setattr(actions, "_health_payload", self._payload(None))
-        monkeypatch.setattr(
-            actions, "read_manifest", lambda config: {"app_version": "0.3.0", "status": "uninstalled"}
-        )
+        monkeypatch.setattr(actions, "read_manifest", lambda config: {"app_version": "0.3.0", "status": "uninstalled"})
         assert actions.get_app_version(cfg) == ("9.0.0", "expected")

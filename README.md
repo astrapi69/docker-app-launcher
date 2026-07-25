@@ -78,6 +78,50 @@ Everything is configurable. Only `app_name` is required — the rest is derived
 > optional expert fields — omit them and the launcher behaves exactly as before
 > (single host port, no advanced panel).
 
+### Deployment modes
+
+The launcher supports two deployment modes (`deployment_mode`, #51):
+
+**`"compose"`** (the default — existing configs keep working unchanged):
+the stack is driven through Docker Compose. The launcher detects a usable
+Compose frontend before any build (#48): the Compose v2 plugin
+(`docker compose`), or legacy `docker-compose` v1 when it can parse the
+app's compose file. Neither present → an actionable error naming the
+missing piece (Ubuntu/Debian: `sudo apt install docker-compose-plugin`)
+instead of a cryptic CLI failure.
+
+**`"dockerfile"`** — single-service apps, zero Compose dependency: the
+image is built and run directly through the Docker API (docker-py). Works
+on old Docker installations (20.10-era) that have no compose plugin at
+all. Mode-specific fields:
+
+```json
+{
+  "app_name": "My Solo App",
+  "deployment_mode": "dockerfile",
+  "install_dir": "/opt/my-solo-app",
+  "build_context": ".",
+  "dockerfile_file": "Dockerfile",
+  "default_port": 8080,
+  "container_port": 80,
+  "container_volumes": { "my-solo-data": "/app/data" },
+  "container_env": { "MY_APP_DEBUG": "false" },
+  "restart_policy": "unless-stopped"
+}
+```
+
+- `build_context` is relative to `install_dir`; `dockerfile_file` relative
+  to the build context.
+- `container_port` is the container-internal port the published host port
+  maps onto (`0` = same as the host port).
+- `container_volumes` are named volumes (`{volume: mount_path}`) — they
+  survive rebuilds exactly like compose volumes.
+- A missing Dockerfile or an unknown `deployment_mode` is a hard,
+  actionable error — the launcher never guesses (#32 philosophy).
+
+Multi-service stacks (separate frontend/backend containers, compose
+networking, `depends_on` ordering) need `"compose"` mode.
+
 ## Features
 
 - One persistent window (never closes itself)

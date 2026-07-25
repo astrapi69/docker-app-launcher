@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-07-25
+
 ### Added
 
 - **Hybrid docker-py adoption (#44).** Inspection now goes through the
@@ -34,6 +36,25 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   languages.
 - **`--log-level` CLI flag (P3).** Overrides the config's `log_level` per
   run (`--debug` still wins over both).
+- **Frozen-binary CI gate (#38).** A bug that only exists in the frozen
+  PyInstaller artifact (missing i18n catalogs #34, placeholder branding,
+  wrong version) is invisible to source-tree tests by nature. The new
+  mandatory `frozen-binary` CI job builds the real binary from the rendered
+  spec, opens its real window under xvfb, and asserts the rendered contract
+  via the new `--render-probe` CLI flag (title incl. version, translated
+  labels — never raw keys, full button set). Proven RED against a binary
+  built without package data, GREEN on the current spec. The probe writes
+  its JSON contract to a file (never through the stdout pipe): `xvfb-run`
+  merges the client's stderr into stdout, which would interleave log lines
+  into piped JSON.
+
+### Changed
+
+- **Split by responsibility (#42).** `actions.py` and `gui.py` are now
+  thin facades; the code lives in `docker/` (`detection`, `lifecycle`,
+  `inventory`, `cleanup`, `command_runner`) and `frontends/` (one window
+  per file), with the shared behaviour tables in `ui_model`. Import paths
+  and the public API are unchanged; the test suite is mirrored per module.
 
 ### Fixed
 
@@ -69,18 +90,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   integration tests (privileged container, both directions) cover the signal
   GENERATION — the previous simulation only ever validated signal
   processing.
-
-### Added
-
-- **Frozen-binary CI gate (#38).** A bug that only exists in the frozen
-  PyInstaller artifact (missing i18n catalogs #34, placeholder branding,
-  wrong version) is invisible to source-tree tests by nature. The new
-  mandatory `frozen-binary` CI job builds the real binary from the rendered
-  spec, opens its real window under xvfb, and asserts the rendered contract
-  via the new `--render-probe` CLI flag (title incl. version, translated
-  labels — never raw keys, full button set). Proven RED against a binary
-  built without package data (renders exactly the raw keys from the original
-  screenshot), GREEN on the current spec.
 
 ## [0.16.0] - 2026-07-24
 
@@ -628,7 +637,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - CLI ↔ GUI parity: both route through the same actions.
 - 160+ tests (no display required), mypy strict, ruff clean.
 
-[Unreleased]: https://github.com/astrapi69/docker-app-launcher/compare/v0.16.0...HEAD
+[Unreleased]: https://github.com/astrapi69/docker-app-launcher/compare/v0.17.0...HEAD
+[0.17.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.14.1...v0.15.0
 [0.14.1]: https://github.com/astrapi69/docker-app-launcher/compare/v0.14.0...v0.14.1

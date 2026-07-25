@@ -13,7 +13,7 @@ import subprocess
 # ("partially initialized module 'tracemalloc' ... circular import"), and that
 # AttributeError becomes a NEW unraisable, re-entering the hook - a cascade that
 # fails an unrelated test on loaded CI runners (seen only on Python 3.12).
-# Importing it here breaks the cascade at the root. (Same harness fix as #55.)
+# Importing it here breaks the cascade at the root.
 import tracemalloc as _tracemalloc  # noqa: F401
 
 import pytest
@@ -115,6 +115,32 @@ def _isolate_compose_frontend(monkeypatch):
     monkeypatch.setattr(compose_runtime, "_probe", lambda config: ("plugin", "test isolation"))
     yield
     compose_runtime.reset_compose_cache()
+
+
+@pytest.fixture(autouse=True)
+def _isolate_tool_versions(monkeypatch):
+    """Pin the toolchain probe (#54) to a modern engine/compose/buildx so no
+    test shells out to the real docker version commands, and the build
+    capability gate passes by default. Version-gate tests override this with
+    their own ``ToolVersions``. Cache is reset on both sides."""
+    from docker_app_launcher.docker import tool_versions
+
+    tool_versions.reset_versions_cache()
+    modern = tool_versions.ToolVersions(
+        engine_raw="27.5.1",
+        engine=tool_versions.parse_version("27.5.1"),
+        cli_raw="27.5.1",
+        cli=tool_versions.parse_version("27.5.1"),
+        api_raw="1.47",
+        api=tool_versions.parse_version("1.47"),
+        compose_raw="2.40.2",
+        compose=tool_versions.parse_version("2.40.2"),
+        buildx_raw="0.20.0",
+        buildx=tool_versions.parse_version("0.20.0"),
+    )
+    monkeypatch.setattr(tool_versions, "_probe_versions", lambda: modern)
+    yield
+    tool_versions.reset_versions_cache()
 
 
 @pytest.fixture(autouse=True)

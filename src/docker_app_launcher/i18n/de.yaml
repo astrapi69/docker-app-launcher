@@ -136,3 +136,12 @@ compose_missing: "Docker Compose ist nicht verfügbar. Compose-v2-Plugin install
 compose_v1_incompatible: "Nur das alte docker-compose v1 wurde gefunden und es kann die Compose-Datei dieser App ({path}) nicht lesen. Compose-v2-Plugin installieren: 'sudo apt install docker-compose-plugin', danach den Launcher neu starten."
 dockerfile_not_found: "Dockerfile nicht gefunden: {path}. deployment_mode/Dockerfile-Einstellungen in der Launcher-Konfiguration prüfen."
 dockerfile_mode_needs_dockerpy: "Der dockerfile-Modus benötigt das Python-Paket docker (docker-py), das in dieser Installation nicht importierbar ist."
+
+# --- build readiness / capability gate (#54) ---
+buildx_too_old: "Der Docker-Compose-Build delegiert an buildx und benötigt buildx {required} oder neuer, installiert ist aber buildx {found}. Neueres buildx installieren: die Binärdatei für deine Plattform aus den docker/buildx-Releases herunterladen, unter {path} ablegen und mit 'chmod +x {path}' ausführbar machen. Paketquellen haben sich hierfür als unzuverlässig erwiesen."
+buildx_missing: "Der Docker-Compose-Build delegiert an buildx und benötigt buildx {required} oder neuer, es wurde aber kein buildx-Plugin gefunden. buildx installieren: die Binärdatei für deine Plattform aus den docker/buildx-Releases herunterladen, unter {path} ablegen und mit 'chmod +x {path}' ausführbar machen. Paketquellen haben sich hierfür als unzuverlässig erwiesen."
+app_requirement_too_old: "Diese App verlangt {component} {required} oder neuer, installiert ist aber {found}. Docker entsprechend aktualisieren."
+app_requirement_missing: "Diese App verlangt {component} {required} oder neuer, aber {component} konnte nicht erkannt werden. Docker installieren oder aktualisieren."
+compose_unreadable: "Compose-Datei gefunden, aber nicht lesbar: {path} ({error})."
+dockerfile_unreadable: "Dockerfile gefunden, aber nicht lesbar: {path} ({error})."
+build_context_not_found: "Build-Kontext-Verzeichnis nicht gefunden: {path}. build_context in der Launcher-Konfiguration prüfen."

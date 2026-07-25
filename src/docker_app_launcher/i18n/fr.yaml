@@ -136,3 +136,12 @@ compose_missing: "Docker Compose n'est pas disponible. Installez le plugin Compo
 compose_v1_incompatible: "Seul l'ancien docker-compose v1 a été trouvé et il ne peut pas lire le fichier compose de cette app ({path}). Installez le plugin Compose v2 : 'sudo apt install docker-compose-plugin', puis redémarrez le launcher."
 dockerfile_not_found: "Dockerfile introuvable : {path}. Vérifiez deployment_mode/Dockerfile dans la configuration du launcher."
 dockerfile_mode_needs_dockerpy: "Le mode dockerfile nécessite le paquet Python docker (docker-py), qui n'est pas disponible dans cette installation."
+
+# --- build readiness / capability gate (#54) ---
+buildx_too_old: "Le build Docker Compose délègue à buildx et nécessite buildx {required} ou plus récent, mais buildx {found} est installé. Installez un buildx plus récent : téléchargez le binaire pour votre plateforme depuis les releases docker/buildx, placez-le dans {path}, puis rendez-le exécutable avec 'chmod +x {path}'. Les paquets de distribution se sont révélés peu fiables pour cela."
+buildx_missing: "Le build Docker Compose délègue à buildx et nécessite buildx {required} ou plus récent, mais aucun plugin buildx n'a été trouvé. Installez buildx : téléchargez le binaire pour votre plateforme depuis les releases docker/buildx, placez-le dans {path}, puis rendez-le exécutable avec 'chmod +x {path}'. Les paquets de distribution se sont révélés peu fiables pour cela."
+app_requirement_too_old: "Cette app nécessite {component} {required} ou plus récent, mais {found} est installé. Mettez Docker à jour en conséquence."
+app_requirement_missing: "Cette app nécessite {component} {required} ou plus récent, mais {component} n'a pas pu être détecté. Installez ou mettez Docker à jour."
+compose_unreadable: "Fichier compose trouvé mais illisible : {path} ({error})."
+dockerfile_unreadable: "Dockerfile trouvé mais illisible : {path} ({error})."
+build_context_not_found: "Répertoire de contexte de build introuvable : {path}. Vérifiez build_context dans la configuration du launcher."

@@ -22,7 +22,7 @@ from typing import Any
 
 from docker_app_launcher import __version__
 from docker_app_launcher.config import LauncherConfig
-from docker_app_launcher.docker import dockerfile_backend, py_client
+from docker_app_launcher.docker import build_readiness, dockerfile_backend, py_client
 from docker_app_launcher.docker.command_runner import (
     DockerBuildProgress,
     OutputFn,
@@ -124,9 +124,11 @@ def change_internal_port(
 
     was_running = get_state(config) == "running"
     if was_running:
-        compose_error = _ensure_compose(config)
-        if compose_error is not None:
-            return compose_error
+        # An internal-port change forces an image REBUILD, so the full build
+        # capability gate applies (buildx included), not the light guard (#54).
+        build_error = _ensure_build_ready(config)
+        if build_error is not None:
+            return build_error
         stopped, stop_msg = stop(config)
         if not stopped:
             return False, stop_msg
@@ -251,13 +253,11 @@ def _dockerfile_up(
 ) -> tuple[bool, str] | None:
     """Dockerfile-mode build+run (#51): ``None`` on success, else the result.
 
-    Preconditions are hard errors with actionable messages (#32
-    philosophy): docker-py importable, Dockerfile present.
+    Preconditions are checked up front by :func:`_ensure_dockerfile_ready`
+    (docker-py importable, Dockerfile present and readable, build context
+    resolvable, app-declared engine/API floor) - collected before the build,
+    not discovered during it (#54).
     """
-    if not py_client.available():
-        return False, _t(config, "dockerfile_mode_needs_dockerpy")
-    if not config.dockerfile_path.is_file():
-        return False, _t(config, "dockerfile_not_found", path=config.dockerfile_path)
     _notify(on_step, _t(config, "building"))
     _progress(on_progress, None, _t(config, "building"))
     rc, detail = dockerfile_backend.up(config, on_output=on_output, on_progress=on_progress)
@@ -269,8 +269,10 @@ def _dockerfile_up(
 
 
 def _ensure_compose(config: LauncherConfig) -> tuple[bool, str] | None:
-    """The pre-build guard: ``None`` when compose is usable, else the
-    actionable ``(False, message)`` the caller returns as-is.
+    """The light compose guard for NON-build compose ops (logs, host-port
+    recreate): ``None`` when compose is usable, else the actionable
+    ``(False, message)``. No version/build-capability check - those callers
+    do not build, so buildx is irrelevant to them.
 
     Verified device failure without this guard (#48): the 20.10 CLI
     swallows the unknown word ``compose`` and dies on ``-p`` with the full
@@ -282,6 +284,31 @@ def _ensure_compose(config: LauncherConfig) -> tuple[bool, str] | None:
     if verdict == "legacy_incompatible":
         return False, _t(config, "compose_v1_incompatible", path=config.compose_path)
     return False, _t(config, "compose_missing")
+
+
+def _ensure_build_ready(config: LauncherConfig) -> tuple[bool, str] | None:
+    """The SINGLE compose-mode build capability gate (#54).
+
+    ``None`` when the toolchain can actually build this project, else the
+    collected, actionable ``(False, message)`` naming EVERY missing/too-old
+    link at once (compose file, frontend, buildx and any app-declared floor).
+    Runs BEFORE the build - a minutes-long build must never fail on a
+    precondition that was knowable up front - and must be called only after
+    :func:`check_docker` confirmed the daemon (engine/API versions need it).
+    """
+    blockers = build_readiness.compose_blockers(config)
+    if blockers:
+        return False, build_readiness.join_blockers(blockers)
+    return None
+
+
+def _ensure_dockerfile_ready(config: LauncherConfig) -> tuple[bool, str] | None:
+    """The dockerfile-mode build capability gate (#51/#54): capability, not
+    existence. ``None`` when ready, else the collected ``(False, message)``."""
+    blockers = build_readiness.dockerfile_blockers(config)
+    if blockers:
+        return False, build_readiness.join_blockers(blockers)
+    return None
 
 
 def _stream_compose(
@@ -332,12 +359,16 @@ def install(
         return False, _t(config, "docker_unavailable")
     if get_state(config) == "running":
         return True, _t(config, "already_installed")
+    # ONE capability gate per mode, BEFORE the build: collect every
+    # missing/too-old link so the whole chain surfaces in a single run (#54).
     if config.effective_deployment_mode == "compose":
-        if not config.compose_path.is_file():
-            return False, _t(config, "compose_not_found", path=config.compose_path)
-        compose_error = _ensure_compose(config)
-        if compose_error is not None:
-            return compose_error
+        build_error = _ensure_build_ready(config)
+        if build_error is not None:
+            return build_error
+    else:
+        dockerfile_error = _ensure_dockerfile_ready(config)
+        if dockerfile_error is not None:
+            return dockerfile_error
     port_free, _ = check_port(port)
     if not port_free:
         return False, _t(config, "port_occupied", port=port)
@@ -439,15 +470,22 @@ def start(
     both 'stopped' and a removed state.
     """
     _call(config, config.on_before_start)
-    if config.effective_deployment_mode == "compose":
-        compose_error = _ensure_compose(config)
-        if compose_error is not None:
-            return compose_error
     docker_ok, _ = check_docker()
     if not docker_ok:
         return False, _t(config, "docker_unavailable")
     if get_state(config) == "running":
         return True, _t(config, "already_running")
+    # Build capability gate BEFORE the (re)build - after the daemon check, so
+    # the engine/API versions are readable, and only when we are about to
+    # build (an already-running stack short-circuited above) (#54).
+    if config.effective_deployment_mode == "compose":
+        build_error = _ensure_build_ready(config)
+        if build_error is not None:
+            return build_error
+    else:
+        dockerfile_error = _ensure_dockerfile_ready(config)
+        if dockerfile_error is not None:
+            return dockerfile_error
     _notify(on_step, _t(config, "updating"))
     _progress(on_progress, 5, _t(config, "updating"))
     if config.effective_deployment_mode == "dockerfile":

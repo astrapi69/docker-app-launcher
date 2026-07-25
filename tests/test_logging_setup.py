@@ -97,7 +97,9 @@ class TestExcepthooks:
     """P1: uncaught exceptions must reach the log, not just an invisible stderr."""
 
     # The deliberate crash also reaches pytest's own thread hook (we chain
-    # foreign hooks by design), which turns it into this warning.
+    # foreign hooks by design), which turns it into this warning. (The related
+    # pytest-9 unraisable/tracemalloc teardown cascade is prevented centrally
+    # by pre-importing tracemalloc in conftest.)
     @pytest.mark.filterwarnings("ignore::pytest.PytestUnhandledThreadExceptionWarning")
     def test_thread_exception_is_logged(self, tmp_path, caplog) -> None:
         import threading

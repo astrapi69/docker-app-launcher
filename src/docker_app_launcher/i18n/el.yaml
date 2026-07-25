@@ -136,3 +136,12 @@ compose_missing: "Το Docker Compose δεν είναι διαθέσιμο. Εγ
 compose_v1_incompatible: "Βρέθηκε μόνο το παλιό docker-compose v1 και δεν μπορεί να διαβάσει το αρχείο compose της εφαρμογής ({path}). Εγκαταστήστε το πρόσθετο Compose v2: 'sudo apt install docker-compose-plugin' και επανεκκινήστε τον launcher."
 dockerfile_not_found: "Το Dockerfile δεν βρέθηκε: {path}. Ελέγξτε τις ρυθμίσεις deployment_mode/Dockerfile στη διαμόρφωση του launcher."
 dockerfile_mode_needs_dockerpy: "Η λειτουργία dockerfile χρειάζεται το πακέτο Python docker (docker-py), το οποίο δεν είναι διαθέσιμο σε αυτήν την εγκατάσταση."
+
+# --- build readiness / capability gate (#54) ---
+buildx_too_old: "Η κατασκευή του Docker Compose ανατίθεται στο buildx και χρειάζεται buildx {required} ή νεότερο, αλλά είναι εγκατεστημένο buildx {found}. Εγκαταστήστε νεότερο buildx: κατεβάστε το εκτελέσιμο για την πλατφόρμα σας από τα docker/buildx releases, τοποθετήστε το στο {path} και κάντε το εκτελέσιμο με 'chmod +x {path}'. Τα πακέτα διανομής αποδείχθηκαν αναξιόπιστα γι' αυτό."
+buildx_missing: "Η κατασκευή του Docker Compose ανατίθεται στο buildx και χρειάζεται buildx {required} ή νεότερο, αλλά δεν βρέθηκε πρόσθετο buildx. Εγκαταστήστε buildx: κατεβάστε το εκτελέσιμο για την πλατφόρμα σας από τα docker/buildx releases, τοποθετήστε το στο {path} και κάντε το εκτελέσιμο με 'chmod +x {path}'. Τα πακέτα διανομής αποδείχθηκαν αναξιόπιστα γι' αυτό."
+app_requirement_too_old: "Αυτή η εφαρμογή απαιτεί {component} {required} ή νεότερο, αλλά είναι εγκατεστημένο {found}. Ενημερώστε το Docker για να το καλύψετε."
+app_requirement_missing: "Αυτή η εφαρμογή απαιτεί {component} {required} ή νεότερο, αλλά δεν ήταν δυνατός ο εντοπισμός του {component}. Εγκαταστήστε ή ενημερώστε το Docker."
+compose_unreadable: "Το αρχείο compose βρέθηκε αλλά δεν είναι αναγνώσιμο: {path} ({error})."
+dockerfile_unreadable: "Το Dockerfile βρέθηκε αλλά δεν είναι αναγνώσιμο: {path} ({error})."
+build_context_not_found: "Ο κατάλογος build context δεν βρέθηκε: {path}. Ελέγξτε το build_context στη διαμόρφωση του launcher."

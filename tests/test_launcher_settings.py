@@ -269,6 +269,7 @@ class TestInternalPorts:
         assert captured["args"] == ("up", "--build", "-d")
 
     def test_change_stop_failure_aborts(self, iconfig, monkeypatch) -> None:
+        _make_repo(iconfig)  # the rebuild path now runs the build capability gate first (#54)
         monkeypatch.setattr(lifecycle, "check_docker", lambda: (True, "ok"))
         monkeypatch.setattr(lifecycle, "get_state", lambda c: "running")
         monkeypatch.setattr(lifecycle, "stop", lambda c: (False, "cannot stop"))

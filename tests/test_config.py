@@ -288,3 +288,22 @@ class TestWindowResizable:
         path = tmp_path / "launcher.json"
         path.write_text(json.dumps({"app_name": "X", "window_resizable": False}), encoding="utf-8")
         assert LauncherConfig.from_json(path).window_resizable is False
+
+
+class TestFromJsonRequire:
+    """#32: require=True turns a missing file into a loud FileNotFoundError."""
+
+    def test_missing_with_require_raises(self, tmp_path) -> None:
+        import pytest
+
+        with pytest.raises(FileNotFoundError, match="explicitly passed"):
+            LauncherConfig.from_json(tmp_path / "gone.json", require=True)
+
+    def test_missing_without_require_stays_fail_open(self, tmp_path) -> None:
+        cfg = LauncherConfig.from_json(tmp_path / "gone.json")
+        assert cfg.app_name  # all-defaults config, resolved
+
+    def test_existing_file_ignores_require(self, tmp_path) -> None:
+        path = tmp_path / "launcher.json"
+        path.write_text('{"app_name": "Real App"}', encoding="utf-8")
+        assert LauncherConfig.from_json(path, require=True).app_name == "Real App"

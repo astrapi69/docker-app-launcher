@@ -293,18 +293,26 @@ class LauncherConfig:
     # --- (de)serialization ------------------------------------------------
 
     @classmethod
-    def from_json(cls, path: str | Path) -> LauncherConfig:
+    def from_json(cls, path: str | Path, *, require: bool = False) -> LauncherConfig:
         """Load a config from ``path`` (or an all-defaults config if absent).
 
         Unknown keys are ignored so a config file written by a newer version
         never crashes an older launcher. The result is always
         :meth:`resolve`-d.
+
+        ``require=True`` raises :class:`FileNotFoundError` when the file is
+        missing (#32): an EXPLICITLY passed ``--config`` path that does not
+        exist is a deployment bug, and silently launching an all-defaults
+        "My App" window masked exactly that for several wrapper releases.
+        The implicit ``launcher.json`` lookup stays fail-open.
         """
         p = Path(path)
         if p.exists():
             data = json.loads(p.read_text(encoding="utf-8"))
             valid = {k: v for k, v in data.items() if k in cls.__dataclass_fields__}
             cfg = cls(**valid)
+        elif require:
+            raise FileNotFoundError(f"config file not found: {p} (explicitly passed via --config)")
         else:
             cfg = cls()
         cfg.resolve()

@@ -11,12 +11,45 @@ from docker_app_launcher.frontends import tk_window
 class TestParser:
     def test_defaults(self) -> None:
         args = __main__.build_parser().parse_args([])
-        assert args.config == "launcher.json"
+        # None = "not explicitly passed": main() then falls back to the
+        # implicit launcher.json lookup, which stays fail-open (#32).
+        assert args.config is None
         assert args.port is None
 
     def test_flags(self) -> None:
         args = __main__.build_parser().parse_args(["--install", "--port", "9000"])
         assert args.install is True and args.port == 9000
+
+
+class TestExplicitConfigPath:
+    """#32: an explicitly passed --config path that is missing is a
+    deployment bug and must fail loudly, never launch an all-defaults GUI."""
+
+    def test_missing_explicit_config_is_a_hard_error(self, tmp_path, capsys) -> None:
+        rc = __main__.main(["--config", str(tmp_path / "nope.json"), "--check"])
+        assert rc == 2
+        err = capsys.readouterr().err
+        assert "nope.json" in err and "not found" in err
+
+    def test_missing_explicit_config_never_reaches_the_action(self, tmp_path, monkeypatch) -> None:
+        def must_not_run():
+            raise AssertionError("action must not run with a broken --config")
+
+        monkeypatch.setattr(actions, "check_docker", must_not_run)
+        assert __main__.main(["--config", str(tmp_path / "nope.json"), "--check"]) == 2
+
+    def test_implicit_default_stays_fail_open(self, tmp_path, monkeypatch, capsys) -> None:
+        monkeypatch.chdir(tmp_path)  # no launcher.json here
+        monkeypatch.setattr(actions, "check_docker", lambda: (True, "Docker is running."))
+        rc = __main__.main(["--check"])
+        assert rc == 0
+        assert "running" in capsys.readouterr().out
+
+    def test_existing_explicit_config_is_loaded(self, tmp_path, monkeypatch, capsys) -> None:
+        path = tmp_path / "launcher.json"
+        path.write_text('{"app_name": "Cfg App"}', encoding="utf-8")
+        monkeypatch.setattr(actions, "get_state", lambda c: "running")
+        assert __main__.main(["--config", str(path), "--status"]) == 0
 
 
 class TestLogLevelFlag:

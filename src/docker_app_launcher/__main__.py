@@ -27,7 +27,12 @@ def build_parser() -> argparse.ArgumentParser:
         description="Configurable desktop launcher for Docker-based applications.",
     )
     parser.add_argument(
-        "--config", default="launcher.json", help="Path to the launcher config JSON (default: launcher.json)."
+        # default=None so an EXPLICIT path is distinguishable from the
+        # implicit launcher.json lookup: explicit-but-missing is a hard
+        # error (#32), the implicit default stays fail-open.
+        "--config",
+        default=None,
+        help="Path to the launcher config JSON (default: launcher.json).",
     )
     parser.add_argument("--port", type=int, default=None, help="Host port for the app (1024-65535).")
     parser.add_argument("--debug", action="store_true", help="Verbose logging to stderr.")
@@ -135,7 +140,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"docker-app-launcher {__version__}")
         return 0
 
-    config = LauncherConfig.from_json(args.config)
+    try:
+        config = LauncherConfig.from_json(args.config or "launcher.json", require=args.config is not None)
+    except FileNotFoundError as exc:
+        # A wrong explicit path used to silently launch an all-defaults
+        # "My App" window - only strace found the cause (#32).
+        print(f"Error: {exc}", file=sys.stderr)
+        logger.error("%s", exc)
+        return 2
     if args.log_level:
         config.log_level = args.log_level
     setup_logging(config, debug=args.debug)

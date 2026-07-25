@@ -145,3 +145,4 @@ app_requirement_missing: "이 앱은 {component} {required} 이상이 필요하�
 compose_unreadable: "Compose 파일을 찾았지만 읽을 수 없습니다: {path} ({error})."
 dockerfile_unreadable: "Dockerfile을 찾았지만 읽을 수 없습니다: {path} ({error})."
 build_context_not_found: "빌드 컨텍스트 디렉터리를 찾을 수 없습니다: {path}. launcher 설정의 build_context를 확인하세요."
+docker_permission_non_root_socket: "Docker가 이 엔드포인트에서 연결을 거부했습니다. 이것은 기존 root 소켓이 아니므로 여기서는 'docker' 그룹이 적용되지 않습니다. rootless Docker는 DOCKER_HOST를 $XDG_RUNTIME_DIR/docker.sock으로 설정하세요. 원격 엔드포인트는 접근 규칙을 확인하고, Docker Desktop은 실행 중인지 확인하세요."

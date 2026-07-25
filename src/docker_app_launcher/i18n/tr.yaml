@@ -145,3 +145,4 @@ app_requirement_missing: "Bu uygulama {component} {required} veya sonrasını ge
 compose_unreadable: "Compose dosyası bulundu ama okunamıyor: {path} ({error})."
 dockerfile_unreadable: "Dockerfile bulundu ama okunamıyor: {path} ({error})."
 build_context_not_found: "Derleme bağlamı dizini bulunamadı: {path}. Launcher yapılandırmasındaki build_context'i kontrol edin."
+docker_permission_non_root_socket: "Docker bu uç noktada bağlantıyı reddetti. Bu klasik root soketi değil, bu yüzden 'docker' grubu burada geçerli değil. rootless Docker için DOCKER_HOST'u $XDG_RUNTIME_DIR/docker.sock olarak ayarlayın; uzak bir uç nokta için erişim kurallarını kontrol edin; Docker Desktop için çalıştığından emin olun."

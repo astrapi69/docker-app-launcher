@@ -242,7 +242,7 @@ class TestDockerContextFallback:
         assert "Cannot connect to the Docker daemon" in r["detail"]
 
     def test_permission_denied_is_not_swept(self, config, monkeypatch) -> None:
-        def contexts_must_not_be_called():
+        def sweep_must_not_be_called(*a, **k):
             raise AssertionError("permission failures must not trigger the context sweep")
 
         monkeypatch.setattr("platform.system", lambda: "Linux")
@@ -250,7 +250,10 @@ class TestDockerContextFallback:
         monkeypatch.setattr(
             detection, "_docker_info_rc", lambda extra_env=None: (1, "permission denied while connecting")
         )
-        monkeypatch.setattr(detection, "_docker_contexts", contexts_must_not_be_called)
+        # Active endpoint reads as the root socket (empty context list -> default),
+        # so usermod is still offered, but the SWEEP must not run (#57 keeps #27).
+        monkeypatch.setattr(detection, "_docker_contexts", lambda: [])
+        monkeypatch.setattr(detection, "_sweep_other_contexts", sweep_must_not_be_called)
         r = detection.check_docker_detailed(config)
         assert "usermod -aG docker" in r["command"] and not r["running"]
 
@@ -367,13 +370,16 @@ class TestCheckDockerPermission:
         assert "log out" in msg.lower()  # the mandatory re-login hint
 
     def test_permission_never_triggers_context_sweep(self, monkeypatch) -> None:
-        def contexts_must_not_be_called():
+        def sweep_must_not_be_called(*a, **k):
             raise AssertionError("permission failures must not trigger the context sweep")
 
         monkeypatch.setattr(
             detection, "_docker_info_rc", lambda extra_env=None: (1, "permission denied while connecting")
         )
-        monkeypatch.setattr(detection, "_docker_contexts", contexts_must_not_be_called)
+        # The endpoint kind IS read (a single cheap `docker context ls`, #57),
+        # but the expensive multi-context SWEEP must still never run on permission.
+        monkeypatch.setattr(detection, "_docker_contexts", lambda: [])
+        monkeypatch.setattr(detection, "_sweep_other_contexts", sweep_must_not_be_called)
         ok, _ = detection.check_docker()
         assert ok is False
 
@@ -425,6 +431,9 @@ class TestAddUserToDockerGroup:
 
     def test_success_verifies_and_demands_relogin(self, config, monkeypatch) -> None:
         self._patch_linux(monkeypatch)
+        # The G1 guard reads the active endpoint first; pin it to the root socket
+        # so the self-repair proceeds without an extra context-ls shell-out.
+        monkeypatch.setattr(detection, "_active_context", lambda: ("default", "unix:///var/run/docker.sock"))
         calls: list[list[str]] = []
 
         def fake_run(cmd, **k):
@@ -754,3 +763,97 @@ class TestNativeApiDetection:
         monkeypatch.setattr(detection, "_docker_info_rc", fake_info_rc)
         assert detection._probe_endpoint("unix:///x.sock") is True
         assert seen_env == [{"DOCKER_HOST": "unix:///x.sock"}]
+
+
+class TestEndpointAwareDetection:
+    """G1 (#57) + G2 (#62): the docker-group fix is only correct on the classic
+    root socket, and the rootless socket must be probed."""
+
+    _ROOTLESS = "unix:///run/user/1000/docker.sock"
+    _ROOT = "unix:///var/run/docker.sock"
+
+    @pytest.mark.parametrize(
+        ("endpoint", "expected"),
+        [
+            ("unix:///var/run/docker.sock", True),
+            ("unix:///run/docker.sock", True),
+            ("unix:///run/user/1000/docker.sock", False),  # rootless
+            ("unix:///home/u/.docker/desktop/docker.sock", False),  # Desktop
+            ("tcp://192.168.1.5:2375", False),  # remote
+            ("npipe:////./pipe/docker_engine", False),  # Windows
+        ],
+    )
+    def test_is_local_root_socket(self, endpoint, expected, monkeypatch) -> None:
+        monkeypatch.delenv("XDG_RUNTIME_DIR", raising=False)
+        assert detection._is_local_root_socket(endpoint) is expected
+
+    def test_xdg_runtime_dir_socket_is_not_root(self, monkeypatch) -> None:
+        monkeypatch.setenv("XDG_RUNTIME_DIR", "/custom/run")
+        assert detection._is_local_root_socket("unix:///custom/run/docker.sock") is False
+
+    # --- G1: permission advice gated by endpoint kind ---
+
+    def test_check_docker_permission_on_root_offers_usermod(self, monkeypatch) -> None:
+        monkeypatch.setattr(detection, "_daemon_status", lambda: ("permission", "denied"))
+        monkeypatch.setattr(detection, "_active_context", lambda: ("default", self._ROOT))
+        ok, msg = detection.check_docker()
+        assert ok is False and "usermod -aG docker" in msg
+
+    def test_check_docker_permission_on_rootless_does_not_offer_usermod(self, monkeypatch) -> None:
+        monkeypatch.setattr(detection, "_daemon_status", lambda: ("permission", "denied"))
+        monkeypatch.setattr(detection, "_active_context", lambda: ("rootless", self._ROOTLESS))
+        ok, msg = detection.check_docker()
+        assert ok is False
+        assert "usermod -aG docker" not in msg
+        assert "DOCKER_HOST" in msg  # rootless-appropriate guidance
+
+    def test_detailed_permission_on_rootless_has_no_group_fix(self, config, monkeypatch) -> None:
+        monkeypatch.setattr("platform.system", lambda: "Linux")
+        monkeypatch.setattr("shutil.which", lambda _x: "/usr/bin/docker")
+        monkeypatch.setattr(detection, "_daemon_status", lambda: ("permission", "denied"))
+        monkeypatch.setattr(detection, "_active_context", lambda: ("rootless", self._ROOTLESS))
+        r = detection.check_docker_detailed(config)
+        assert r["can_fix_permission"] is False
+        assert "usermod" not in r["command"]
+
+    def test_detailed_permission_on_root_keeps_group_fix(self, config, monkeypatch) -> None:
+        monkeypatch.setattr("platform.system", lambda: "Linux")
+        monkeypatch.setattr("shutil.which", lambda _x: "/usr/bin/docker")
+        monkeypatch.setattr(detection, "_daemon_status", lambda: ("permission", "denied"))
+        monkeypatch.setattr(detection, "_active_context", lambda: ("default", self._ROOT))
+        r = detection.check_docker_detailed(config)
+        assert r["can_fix_permission"] is True and "usermod -aG docker" in r["command"]
+
+    def test_add_user_to_group_refuses_non_root_socket(self, config, monkeypatch) -> None:
+        monkeypatch.setattr("platform.system", lambda: "Linux")
+        monkeypatch.setattr(detection, "_active_context", lambda: ("rootless", self._ROOTLESS))
+        ran = {"pkexec": False}
+
+        def must_not_run(*a, **k):
+            ran["pkexec"] = True
+            return make_result()
+
+        monkeypatch.setattr(detection, "_run", must_not_run)
+        ok, _msg = detection.add_user_to_docker_group(config)
+        assert ok is False and ran["pkexec"] is False
+
+    # --- G2: rootless socket probed as a fallback ---
+
+    def test_rootless_socket_endpoint_from_xdg(self, monkeypatch) -> None:
+        monkeypatch.setenv("XDG_RUNTIME_DIR", "/run/user/1000")
+        monkeypatch.setattr("os.path.exists", lambda p: p == "/run/user/1000/docker.sock")
+        assert detection._rootless_socket_endpoint() == self._ROOTLESS
+
+    def test_rootless_socket_endpoint_none_without_xdg(self, monkeypatch) -> None:
+        monkeypatch.delenv("XDG_RUNTIME_DIR", raising=False)
+        assert detection._rootless_socket_endpoint() is None
+
+    def test_rootless_socket_probed_when_active_is_down(self, monkeypatch) -> None:
+        monkeypatch.setattr(detection, "_daemon_status", lambda: ("down", "cannot connect"))
+        monkeypatch.setattr(detection, "_docker_contexts", lambda: [])
+        monkeypatch.setattr(detection, "_active_context", lambda: ("default", self._ROOT))
+        monkeypatch.setattr(detection, "_rootless_socket_endpoint", lambda: self._ROOTLESS)
+        monkeypatch.setattr(detection, "_probe_endpoint", lambda ep: ep == self._ROOTLESS)
+        ok, msg = detection.check_docker()
+        assert ok is True and "rootless" in msg
+        assert docker_cli.docker_host_override() == self._ROOTLESS

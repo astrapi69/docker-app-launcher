@@ -38,11 +38,22 @@ from docker_app_launcher.subprocess_utils import subprocess_kwargs
 logger = logging.getLogger("docker_app_launcher.docker.detection")
 
 # Daemon up, socket refused us: the ONE case that must never read as
-# "not started" (#27).
+# "not started" (#27). Only correct for the classic ROOT daemon socket - see
+# _is_local_root_socket / _PERMISSION_MESSAGE_NON_ROOT (G1, #57).
 _PERMISSION_MESSAGE = (
     "Docker is running, but your user lacks permission (not in the 'docker' group). "
     "Run 'sudo usermod -aG docker $USER' AND then log out and back in (or reboot) - "
     "the group change only becomes active in a new login session."
+)
+
+# Same signal, but the active endpoint is NOT the classic root socket (rootless,
+# a remote DOCKER_HOST, or Docker Desktop's per-user socket). There the docker
+# group governs nothing, so 'usermod -aG docker' is wrong advice (G1, #57).
+_PERMISSION_MESSAGE_NON_ROOT = (
+    "Docker refused the connection on this endpoint. This is not the classic root "
+    "socket, so the 'docker' group does not apply here: for rootless Docker point "
+    "DOCKER_HOST at your user socket ($XDG_RUNTIME_DIR/docker.sock); for a remote "
+    "endpoint check its access rules; for Docker Desktop make sure it is running."
 )
 
 
@@ -116,6 +127,16 @@ def _sweep_other_contexts(
             logger.info("docker reachable via context %r (%s); overriding DOCKER_HOST", name, endpoint)
             _set_docker_host_override(endpoint)
             return name, endpoint
+    # The rootless socket is not a docker context, but it is the standard
+    # rootless endpoint - probe it as a last resort (G2, #62).
+    rootless = _rootless_socket_endpoint()
+    if rootless is not None and rootless != _active_context()[1]:
+        if on_step is not None and config is not None:
+            _notify(on_step, _t(config, "checking_context", context="rootless", endpoint=rootless))
+        if _probe_endpoint(rootless):
+            logger.info("docker reachable via the rootless socket (%s); overriding DOCKER_HOST", rootless)
+            _set_docker_host_override(rootless)
+            return "rootless", rootless
     return None
 
 
@@ -134,6 +155,42 @@ def _active_context() -> tuple[str, str]:
         if is_active:
             return name, endpoint
     return "default", os.environ.get("DOCKER_HOST", "unix:///var/run/docker.sock")
+
+
+def _is_local_root_socket(endpoint: str) -> bool:
+    """Whether ``endpoint`` is the classic ROOT daemon unix socket - the ONLY
+    place where docker-group membership governs access, so the only place where
+    ``usermod -aG docker`` is correct advice (G1, #57).
+
+    False for every non-classic endpoint: rootless / per-user sockets
+    (``$XDG_RUNTIME_DIR`` or ``/run/user/<uid>``), Docker Desktop's per-user
+    socket (``~/.docker/desktop/``), and non-unix endpoints (``tcp://``,
+    ``npipe://``).
+    """
+    if not endpoint.startswith("unix://"):
+        return False
+    path = endpoint[len("unix://") :]
+    xdg = os.environ.get("XDG_RUNTIME_DIR")
+    if xdg and path.startswith(xdg.rstrip("/") + "/"):
+        return False
+    if path.startswith("/run/user/"):
+        return False
+    return "/.docker/desktop/" not in path and "/docker/desktop/" not in path
+
+
+def _rootless_socket_endpoint() -> str | None:
+    """The rootless daemon socket (``$XDG_RUNTIME_DIR/docker.sock``) when it
+    exists on disk, else ``None`` (G2, #62).
+
+    Rootless Docker publishes its socket here, not at ``/var/run/docker.sock``
+    and not as a ``docker context``. Probing it lets a rootless user without a
+    configured ``DOCKER_HOST`` be detected instead of reported as "not started".
+    """
+    xdg = os.environ.get("XDG_RUNTIME_DIR")
+    if not xdg:
+        return None
+    path = os.path.join(xdg, "docker.sock")
+    return f"unix://{path}" if os.path.exists(path) else None
 
 
 def _probe_unix_socket(endpoint: str) -> str | None:
@@ -209,8 +266,11 @@ def check_docker() -> tuple[bool, str]:
     if status == "permission":
         # The daemon is (very likely) up - the socket exists but refused
         # us. Reporting "not started" here sends the user chasing
-        # systemctl for a service that already runs (#27).
-        return False, _PERMISSION_MESSAGE
+        # systemctl for a service that already runs (#27). The docker-group
+        # advice is only correct on the classic root socket (G1, #57).
+        if _is_local_root_socket(_active_context()[1]):
+            return False, _PERMISSION_MESSAGE
+        return False, _PERMISSION_MESSAGE_NON_ROOT
     fallback = _sweep_other_contexts()
     if fallback is not None:
         return True, f"Docker is running (via context '{fallback[0]}')."
@@ -275,9 +335,15 @@ def check_docker_detailed(config: LauncherConfig, *, on_step: ProgressFn | None 
             out["detail"] = _t(config, "docker_no_response")
             out["command"] = "sudo systemctl restart docker"
         elif status == "permission":
-            out["detail"] = _t(config, "docker_no_permission")
-            out["command"] = "sudo usermod -aG docker $USER"
-            out["can_fix_permission"] = True
+            # The docker-group fix only applies to the classic root socket.
+            # On rootless / remote / Desktop endpoints it is wrong advice, so
+            # offer diagnosis instead of the group self-repair (G1, #57).
+            if _is_local_root_socket(_active_context()[1]):
+                out["detail"] = _t(config, "docker_no_permission")
+                out["command"] = "sudo usermod -aG docker $USER"
+                out["can_fix_permission"] = True
+            else:
+                out["detail"] = _t(config, "docker_permission_non_root_socket")
         else:
             fallback = _sweep_other_contexts(config, on_step)
             if fallback is not None:
@@ -407,6 +473,10 @@ def add_user_to_docker_group(config: LauncherConfig) -> tuple[bool, str]:
     """
     if platform.system() != "Linux":
         return False, _t(config, "docker_group_failed", error="Linux only")
+    # Defensive: never usermod for a non-root endpoint even if a stale UI
+    # somehow offered it (G1, #57) - the group governs nothing there.
+    if not _is_local_root_socket(_active_context()[1]):
+        return False, _t(config, "docker_group_failed", error="not the root docker socket")
     user = getpass.getuser()
     try:
         result = _run(["pkexec", "usermod", "-aG", "docker", user], timeout=120.0)

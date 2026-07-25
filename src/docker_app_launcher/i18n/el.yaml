@@ -145,3 +145,4 @@ app_requirement_missing: "Αυτή η εφαρμογή απαιτεί {component
 compose_unreadable: "Το αρχείο compose βρέθηκε αλλά δεν είναι αναγνώσιμο: {path} ({error})."
 dockerfile_unreadable: "Το Dockerfile βρέθηκε αλλά δεν είναι αναγνώσιμο: {path} ({error})."
 build_context_not_found: "Ο κατάλογος build context δεν βρέθηκε: {path}. Ελέγξτε το build_context στη διαμόρφωση του launcher."
+docker_permission_non_root_socket: "Το Docker απέρριψε τη σύνδεση σε αυτό το endpoint, το οποίο δεν είναι το κλασικό root socket, οπότε η ομάδα 'docker' δεν ισχύει εδώ. Για rootless Docker ορίστε το DOCKER_HOST στο $XDG_RUNTIME_DIR/docker.sock; για απομακρυσμένο endpoint ελέγξτε τους κανόνες πρόσβασής του; για το Docker Desktop βεβαιωθείτε ότι εκτελείται."

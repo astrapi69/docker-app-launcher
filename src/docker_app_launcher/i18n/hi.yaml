@@ -145,3 +145,4 @@ app_requirement_missing: "यह ऐप {component} {required} या नया 
 compose_unreadable: "Compose फ़ाइल मिली पर पढ़ी नहीं जा सकी: {path} ({error})।"
 dockerfile_unreadable: "Dockerfile मिली पर पढ़ी नहीं जा सकी: {path} ({error})।"
 build_context_not_found: "बिल्ड कॉन्टेक्स्ट डायरेक्टरी नहीं मिली: {path}. launcher config में build_context जाँचें।"
+docker_permission_non_root_socket: "Docker ने इस एंडपॉइंट पर कनेक्शन अस्वीकार किया। यह क्लासिक root सॉकेट नहीं है, इसलिए 'docker' समूह यहाँ लागू नहीं होता। rootless Docker के लिए DOCKER_HOST को $XDG_RUNTIME_DIR/docker.sock पर सेट करें; रिमोट एंडपॉइंट के लिए उसके एक्सेस नियम जाँचें; Docker Desktop के लिए सुनिश्चित करें कि वह चल रहा है।"

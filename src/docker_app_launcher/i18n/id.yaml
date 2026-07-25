@@ -145,3 +145,6 @@ app_requirement_missing: "Aplikasi ini memerlukan {component} {required} atau le
 compose_unreadable: "Berkas compose ditemukan tetapi tidak terbaca: {path} ({error})."
 dockerfile_unreadable: "Dockerfile ditemukan tetapi tidak terbaca: {path} ({error})."
 build_context_not_found: "Direktori konteks build tidak ditemukan: {path}. Periksa build_context di konfigurasi launcher."
+disk_low: "Ruang disk untuk build sedikit: hanya {free} bebas di {path}, di bawah {needed} yang kemungkinan dibutuhkan sebuah build. Kosongkan ruang, atau setel min_build_disk_bytes ke 0 untuk melewati pemeriksaan ini."
+install_needs_network: "Pemasangan membutuhkan koneksi internet sekarang untuk mengunduh image dasar. Aplikasinya sendiri berjalan luring setelah terpasang."
+build_failed_network: "Build tidak dapat menjangkau jaringan untuk mengunduh image: {detail}. Periksa koneksi internet atau proxy Anda, lalu coba lagi."

@@ -145,3 +145,6 @@ app_requirement_missing: "이 앱은 {component} {required} 이상이 필요하�
 compose_unreadable: "Compose 파일을 찾았지만 읽을 수 없습니다: {path} ({error})."
 dockerfile_unreadable: "Dockerfile을 찾았지만 읽을 수 없습니다: {path} ({error})."
 build_context_not_found: "빌드 컨텍스트 디렉터리를 찾을 수 없습니다: {path}. launcher 설정의 build_context를 확인하세요."
+disk_low: "빌드를 위한 디스크 공간이 부족합니다: {path}에 {free}만 남아 있어 빌드에 필요할 것으로 보이는 {needed}보다 적습니다. 공간을 확보하거나 min_build_disk_bytes를 0으로 설정해 이 검사를 건너뛰세요."
+install_needs_network: "설치하려면 지금 베이스 이미지를 내려받기 위한 인터넷 연결이 필요합니다. 앱 자체는 설치 후 오프라인으로 실행됩니다."
+build_failed_network: "빌드가 이미지를 내려받기 위해 네트워크에 연결하지 못했습니다: {detail}. 인터넷 연결 또는 프록시를 확인한 뒤 다시 시도하세요."

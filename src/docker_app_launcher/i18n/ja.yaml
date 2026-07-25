@@ -145,3 +145,6 @@ app_requirement_missing: "このアプリは {component} {required} 以降を必
 compose_unreadable: "Compose ファイルは見つかりましたが読み取れません: {path} ({error})。"
 dockerfile_unreadable: "Dockerfile は見つかりましたが読み取れません: {path} ({error})。"
 build_context_not_found: "ビルドコンテキストのディレクトリが見つかりません: {path}。launcher 設定の build_context を確認してください。"
+disk_low: "ビルド用のディスク空き容量が不足しています: {path} に {free} しか空きがなく、ビルドに必要とみられる {needed} を下回っています。空き容量を確保するか、min_build_disk_bytes を 0 に設定してこのチェックを省略してください。"
+install_needs_network: "インストールにはベースイメージをダウンロードするためのインターネット接続が今必要です。アプリ自体はインストール後オフラインで動作します。"
+build_failed_network: "ビルドがイメージをダウンロードするためにネットワークへ到達できませんでした: {detail}。インターネット接続またはプロキシを確認して再試行してください。"

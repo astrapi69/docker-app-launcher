@@ -145,3 +145,6 @@ app_requirement_missing: "Diese App verlangt {component} {required} oder neuer, 
 compose_unreadable: "Compose-Datei gefunden, aber nicht lesbar: {path} ({error})."
 dockerfile_unreadable: "Dockerfile gefunden, aber nicht lesbar: {path} ({error})."
 build_context_not_found: "Build-Kontext-Verzeichnis nicht gefunden: {path}. build_context in der Launcher-Konfiguration prüfen."
+disk_low: "Wenig Speicherplatz für den Build: nur {free} frei auf {path}, unter den {needed}, die ein Build voraussichtlich braucht. Speicher freigeben oder min_build_disk_bytes auf 0 setzen, um diese Prüfung zu überspringen."
+install_needs_network: "Die Installation braucht jetzt eine Internetverbindung, um die Basis-Images herunterzuladen. Die App selbst läuft nach der Installation offline."
+build_failed_network: "Der Build konnte das Netzwerk nicht erreichen, um Images herunterzuladen: {detail}. Internetverbindung oder Proxy prüfen und erneut versuchen."

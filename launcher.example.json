@@ -16,6 +16,7 @@
   "build_timeout": 600,
   "start_timeout": 120,
   "stop_timeout": 30,
+  "min_build_disk_bytes": 2000000000,
   "estimated_build_steps": 0,
 
   "docker_desktop_path": "",

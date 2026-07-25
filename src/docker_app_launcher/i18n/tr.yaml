@@ -145,3 +145,6 @@ app_requirement_missing: "Bu uygulama {component} {required} veya sonrasını ge
 compose_unreadable: "Compose dosyası bulundu ama okunamıyor: {path} ({error})."
 dockerfile_unreadable: "Dockerfile bulundu ama okunamıyor: {path} ({error})."
 build_context_not_found: "Derleme bağlamı dizini bulunamadı: {path}. Launcher yapılandırmasındaki build_context'i kontrol edin."
+disk_low: "Derleme için disk alanı az: {path} üzerinde yalnızca {free} boş, bir derlemenin muhtemelen ihtiyaç duyacağı {needed} altında. Yer açın veya bu kontrolü atlamak için min_build_disk_bytes değerini 0 yapın."
+install_needs_network: "Kurulum, temel imgeleri indirmek için şimdi internet bağlantısına ihtiyaç duyuyor. Uygulamanın kendisi kurulduktan sonra çevrimdışı çalışır."
+build_failed_network: "Derleme, imgeleri indirmek için ağa erişemedi: {detail}. İnternet bağlantınızı veya proxy'yi kontrol edip yeniden deneyin."

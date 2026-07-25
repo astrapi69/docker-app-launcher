@@ -145,3 +145,6 @@ app_requirement_missing: "Αυτή η εφαρμογή απαιτεί {component
 compose_unreadable: "Το αρχείο compose βρέθηκε αλλά δεν είναι αναγνώσιμο: {path} ({error})."
 dockerfile_unreadable: "Το Dockerfile βρέθηκε αλλά δεν είναι αναγνώσιμο: {path} ({error})."
 build_context_not_found: "Ο κατάλογος build context δεν βρέθηκε: {path}. Ελέγξτε το build_context στη διαμόρφωση του launcher."
+disk_low: "Λίγος χώρος στον δίσκο για το build: μόνο {free} ελεύθερα στο {path}, κάτω από τα {needed} που πιθανότατα θα χρειαστεί ένα build. Ελευθερώστε χώρο ή ορίστε το min_build_disk_bytes σε 0 για να παραλείψετε αυτόν τον έλεγχο."
+install_needs_network: "Η εγκατάσταση χρειάζεται τώρα σύνδεση στο διαδίκτυο για να κατεβάσει τις βασικές εικόνες. Η ίδια η εφαρμογή λειτουργεί εκτός σύνδεσης μετά την εγκατάσταση."
+build_failed_network: "Το build δεν μπόρεσε να προσεγγίσει το δίκτυο για να κατεβάσει εικόνες: {detail}. Ελέγξτε τη σύνδεσή σας στο διαδίκτυο ή τον proxy και δοκιμάστε ξανά."

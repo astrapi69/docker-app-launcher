@@ -134,6 +134,11 @@ class LauncherConfig:
     build_timeout: int = 600
     start_timeout: int = 120
     stop_timeout: int = 30
+    # Free-space floor (bytes) checked on the build directory BEFORE a build,
+    # so a multi-minute build does not fail deep in on ENOSPC (G4, #61). The
+    # default (~2 GB) is advisory - a clearly-insufficient signal, not a precise
+    # estimate. Set to 0 to disable the check.
+    min_build_disk_bytes: int = 2_000_000_000
     # Hint for the build progress bar: the number of build steps to expect. 0 =
     # auto-detect from the streamed ``docker build`` output (best-effort, the
     # percentage converges as the build proceeds); set it (e.g. 38) for a smooth

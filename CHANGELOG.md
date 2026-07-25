@@ -8,6 +8,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Pre-build environment pre-flight (#61, #59).** Two checks now happen
+  before a multi-minute build instead of failing deep inside it. A **disk
+  pre-check** (`min_build_disk_bytes`, ~2 GB advisory default, 0 disables)
+  flags clearly-insufficient free space on the build directory with an
+  actionable message (#61). And because the app is offline-first but INSTALL
+  needs the network to pull base images, install now **warns up front that
+  internet is required** and **classifies a network/DNS build failure
+  distinctly** from other build errors (#59). New i18n keys in all 11
+  catalogs. Part of the environment matrix (#56).
+
+### Added
+
 - **Build capability gate: readiness now proves capability, not existence
   (#54).** The compose path had an unwritten version chain (engine -> CLI ->
   compose plugin -> buildx) and the old ladder only proved the plugin

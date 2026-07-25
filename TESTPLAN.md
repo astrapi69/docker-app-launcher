@@ -39,3 +39,20 @@ echo '{"app_name":"Test","container_name":"test"}' > /tmp/test.json
 docker-app-launcher --config /tmp/test.json --check
 docker-app-launcher --config /tmp/test.json        # opens the window
 ```
+
+## Environment matrix (real Docker, opt-in - not part of `make ci`)
+
+The environment targets, the launcher assumptions checked against them, and
+the prioritized gaps live in [`docs/environment-matrix.md`](docs/environment-matrix.md).
+Containerizable cells run via throwaway `--privileged` containers with a real
+nested `dockerd`, exactly like the `#27` signal harness:
+
+```bash
+tests/integration/run_docker_signal_integration.sh   # permission vs down, real socket
+tests/integration/run_pkexec_integration.sh          # real pkexec usermod self-repair
+tests/integration/run_env_matrix_integration.sh      # env cells: no_compose / no_docker / no_group
+```
+
+Cells that cannot be containerized (macOS/Windows binaries, Docker Desktop,
+rootless, Snap, a real docker-group re-login) are the manual checklist in
+`docs/environment-matrix.md`, Part 2.

@@ -105,4 +105,8 @@ jobs:
           VERSION=$(python -c "import docker_app_launcher; print(docker_app_launcher.__version__)")
           python tests/frozen/assert_render_probe.py \
             --expect-version "$VERSION" \
-            --expect-app-name "Frozen Probe App" < /tmp/probe.json
+            --expect-app-name "Frozen Probe App" < /tmp/probe.json || {
+              echo "--- probe.json head (od -c), so a parse failure is diagnosable ---"
+              head -c 600 /tmp/probe.json | od -c | head -30
+              exit 1
+            }

@@ -65,8 +65,21 @@ class TestButtonStates:
         assert "apply_port" in gui.PRIMARY_BUTTONS
         assert "copy_log" in gui.PRIMARY_BUTTONS
 
-    def test_secondary_is_cleanup_background_info(self) -> None:
-        assert gui.SECONDARY_BUTTONS == ["cleanup", "background", "info"]
+    def test_secondary_is_cleanup_logs_background_info(self) -> None:
+        assert gui.SECONDARY_BUTTONS == ["cleanup", "app_logs", "background", "info"]
+
+    def test_app_logs_enabled_only_when_containers_exist(self) -> None:
+        assert gui.button_enabled("running", "app_logs") is True
+        assert gui.button_enabled("stopped", "app_logs") is True  # crashed container's last words
+        assert gui.button_enabled("not_installed", "app_logs") is False
+        assert gui.button_enabled("no_docker", "app_logs") is False
+
+    def test_app_logs_dispatches_to_actions(self, monkeypatch) -> None:
+        from docker_app_launcher import actions, ui_model
+
+        monkeypatch.setattr(actions, "app_logs", lambda cfg: (True, "web-1 | ready"))
+        cfg = LauncherConfig(app_name="X").resolve()
+        assert ui_model.dispatch_action("app_logs", cfg) == (True, "web-1 | ready")
 
 
 class TestDisabledReason:
@@ -371,7 +384,7 @@ def _cleanup_app(monkeypatch: pytest.MonkeyPatch) -> tuple[gui.LauncherApp, dict
     app = gui.LauncherApp.__new__(gui.LauncherApp)
     app._cfg = LauncherConfig(app_name="X").resolve()
     calls: dict[str, Any] = {"logged": [], "offered": []}
-    monkeypatch.setattr("docker_app_launcher.gui.threading.Thread", _ImmediateThread)
+    monkeypatch.setattr("docker_app_launcher.frontends.tk_window.threading.Thread", _ImmediateThread)
     monkeypatch.setattr(app, "after", lambda ms, fn: fn())
     monkeypatch.setattr(app, "_log", lambda msg, **kw: calls["logged"].append(msg))
     monkeypatch.setattr(app, "_show_cleanup_offer", lambda stale: calls["offered"].append(stale))
@@ -491,3 +504,59 @@ class TestAboutAppVersion:
         text = "\n".join(ui_model.about_lines(cfg))
         assert "App: X" in text
         assert "(unknown)" not in text
+
+
+class TestLogPanelMirror:
+    """P0: every log-panel line must also reach the logging system, so the
+    persistent launcher.log carries what the user saw on screen."""
+
+    def test_info_line_logged_at_info(self, caplog) -> None:
+        from docker_app_launcher import ui_model
+
+        with caplog.at_level("INFO", logger="docker_app_launcher.ui.panel"):
+            ui_model.log_panel_line("Docker is running.")
+        assert caplog.records[0].levelname == "INFO"
+        assert "Docker is running." in caplog.records[0].message
+
+    def test_err_line_logged_at_error(self, caplog) -> None:
+        from docker_app_launcher import ui_model
+
+        with caplog.at_level("INFO", logger="docker_app_launcher.ui.panel"):
+            ui_model.log_panel_line("build failed", "err")
+        assert caplog.records[0].levelname == "ERROR"
+
+    def test_ok_and_unknown_tags_fall_back_to_info(self, caplog) -> None:
+        from docker_app_launcher import ui_model
+
+        with caplog.at_level("INFO", logger="docker_app_launcher.ui.panel"):
+            ui_model.log_panel_line("done", "ok")
+            ui_model.log_panel_line("odd", "sparkly")
+        assert [r.levelname for r in caplog.records] == ["INFO", "INFO"]
+
+
+class TestRunGuarded:
+    """P1: a crashing worker body becomes an ordinary failed result."""
+
+    def test_passes_result_through(self) -> None:
+        from docker_app_launcher import ui_model
+
+        assert ui_model.run_guarded("x", lambda: (True, "fine")) == (True, "fine")
+
+    def test_none_result_passes_through(self) -> None:
+        from docker_app_launcher import ui_model
+
+        assert ui_model.run_guarded("open", lambda: None) is None
+
+    def test_exception_becomes_failed_result(self, caplog) -> None:
+        from docker_app_launcher import ui_model
+
+        def boom() -> tuple[bool, str]:
+            raise ValueError("port table corrupt")
+
+        with caplog.at_level("ERROR", logger="docker_app_launcher.ui_model"):
+            result = ui_model.run_guarded("change_port", boom)
+        assert result is not None
+        ok, msg = result
+        assert ok is False
+        assert "ValueError" in msg and "port table corrupt" in msg
+        assert any(r.exc_info and "change_port" in r.message for r in caplog.records)

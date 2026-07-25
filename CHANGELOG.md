@@ -6,7 +6,41 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **"App logs" button (P2).** New secondary button (all three frontends)
+  that fetches the tail of the app's container logs via
+  `docker compose logs --tail` — enabled while running AND stopped, since a
+  crashed container's last lines are exactly what a bug report needs. Tail
+  length configurable via `LauncherConfig.log_tail_lines` (default 200);
+  new `actions.app_logs()` for CLI↔GUI parity; localized in all 11
+  languages.
+- **`--log-level` CLI flag (P3).** Overrides the config's `log_level` per
+  run (`--debug` still wins over both).
+
 ### Fixed
+
+- **Swallowed messages (P0/P1).** A systematic audit of "the launcher eats
+  its output" found and closed five gaps:
+  - `launch()` (the wrapper-app API) never configured logging, so wrapper
+    runs had NO handlers at all — it now calls `setup_logging()` (opt-out:
+    `configure_logging=False`), which is also idempotent (no duplicated
+    handlers/lines on repeated setup).
+  - Failed docker subprocesses only ever logged at DEBUG; failures
+    (non-zero exit, timeout, missing binary) now log at WARNING with the
+    stderr tail — expected-to-fail status probes stay at DEBUG.
+  - The GUI log panel was write-only into the widget; every panel line is
+    now mirrored into `launcher.log` (`err` lines at ERROR).
+  - Uncaught exceptions vanished to an invisible stderr: Tk callback
+    exceptions are now logged AND shown in the panel
+    (`report_callback_exception`), and process-wide `sys.excepthook` /
+    `threading.excepthook` log uncaught crashes.
+  - A crash inside a worker thread left the window stuck in its busy
+    state; worker bodies are now guarded (`run_guarded`) so a crash
+    becomes a normal failed result that re-enables the buttons.
+  - The always-on stream log handler moved from stdout to stderr so
+    machine-readable output (`--render-probe` JSON, `--status`) stays
+    clean.
 
 - **EACCES no longer misclassified as daemon-down (#27 reopened).** Device
   verification on the frozen v0.16.0 binary showed the daemon-down flow

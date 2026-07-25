@@ -21,7 +21,8 @@ from typing import Any
 
 from docker_app_launcher import actions, i18n, tray, update_check
 from docker_app_launcher.config import LOCALE_LABELS, LauncherConfig, locale_for_label
-from docker_app_launcher.gui import _set_window_icon, _Tooltip
+from docker_app_launcher.frontends.tk_window import _set_window_icon
+from docker_app_launcher.frontends.tooltip import Tooltip as _Tooltip
 from docker_app_launcher.ui_model import (
     _STATE_KEYS,
     BUTTON_LABELS,
@@ -36,12 +37,14 @@ from docker_app_launcher.ui_model import (
     dispatch_action,
     internal_port_fields,
     issue_tracker_url,
+    log_panel_line,
     port_editable,
+    run_guarded,
     should_keep_alive_on_close,
     window_title,
 )
 
-logger = logging.getLogger("docker_app_launcher.frontends.ctk")
+logger = logging.getLogger("docker_app_launcher.frontends.ctk_window")
 
 try:
     import customtkinter as ctk
@@ -162,6 +165,7 @@ if HAS_CTK:
                 "uninstall": self._confirm_uninstall,
                 "copy_log": self._copy_log,
                 "cleanup": self._run_manual_cleanup,
+                "app_logs": functools.partial(self._on_action, "app_logs"),
                 "background": self._go_background,
                 "apply_port": functools.partial(self._on_action, "change_port"),
                 "info": self._show_about,
@@ -179,10 +183,18 @@ if HAS_CTK:
         # --- log ---
 
         def _log(self, line: str, *, tag: str = "info") -> None:
+            log_panel_line(line, tag)
             self._status.configure(state="normal")
             self._status.insert("end", line + "\n")
             self._status.see("end")
             self._status.configure(state="disabled")
+
+        def report_callback_exception(self, exc_type: type, exc_value: BaseException, exc_tb: object) -> None:
+            """Tk swallows callback exceptions (stderr only, invisible from a
+            .desktop launch). Log them AND surface them in the panel (P1)."""
+            logger.error("uncaught exception in Tk callback", exc_info=(exc_type, exc_value, exc_tb))  # type: ignore[arg-type]
+            with contextlib.suppress(Exception):
+                self._log(self._t("error", msg=str(exc_value)), tag="err")
 
         def _clear_status(self) -> None:
             self._status.configure(state="normal")
@@ -277,14 +289,17 @@ if HAS_CTK:
             self._set_busy(True)
 
             def worker() -> None:
-                if info.get("platform") == "Linux":
-                    result = actions.start_docker_daemon()
-                else:
-                    result = actions.start_docker_desktop(self._cfg)
-                if result[0]:  # started - now wait for the daemon (VM boot, #28)
-                    result = actions.wait_for_docker(self._cfg, on_progress=self._on_progress)
-                    self.after(0, self._hide_progress)
-                self.after(0, lambda: self._on_result("start_docker", result))
+                def body() -> tuple[bool, str]:
+                    if info.get("platform") == "Linux":
+                        result = actions.start_docker_daemon()
+                    else:
+                        result = actions.start_docker_desktop(self._cfg)
+                    if result[0]:  # started - now wait for the daemon (VM boot, #28)
+                        result = actions.wait_for_docker(self._cfg, on_progress=self._on_progress)
+                        self.after(0, self._hide_progress)
+                    return result
+
+                self.after(0, functools.partial(self._on_result, "start_docker", run_guarded("start_docker", body)))
 
             threading.Thread(target=worker, daemon=True).start()
 
@@ -314,7 +329,7 @@ if HAS_CTK:
             self._set_busy(True)
 
             def worker() -> None:
-                result = actions.add_user_to_docker_group(self._cfg)
+                result = run_guarded("fix_permission", lambda: actions.add_user_to_docker_group(self._cfg))
                 self.after(0, lambda: self._on_result("fix_permission", result))
 
             threading.Thread(target=worker, daemon=True).start()
@@ -367,7 +382,10 @@ if HAS_CTK:
                 self.after(0, lambda: self._log(label))
 
             def worker() -> None:
-                result = actions.change_internal_port(self._cfg, name, port, on_step=step, on_output=step)
+                result = run_guarded(
+                    "change_internal_port",
+                    lambda: actions.change_internal_port(self._cfg, name, port, on_step=step, on_output=step),
+                )
                 self.after(0, lambda: self._on_result("change_internal_port", result))
 
             threading.Thread(target=worker, daemon=True).start()
@@ -441,7 +459,10 @@ if HAS_CTK:
                 self.after(0, lambda: self._log(label))
 
             def worker() -> None:
-                result = actions.cleanup_stale(self._cfg, stale, on_step=step, on_progress=self._on_progress)
+                result = run_guarded(
+                    "cleanup",
+                    lambda: actions.cleanup_stale(self._cfg, stale, on_step=step, on_progress=self._on_progress),
+                )
                 self.after(0, lambda: self._on_result("cleanup", result))
 
             threading.Thread(target=worker, daemon=True).start()
@@ -489,8 +510,11 @@ if HAS_CTK:
                 self.after(0, functools.partial(self._log, line))
 
             def worker() -> None:
-                result = dispatch_action(
-                    action_id, self._cfg, port=port, on_step=step, on_output=output, on_progress=self._on_progress
+                result = run_guarded(
+                    action_id,
+                    lambda: dispatch_action(
+                        action_id, self._cfg, port=port, on_step=step, on_output=output, on_progress=self._on_progress
+                    ),
                 )
                 self.after(0, lambda: self._on_result(action_id, result))
 

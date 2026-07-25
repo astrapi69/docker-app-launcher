@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import docker_app_launcher
-from docker_app_launcher import gui
 from docker_app_launcher.config import LauncherConfig
+from docker_app_launcher.frontends import tk_window
 
 
 class TestLaunch:
@@ -15,7 +15,7 @@ class TestLaunch:
             received.append(config)
             return 0
 
-        monkeypatch.setattr(gui, "run", fake_run)
+        monkeypatch.setattr(tk_window, "run", fake_run)
         config = LauncherConfig(app_name="My App", default_port=8080)
         assert docker_app_launcher.launch(config) == 0
         assert received[0] is config
@@ -28,11 +28,30 @@ class TestLaunch:
             received.append(config)
             return 0
 
-        monkeypatch.setattr(gui, "run", fake_run)
+        monkeypatch.setattr(tk_window, "run", fake_run)
         assert docker_app_launcher.launch(app_name="Kw App", default_port=9090) == 0
         assert received[0].app_name == "Kw App"
         assert received[0].default_port == 9090
 
     def test_launch_propagates_exit_code(self, monkeypatch) -> None:
-        monkeypatch.setattr(gui, "run", lambda config, **k: 3)
+        monkeypatch.setattr(tk_window, "run", lambda config, **k: 3)
         assert docker_app_launcher.launch(app_name="X") == 3
+
+    def test_launch_configures_logging(self, monkeypatch) -> None:
+        from docker_app_launcher import logging_setup
+
+        calls: list[LauncherConfig] = []
+        monkeypatch.setattr(logging_setup, "setup_logging", lambda config, **k: calls.append(config))
+        monkeypatch.setattr(tk_window, "run", lambda config, **k: 0)
+        docker_app_launcher.launch(app_name="Log App")
+        assert len(calls) == 1
+        assert calls[0].app_name == "Log App"
+
+    def test_launch_configure_logging_false_skips_setup(self, monkeypatch) -> None:
+        from docker_app_launcher import logging_setup
+
+        calls: list[LauncherConfig] = []
+        monkeypatch.setattr(logging_setup, "setup_logging", lambda config, **k: calls.append(config))
+        monkeypatch.setattr(tk_window, "run", lambda config, **k: 0)
+        docker_app_launcher.launch(app_name="Silent App", configure_logging=False)
+        assert calls == []

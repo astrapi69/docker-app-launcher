@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from docker_app_launcher import __main__, __version__, actions, gui, lockfile
+from docker_app_launcher import __main__, __version__, actions, lockfile
+from docker_app_launcher.frontends import tk_window
 
 
 class TestParser:
@@ -16,6 +17,34 @@ class TestParser:
     def test_flags(self) -> None:
         args = __main__.build_parser().parse_args(["--install", "--port", "9000"])
         assert args.install is True and args.port == 9000
+
+
+class TestLogLevelFlag:
+    """P3: the log level is configurable per run, not only via config JSON."""
+
+    def test_defaults_to_none(self) -> None:
+        assert __main__.build_parser().parse_args([]).log_level is None
+
+    def test_accepts_known_levels(self) -> None:
+        assert __main__.build_parser().parse_args(["--log-level", "WARNING"]).log_level == "WARNING"
+
+    def test_rejects_unknown_level(self, capsys) -> None:
+        with pytest.raises(SystemExit):
+            __main__.build_parser().parse_args(["--log-level", "CHATTY"])
+
+    def test_overrides_config_log_level(self, monkeypatch, capsys) -> None:
+        import logging
+
+        monkeypatch.setattr(actions, "check_docker", lambda: (True, "ok"))
+        __main__.main(["--log-level", "ERROR", "--check"])
+        assert logging.getLogger().level == logging.ERROR
+
+    def test_debug_flag_beats_log_level(self, monkeypatch) -> None:
+        import logging
+
+        monkeypatch.setattr(actions, "check_docker", lambda: (True, "ok"))
+        __main__.main(["--log-level", "ERROR", "--debug", "--check"])
+        assert logging.getLogger().level == logging.DEBUG
 
 
 class TestVersion:
@@ -89,7 +118,7 @@ class TestPortFlag:
 class TestGuiFallback:
     def test_no_action_launches_window(self, monkeypatch) -> None:
         launched: dict[str, object] = {}
-        monkeypatch.setattr(gui, "run", lambda c, **k: launched.setdefault("v", 0) or 0)
+        monkeypatch.setattr(tk_window, "run", lambda c, **k: launched.setdefault("v", 0) or 0)
         rc = __main__.main([])
         assert rc == 0 and "v" in launched
 
@@ -101,7 +130,7 @@ class TestSingleInstance:
         def boom(*a, **k):
             raise AssertionError("a second instance must not open a window")
 
-        monkeypatch.setattr(gui, "run", boom)
+        monkeypatch.setattr(tk_window, "run", boom)
         rc = __main__.main([])
         assert rc == 0
         assert "already running" in capsys.readouterr().out.lower()
@@ -117,7 +146,7 @@ class TestSingleInstance:
 
         monkeypatch.setattr(lockfile, "another_instance_alive", boom)
         launched: dict[str, object] = {}
-        monkeypatch.setattr(gui, "run", lambda c, **k: launched.setdefault("v", 0) or 0)
+        monkeypatch.setattr(tk_window, "run", lambda c, **k: launched.setdefault("v", 0) or 0)
         rc = __main__.main(["--config", str(cfg_path)])
         assert rc == 0 and "v" in launched
 
@@ -130,7 +159,7 @@ class TestSingleInstance:
             state["existed_during"] = config.lock_path.is_file()
             return 0
 
-        monkeypatch.setattr(gui, "run", fake_run)
+        monkeypatch.setattr(tk_window, "run", fake_run)
         rc = __main__.main([])
         assert rc == 0
         assert state["existed_during"] is True

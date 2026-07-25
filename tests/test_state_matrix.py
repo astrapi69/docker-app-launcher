@@ -132,7 +132,7 @@ def _build_window(frontend: str, matrix_state) -> _WindowAdapter:
 
         return _WindowAdapter("tk", window, refresh_tk, window.destroy)
     if frontend == "ctk":
-        from docker_app_launcher.frontends import ctk as ctk_frontend
+        from docker_app_launcher.frontends import ctk_window as ctk_frontend
         from tests.test_gui_window import _display_available, _keep_off_screen
 
         if not ctk_frontend.HAS_CTK:
@@ -150,7 +150,7 @@ def _build_window(frontend: str, matrix_state) -> _WindowAdapter:
         return _WindowAdapter("ctk", ctk_window, refresh_ctk, ctk_window.destroy)
     if frontend == "qt":
         os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-        from docker_app_launcher.frontends import qt as qt_frontend
+        from docker_app_launcher.frontends import qt_window as qt_frontend
 
         if not qt_frontend.HAS_QT:
             pytest.skip("PySide6 not installed")

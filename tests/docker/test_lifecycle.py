@@ -16,6 +16,7 @@ from contextlib import contextmanager
 
 import pytest
 
+from docker_app_launcher import i18n
 from docker_app_launcher import launcher_settings as settings
 from docker_app_launcher.config import LauncherConfig
 
@@ -24,6 +25,7 @@ from docker_app_launcher.config import LauncherConfig
 from docker_app_launcher.docker import compose_runtime as _compose_runtime
 from docker_app_launcher.docker import inventory
 from docker_app_launcher.docker import lifecycle as lifecycle
+from docker_app_launcher.docker.command_runner import BuildCancelled
 from tests.conftest import make_result
 
 _REAL_COMPOSE_PROBE = _compose_runtime._probe
@@ -326,12 +328,12 @@ class TestBuildCancellation:
         monkeypatch.setattr(lifecycle, "check_port", lambda p, **k: (True, "free"))
 
         def cancel(c, *a, **k):
-            raise lifecycle.BuildCancelled("docker compose build")
+            raise BuildCancelled("docker compose build")
 
         monkeypatch.setattr(lifecycle, "_stream_compose", cancel)
         ok, msg = lifecycle.install(config, should_cancel=lambda: True)
         assert ok is False
-        assert msg == lifecycle._t(config, "build_cancelled")
+        assert msg == i18n.t("build_cancelled", config)
 
     def test_start_reports_cancelled(self, config, monkeypatch) -> None:
         _make_repo(config)
@@ -339,12 +341,12 @@ class TestBuildCancellation:
         monkeypatch.setattr(lifecycle, "get_state", lambda c: "stopped")
 
         def cancel(c, *a, **k):
-            raise lifecycle.BuildCancelled("docker compose up --build")
+            raise BuildCancelled("docker compose up --build")
 
         monkeypatch.setattr(lifecycle, "_stream_compose", cancel)
         ok, msg = lifecycle.start(config, should_cancel=lambda: True)
         assert ok is False
-        assert msg == lifecycle._t(config, "build_cancelled")
+        assert msg == i18n.t("build_cancelled", config)
 
     def test_should_cancel_threaded_to_the_stream(self, config, monkeypatch) -> None:
         _make_repo(config)

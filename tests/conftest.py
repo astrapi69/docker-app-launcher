@@ -6,6 +6,16 @@ import contextlib
 import logging
 import subprocess
 
+# Pre-import tracemalloc at collection time so it is FULLY initialized before
+# any test runs. pytest 9's unraisable-exception plugin formats an unraisable
+# via ``tracemalloc.get_object_traceback``; if tracemalloc is first imported
+# lazily from inside that hook during a GC/teardown, it can be caught mid-import
+# ("partially initialized module 'tracemalloc' ... circular import"), and that
+# AttributeError becomes a NEW unraisable, re-entering the hook - a cascade that
+# fails an unrelated test on loaded CI runners (seen only on Python 3.12).
+# Importing it here breaks the cascade at the root.
+import tracemalloc as _tracemalloc  # noqa: F401
+
 import pytest
 
 from docker_app_launcher.config import LauncherConfig

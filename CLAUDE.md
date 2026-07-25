@@ -17,7 +17,14 @@ base works for any Docker app.
   - `docker/` — everything Docker, one concern per module:
     - `detection.py` — is Docker usable here (checks, context sweep, errno
       socket probe, daemon/Desktop start, group self-repair)
-    - `lifecycle.py` — install/start/stop/uninstall/health/get_state
+    - `lifecycle.py` — install/start/stop/uninstall/health/get_state;
+      dispatches per `deployment_mode` (compose | dockerfile, #51)
+    - `compose_runtime.py` — which Compose frontend is usable (plugin /
+      legacy v1 / none), cached per process (#48)
+    - `dockerfile_backend.py` — single-service build/run via docker-py,
+      zero compose dependency (#51)
+    - `py_client.py` — native Docker API access, typed exception
+      classification (#44)
     - `cleanup.py` — find + remove leftovers of previous installs
     - `inventory.py` — which docker objects belong to this app (read-only)
     - `command_runner.py` — shared subprocess/streaming layer, DOCKER_HOST override

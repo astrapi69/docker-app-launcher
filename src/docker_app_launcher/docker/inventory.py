@@ -7,10 +7,12 @@ Nothing here modifies anything.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import subprocess
 
 from docker_app_launcher.config import LauncherConfig
+from docker_app_launcher.docker import py_client
 from docker_app_launcher.docker.command_runner import _run
 
 logger = logging.getLogger("docker_app_launcher.docker.inventory")
@@ -23,7 +25,40 @@ def _name_filter_args(config: LauncherConfig) -> list[str]:
     return args
 
 
+def _api_containers(config: LauncherConfig, *, running_only: bool) -> list[tuple[str, str]] | None:
+    """``(id, name)`` pairs via the native API, or ``None`` to use the CLI.
+
+    Same name-filter semantics as ``docker ps --filter name=…`` (a list is
+    OR-combined by the API, exactly like repeated CLI flags). ``None`` -
+    docker-py missing or the API call failed - tells the caller to fall
+    back; an empty list is a REAL "no containers" answer (#44).
+    """
+    if not py_client.available():
+        return None
+    try:
+        client = py_client.get_client()
+    except Exception as exc:  # noqa: BLE001 - any API failure routes to the CLI fallback
+        logger.debug("native container listing unavailable: %s", exc)
+        return None
+    try:
+        name_filters = list(config.name_filters())
+        containers = client.containers.list(
+            all=not running_only,
+            filters={"name": name_filters} if name_filters else None,
+        )
+        return [(c.id, c.name or c.id) for c in containers]
+    except Exception as exc:  # noqa: BLE001 - any API failure routes to the CLI fallback
+        logger.debug("native container listing failed: %s", exc)
+        return None
+    finally:
+        with contextlib.suppress(Exception):
+            client.close()
+
+
 def _project_container_ids(config: LauncherConfig, *, running_only: bool) -> list[str]:
+    native = _api_containers(config, running_only=running_only)
+    if native is not None:
+        return [cid for cid, _name in native]
     cmd = ["docker", "ps", "-q"] if running_only else ["docker", "ps", "-aq"]
     cmd += _name_filter_args(config)
     try:
@@ -35,6 +70,9 @@ def _project_container_ids(config: LauncherConfig, *, running_only: bool) -> lis
 
 def _project_containers(config: LauncherConfig, *, running_only: bool) -> list[tuple[str, str]]:
     """List this project's containers as ``(id, name)`` pairs."""
+    native = _api_containers(config, running_only=running_only)
+    if native is not None:
+        return native
     cmd = ["docker", "ps"] if running_only else ["docker", "ps", "-a"]
     cmd += _name_filter_args(config)
     cmd += ["--format", "{{.ID}}\t{{.Names}}"]
@@ -71,6 +109,9 @@ def _project_images(config: LauncherConfig) -> list[tuple[str, str]]:
 
 
 def _running_container_names(config: LauncherConfig) -> list[str]:
+    native = _api_containers(config, running_only=True)
+    if native is not None:
+        return [name for _cid, name in native]
     try:
         result = _run(["docker", "ps", "--format", "{{.Names}}", *_name_filter_args(config)])
     except (FileNotFoundError, subprocess.TimeoutExpired):

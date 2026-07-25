@@ -87,9 +87,10 @@ def _isolate_docker_api(monkeypatch):
     this per-test; ``test_py_client`` is unaffected (it stubs the docker
     module itself, not this indirection).
     """
-    from docker_app_launcher.docker import detection
+    from docker_app_launcher.docker import detection, inventory
 
     monkeypatch.setattr(detection, "_api_ping", lambda endpoint=None: ("unavailable", "test isolation"))
+    monkeypatch.setattr(inventory, "_api_containers", lambda config, *, running_only: None)
 
 
 @pytest.fixture(autouse=True)

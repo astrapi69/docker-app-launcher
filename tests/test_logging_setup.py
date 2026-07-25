@@ -97,9 +97,17 @@ class TestExcepthooks:
     """P1: uncaught exceptions must reach the log, not just an invisible stderr."""
 
     # The deliberate crash also reaches pytest's own thread hook (we chain
-    # foreign hooks by design), which turns it into this warning.
+    # foreign hooks by design), which turns it into this warning. On a loaded
+    # CI runner pytest's unraisable-exception plugin can additionally trip over
+    # tracemalloc during teardown ("partially initialized module 'tracemalloc'")
+    # and escalate the SAME deliberate crash into a PytestUnraisableExceptionWarning
+    # - noise from our own intentional thread crash, so it is ignored too. The
+    # gc.collect() forces that collection to happen inside this filtered scope
+    # instead of leaking into a later test.
     @pytest.mark.filterwarnings("ignore::pytest.PytestUnhandledThreadExceptionWarning")
+    @pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
     def test_thread_exception_is_logged(self, tmp_path, caplog) -> None:
+        import gc
         import threading
 
         logging_setup.setup_logging(_config(tmp_path), debug=False)
@@ -109,6 +117,8 @@ class TestExcepthooks:
             worker.join()
         assert any("boom-thread" in r.message for r in caplog.records)
         assert any(r.exc_info and r.exc_info[0] is ZeroDivisionError for r in caplog.records)
+        del worker
+        gc.collect()
 
     def test_sys_excepthook_logs(self, tmp_path, caplog) -> None:
         import sys

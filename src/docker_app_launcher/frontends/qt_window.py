@@ -38,7 +38,9 @@ from docker_app_launcher.ui_model import (
     dispatch_action,
     internal_port_fields,
     issue_tracker_url,
+    log_panel_line,
     port_editable,
+    run_guarded,
     should_keep_alive_on_close,
     window_title,
 )
@@ -211,6 +213,7 @@ if HAS_QT:
                 "uninstall": self._confirm_uninstall,
                 "copy_log": self._copy_log,
                 "cleanup": self._run_manual_cleanup,
+                "app_logs": functools.partial(self._on_action, "app_logs"),
                 "background": self._go_background,
                 "apply_port": functools.partial(self._on_action, "change_port"),
                 "info": self._show_about,
@@ -229,6 +232,7 @@ if HAS_QT:
         # --- log ---
 
         def _log(self, line: str, *, tag: str = "info") -> None:
+            log_panel_line(line, tag)
             self._status.appendPlainText(line)
 
         def _clear_status(self) -> None:
@@ -354,7 +358,7 @@ if HAS_QT:
             self._set_busy(True)
 
             def worker() -> None:
-                result = actions.add_user_to_docker_group(self._cfg)
+                result = run_guarded("fix_permission", lambda: actions.add_user_to_docker_group(self._cfg))
                 self._post(lambda: self._on_result("fix_permission", result))
 
             threading.Thread(target=worker, daemon=True).start()
@@ -363,13 +367,17 @@ if HAS_QT:
             self._set_busy(True)
 
             def worker() -> None:
-                if info.get("platform") == "Linux":
-                    result = actions.start_docker_daemon()
-                else:
-                    result = actions.start_docker_desktop(self._cfg)
-                if result[0]:  # started - now wait for the daemon (VM boot, #28)
-                    result = actions.wait_for_docker(self._cfg, on_progress=self._on_progress)
-                    self._post(self._hide_progress)
+                def body() -> tuple[bool, str]:
+                    if info.get("platform") == "Linux":
+                        result = actions.start_docker_daemon()
+                    else:
+                        result = actions.start_docker_desktop(self._cfg)
+                    if result[0]:  # started - now wait for the daemon (VM boot, #28)
+                        result = actions.wait_for_docker(self._cfg, on_progress=self._on_progress)
+                        self._post(self._hide_progress)
+                    return result
+
+                result = run_guarded("start_docker", body)
                 self._post(lambda: self._on_result("start_docker", result))
 
             threading.Thread(target=worker, daemon=True).start()
@@ -419,7 +427,10 @@ if HAS_QT:
                 self._post(lambda: self._log(label))
 
             def worker() -> None:
-                result = actions.change_internal_port(self._cfg, name, port, on_step=step, on_output=step)
+                result = run_guarded(
+                    "change_internal_port",
+                    lambda: actions.change_internal_port(self._cfg, name, port, on_step=step, on_output=step),
+                )
                 self._post(lambda: self._on_result("change_internal_port", result))
 
             threading.Thread(target=worker, daemon=True).start()
@@ -500,7 +511,10 @@ if HAS_QT:
                 self._post(lambda: self._log(label))
 
             def worker() -> None:
-                result = actions.cleanup_stale(self._cfg, stale, on_step=step, on_progress=self._on_progress)
+                result = run_guarded(
+                    "cleanup",
+                    lambda: actions.cleanup_stale(self._cfg, stale, on_step=step, on_progress=self._on_progress),
+                )
                 self._post(lambda: self._on_result("cleanup", result))
 
             threading.Thread(target=worker, daemon=True).start()
@@ -542,8 +556,11 @@ if HAS_QT:
                 self._post(functools.partial(self._log, line))
 
             def worker() -> None:
-                result = dispatch_action(
-                    action_id, self._cfg, port=port, on_step=step, on_output=output, on_progress=self._on_progress
+                result = run_guarded(
+                    action_id,
+                    lambda: dispatch_action(
+                        action_id, self._cfg, port=port, on_step=step, on_output=output, on_progress=self._on_progress
+                    ),
                 )
                 self._post(lambda: self._on_result(action_id, result))
 

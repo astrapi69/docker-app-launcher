@@ -223,6 +223,33 @@ class TestWindowConstruction:
         first_line = app._status.get("1.0", "end").splitlines()[0]
         assert docker_app_launcher.__version__ in first_line
 
+    def test_log_panel_lines_reach_the_logging_system(self, app, caplog) -> None:
+        with caplog.at_level("INFO", logger="docker_app_launcher.ui.panel"):
+            app._log("mirrored to launcher.log")
+            app._log("panel error", tag="err")
+        messages = {r.message: r.levelname for r in caplog.records}
+        assert messages.get("mirrored to launcher.log") == "INFO"
+        assert messages.get("panel error") == "ERROR"
+
+    def test_tk_callback_exception_logged_and_shown(self, app, caplog) -> None:
+        try:
+            raise RuntimeError("callback blew up")
+        except RuntimeError as exc:
+            with caplog.at_level("ERROR"):
+                app.report_callback_exception(type(exc), exc, exc.__traceback__)
+        assert any(r.exc_info and "callback blew up" in str(r.exc_info[1]) for r in caplog.records)
+        assert "callback blew up" in app._status.get("1.0", "end")
+
+    def test_tk_callback_exception_survives_broken_panel(self, app, caplog) -> None:
+        # Logging must still happen when the Text widget is already destroyed.
+        app._status.destroy()
+        try:
+            raise RuntimeError("late crash")
+        except RuntimeError as exc:
+            with caplog.at_level("ERROR"):
+                app.report_callback_exception(type(exc), exc, exc.__traceback__)
+        assert any(r.exc_info and "late crash" in str(r.exc_info[1]) for r in caplog.records)
+
     def test_all_buttons_exist_and_visible(self, app) -> None:
         assert set(app._buttons) == set(gui.PRIMARY_BUTTONS) | set(gui.SECONDARY_BUTTONS)
         for name, btn in app._buttons.items():
@@ -428,6 +455,21 @@ class TestActionFlow:
         app._on_action("stop")
         app.update()
         assert persisted == []
+
+    def test_worker_crash_releases_busy_and_logs(self, app, gui_state, inline_threads, monkeypatch, caplog) -> None:
+        """P1: an exception behind the actions promise must not freeze the
+        window in its busy state or vanish without a trace."""
+
+        def explode(action_id, cfg, **k):
+            raise RuntimeError("worker blew up")
+
+        monkeypatch.setattr(tk_window, "dispatch_action", explode)
+        with caplog.at_level("ERROR", logger="docker_app_launcher.ui_model"):
+            app._buttons["install"].invoke()
+            app.update()
+        assert app._buttons["install"]["state"] == "normal"  # busy released
+        assert "worker blew up" in app._status.get("1.0", "end")
+        assert any(r.exc_info for r in caplog.records)
 
     def test_busy_disables_every_button_in_the_window(self, app) -> None:
         app._set_busy(True)

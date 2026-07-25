@@ -81,7 +81,13 @@ from docker_app_launcher.ui_model import (
     issue_tracker_url as issue_tracker_url,
 )
 from docker_app_launcher.ui_model import (
+    log_panel_line as log_panel_line,
+)
+from docker_app_launcher.ui_model import (
     port_editable as port_editable,
+)
+from docker_app_launcher.ui_model import (
+    run_guarded as run_guarded,
 )
 from docker_app_launcher.ui_model import (
     should_keep_alive_on_close as should_keep_alive_on_close,
@@ -234,6 +240,7 @@ class LauncherApp(tk.Tk):
             "uninstall": self._confirm_uninstall,
             "copy_log": self._copy_log,
             "cleanup": self._run_manual_cleanup,
+            "app_logs": functools.partial(self._on_action, "app_logs"),
             "background": self._go_background,
             "apply_port": functools.partial(self._on_action, "change_port"),
             "info": self._show_about,
@@ -256,10 +263,18 @@ class LauncherApp(tk.Tk):
         return i18n.t(key, self._cfg, **kwargs)
 
     def _log(self, line: str, *, tag: str = "info") -> None:
+        log_panel_line(line, tag)
         self._status.configure(state="normal")
         self._status.insert("end", line + "\n", tag)
         self._status.see("end")
         self._status.configure(state="disabled")
+
+    def report_callback_exception(self, exc_type: type, exc_value: BaseException, exc_tb: object) -> None:
+        """Tk swallows callback exceptions (stderr only, invisible from a
+        .desktop launch). Log them AND surface them in the panel (P1)."""
+        logger.error("uncaught exception in Tk callback", exc_info=(exc_type, exc_value, exc_tb))  # type: ignore[arg-type]
+        with contextlib.suppress(Exception):
+            self._log(self._t("error", msg=str(exc_value)), tag="err")
 
     def _clear_status(self) -> None:
         self._status.configure(state="normal")
@@ -380,7 +395,7 @@ class LauncherApp(tk.Tk):
         self._set_busy(True)
 
         def worker() -> None:
-            result = actions.add_user_to_docker_group(self._cfg)
+            result = run_guarded("fix_permission", lambda: actions.add_user_to_docker_group(self._cfg))
             self.after(0, lambda: self._on_result("fix_permission", result))
 
         threading.Thread(target=worker, daemon=True).start()
@@ -396,14 +411,17 @@ class LauncherApp(tk.Tk):
         self._set_busy(True)
 
         def worker() -> None:
-            if info.get("platform") == "Linux":
-                result = actions.start_docker_daemon()
-            else:
-                result = actions.start_docker_desktop(self._cfg)
-            if result[0]:
-                result = actions.wait_for_docker(self._cfg, on_progress=self._on_progress)
-                self.after(0, self._hide_progress)
-            self.after(0, lambda: self._on_result("start_docker", result))
+            def body() -> tuple[bool, str]:
+                if info.get("platform") == "Linux":
+                    result = actions.start_docker_daemon()
+                else:
+                    result = actions.start_docker_desktop(self._cfg)
+                if result[0]:
+                    result = actions.wait_for_docker(self._cfg, on_progress=self._on_progress)
+                    self.after(0, self._hide_progress)
+                return result
+
+            self.after(0, functools.partial(self._on_result, "start_docker", run_guarded("start_docker", body)))
 
         threading.Thread(target=worker, daemon=True).start()
 
@@ -477,7 +495,10 @@ class LauncherApp(tk.Tk):
             self.after(0, functools.partial(self._log, line))
 
         def worker() -> None:
-            result = actions.change_internal_port(self._cfg, name, port, on_step=step, on_output=output)
+            result = run_guarded(
+                "change_internal_port",
+                lambda: actions.change_internal_port(self._cfg, name, port, on_step=step, on_output=output),
+            )
             self.after(0, lambda: self._on_result("change_internal_port", result))
 
         threading.Thread(target=worker, daemon=True).start()
@@ -593,7 +614,9 @@ class LauncherApp(tk.Tk):
             self.after(0, lambda: self._log(label))
 
         def worker() -> None:
-            result = actions.cleanup_stale(self._cfg, stale, on_step=step, on_progress=self._on_progress)
+            result = run_guarded(
+                "cleanup", lambda: actions.cleanup_stale(self._cfg, stale, on_step=step, on_progress=self._on_progress)
+            )
             self.after(0, lambda: self._on_result("cleanup", result))
 
         threading.Thread(target=worker, daemon=True).start()
@@ -647,8 +670,11 @@ class LauncherApp(tk.Tk):
             self.after(0, functools.partial(self._log, line))
 
         def worker() -> None:
-            result = dispatch_action(
-                action_id, self._cfg, port=port, on_step=step, on_output=output, on_progress=self._on_progress
+            result = run_guarded(
+                action_id,
+                lambda: dispatch_action(
+                    action_id, self._cfg, port=port, on_step=step, on_output=output, on_progress=self._on_progress
+                ),
             )
             self.after(0, lambda: self._on_result(action_id, result))
 

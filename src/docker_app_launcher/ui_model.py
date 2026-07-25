@@ -15,12 +15,45 @@ from __future__ import annotations
 
 import logging
 import platform
+from collections.abc import Callable
 from importlib.metadata import PackageNotFoundError, version
 
 from docker_app_launcher import actions, i18n
 from docker_app_launcher.config import LauncherConfig
 
 logger = logging.getLogger("docker_app_launcher.ui_model")
+
+# Everything shown in a frontend's log panel is mirrored here, so the panel
+# content also lands in launcher.log (P0: a message that only ever existed in
+# a closed window is a lost message).
+_panel_logger = logging.getLogger("docker_app_launcher.ui.panel")
+
+_PANEL_TAG_LEVELS = {"err": logging.ERROR, "ok": logging.INFO, "info": logging.INFO}
+
+
+def log_panel_line(line: str, tag: str = "info") -> None:
+    """Mirror one GUI log-panel line into the logging system.
+
+    Every frontend's ``_log`` calls this before painting the widget, so the
+    persistent log file always carries what the user saw on screen.
+    """
+    _panel_logger.log(_PANEL_TAG_LEVELS.get(tag, logging.INFO), "%s", line)
+
+
+def run_guarded(action_label: str, fn: Callable[[], tuple[bool, str] | None]) -> tuple[bool, str] | None:
+    """Run a worker-thread body; a crash becomes an ordinary failed result.
+
+    ``actions`` functions promise ``(ok, message)`` and never raise — but a
+    bug behind that promise used to kill the worker thread silently, leaving
+    the window stuck in its busy state (P1). Routing the exception through
+    the normal result path clears busy AND puts the error in the panel/log.
+    """
+    try:
+        return fn()
+    except Exception as exc:
+        logger.exception("action %r crashed", action_label)
+        return False, f"{type(exc).__name__}: {exc}"
+
 
 # state -> i18n key for the heading.
 _STATE_KEYS = {
@@ -51,7 +84,7 @@ PRIMARY_GRID = {
 }
 
 # Secondary actions, rendered in a single row BELOW the log under a separator.
-SECONDARY_BUTTONS = ["cleanup", "background", "info"]
+SECONDARY_BUTTONS = ["cleanup", "app_logs", "background", "info"]
 
 _LAUNCHER_REPO_URL = "https://github.com/astrapi69/docker-app-launcher"
 
@@ -102,6 +135,7 @@ BUTTON_LABELS = {
     "uninstall": "uninstall",
     "copy_log": "log_copy",
     "cleanup": "cleanup",
+    "app_logs": "app_logs",
     "background": "run_in_background",
     "apply_port": "apply_port",
     "info": "about",
@@ -123,6 +157,7 @@ BUTTON_STATES: dict[str, dict[str, bool]] = {
         "apply_port": False,
         "copy_log": False,
         "cleanup": False,
+        "app_logs": False,
         "background": False,
         "info": True,
     },
@@ -135,6 +170,7 @@ BUTTON_STATES: dict[str, dict[str, bool]] = {
         "apply_port": False,
         "copy_log": True,
         "cleanup": True,
+        "app_logs": False,
         "background": False,
         "info": True,
     },
@@ -147,6 +183,8 @@ BUTTON_STATES: dict[str, dict[str, bool]] = {
         "apply_port": True,
         "copy_log": True,
         "cleanup": True,
+        # A crashed/stopped container's logs are exactly what to inspect.
+        "app_logs": True,
         "background": False,
         "info": True,
     },
@@ -159,6 +197,7 @@ BUTTON_STATES: dict[str, dict[str, bool]] = {
         "apply_port": True,
         "copy_log": True,
         "cleanup": True,
+        "app_logs": True,
         "background": True,
         "info": True,
     },
@@ -264,6 +303,8 @@ def dispatch_action(
         return actions.change_port(config, port, on_step=on_step, on_output=on_output)
     if action_id == "stop":
         return actions.stop(config)
+    if action_id == "app_logs":
+        return actions.app_logs(config)
     if action_id == "uninstall":
         return actions.uninstall(config, on_step=on_step)
     if action_id == "open":

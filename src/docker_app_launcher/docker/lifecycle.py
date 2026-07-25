@@ -22,7 +22,7 @@ from typing import Any
 
 from docker_app_launcher import __version__
 from docker_app_launcher.config import LauncherConfig
-from docker_app_launcher.docker import py_client
+from docker_app_launcher.docker import dockerfile_backend, py_client
 from docker_app_launcher.docker.command_runner import (
     DockerBuildProgress,
     OutputFn,
@@ -242,6 +242,32 @@ def _compose_args(config: LauncherConfig, *args: str) -> list[str]:
     ]
 
 
+def _dockerfile_up(
+    config: LauncherConfig,
+    *,
+    on_step: ProgressFn | None,
+    on_output: OutputFn | None,
+    on_progress: ProgressPctFn | None,
+) -> tuple[bool, str] | None:
+    """Dockerfile-mode build+run (#51): ``None`` on success, else the result.
+
+    Preconditions are hard errors with actionable messages (#32
+    philosophy): docker-py importable, Dockerfile present.
+    """
+    if not py_client.available():
+        return False, _t(config, "dockerfile_mode_needs_dockerpy")
+    if not config.dockerfile_path.is_file():
+        return False, _t(config, "dockerfile_not_found", path=config.dockerfile_path)
+    _notify(on_step, _t(config, "building"))
+    _progress(on_progress, None, _t(config, "building"))
+    rc, detail = dockerfile_backend.up(config, on_output=on_output, on_progress=on_progress)
+    if rc != 0:
+        return False, _t(config, "build_failed", detail=detail)
+    _notify(on_step, _t(config, "container_started"))
+    _progress(on_progress, 95, _t(config, "container_started"))
+    return None
+
+
 def _ensure_compose(config: LauncherConfig) -> tuple[bool, str] | None:
     """The pre-build guard: ``None`` when compose is usable, else the
     actionable ``(False, message)`` the caller returns as-is.
@@ -306,16 +332,23 @@ def install(
         return False, _t(config, "docker_unavailable")
     if get_state(config) == "running":
         return True, _t(config, "already_installed")
-    if not config.compose_path.is_file():
-        return False, _t(config, "compose_not_found", path=config.compose_path)
-    compose_error = _ensure_compose(config)
-    if compose_error is not None:
-        return compose_error
+    if config.effective_deployment_mode == "compose":
+        if not config.compose_path.is_file():
+            return False, _t(config, "compose_not_found", path=config.compose_path)
+        compose_error = _ensure_compose(config)
+        if compose_error is not None:
+            return compose_error
     port_free, _ = check_port(port)
     if not port_free:
         return False, _t(config, "port_occupied", port=port)
     _write_env_ports(config)
     _notify(on_step, _t(config, "docker_ok"))
+
+    if config.effective_deployment_mode == "dockerfile":
+        dockerfile_error = _dockerfile_up(config, on_step=on_step, on_output=on_output, on_progress=on_progress)
+        if dockerfile_error is not None:
+            return dockerfile_error
+        return _verify_install(config, port, on_step=on_step, on_progress=on_progress)
 
     _notify(on_step, _t(config, "building"))
     _progress(on_progress, 5, _t(config, "building"))
@@ -350,6 +383,17 @@ def install(
         return False, _t(config, "start_failed", detail=up_tail)
     _notify(on_step, _t(config, "container_started"))
 
+    return _verify_install(config, port, on_step=on_step, on_progress=on_progress)
+
+
+def _verify_install(
+    config: LauncherConfig,
+    port: int,
+    *,
+    on_step: ProgressFn | None,
+    on_progress: ProgressPctFn | None,
+) -> tuple[bool, str]:
+    """Shared install verification: running state + health + manifest."""
     _notify(on_step, _t(config, "checking_health"))
     _progress(on_progress, None, _t(config, "checking_health"))  # indeterminate: duration unknown
     if get_state(config) != "running":
@@ -395,9 +439,10 @@ def start(
     both 'stopped' and a removed state.
     """
     _call(config, config.on_before_start)
-    compose_error = _ensure_compose(config)
-    if compose_error is not None:
-        return compose_error
+    if config.effective_deployment_mode == "compose":
+        compose_error = _ensure_compose(config)
+        if compose_error is not None:
+            return compose_error
     docker_ok, _ = check_docker()
     if not docker_ok:
         return False, _t(config, "docker_unavailable")
@@ -405,24 +450,29 @@ def start(
         return True, _t(config, "already_running")
     _notify(on_step, _t(config, "updating"))
     _progress(on_progress, 5, _t(config, "updating"))
-    try:
-        rc, tail = _stream_build_with_progress(
-            config,
-            "up",
-            "--build",
-            "-d",
-            on_output=on_output,
-            on_progress=on_progress,
-            lo=5,
-            hi=95,
-            timeout=float(config.build_timeout),
-        )
-    except FileNotFoundError:
-        return False, _t(config, "docker_unavailable")
-    except subprocess.TimeoutExpired:
-        return False, _t(config, "start_timeout")
-    if rc != 0:
-        return False, _t(config, "start_failed", detail=tail)
+    if config.effective_deployment_mode == "dockerfile":
+        dockerfile_error = _dockerfile_up(config, on_step=on_step, on_output=on_output, on_progress=on_progress)
+        if dockerfile_error is not None:
+            return dockerfile_error
+    else:
+        try:
+            rc, tail = _stream_build_with_progress(
+                config,
+                "up",
+                "--build",
+                "-d",
+                on_output=on_output,
+                on_progress=on_progress,
+                lo=5,
+                hi=95,
+                timeout=float(config.build_timeout),
+            )
+        except FileNotFoundError:
+            return False, _t(config, "docker_unavailable")
+        except subprocess.TimeoutExpired:
+            return False, _t(config, "start_timeout")
+        if rc != 0:
+            return False, _t(config, "start_failed", detail=tail)
     if get_state(config) != "running":
         return False, _t(config, "start_no_container")
     _progress(on_progress, 100, _t(config, "start_done"))
@@ -446,10 +496,15 @@ def app_logs(config: LauncherConfig, *, lines: int | None = None) -> tuple[bool,
         return False, _t(config, "docker_unavailable")
     if get_state(config) == "not_installed":
         return False, _t(config, "not_installed")
+    tail = lines if lines is not None else config.log_tail_lines
+    if config.effective_deployment_mode == "dockerfile":
+        ok, text = dockerfile_backend.tail_logs(config, lines=tail)
+        if not ok:
+            return False, _t(config, "app_logs_failed", detail=text)
+        return True, text or _t(config, "app_logs_empty")
     compose_error = _ensure_compose(config)
     if compose_error is not None:
         return compose_error
-    tail = lines if lines is not None else config.log_tail_lines
     cmd = _compose_args(config, "logs", "--no-color", "--tail", str(tail))
     try:
         result = _run(cmd, timeout=30.0, cwd=_compose_cwd(config))

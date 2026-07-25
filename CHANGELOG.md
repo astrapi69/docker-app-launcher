@@ -8,6 +8,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Dockerfile deployment mode (#51).** New `deployment_mode:
+  "dockerfile"`: build and run a single-service app directly through the
+  docker-py API — zero Compose dependency, so it runs on Docker-20.10-era
+  systems without the compose plugin (the #48 device class). The
+  mode-specific config block covers Dockerfile path, build context,
+  published/container port, named volumes, environment and restart
+  policy; a missing block detail (Dockerfile, docker-py) is a hard,
+  actionable error. Build output streams live into the log panel; socket
+  errors reuse the #44 exception classification. Default rule: existing
+  configs keep the compose mode unchanged. The compose-missing error now
+  names the dockerfile mode as the single-service alternative.
 - **Compose availability ladder (#48).** The launcher now detects a usable
   Compose frontend BEFORE any build: `docker compose version` (plugin) →
   `docker-compose --version` (legacy v1, accepted only when it can parse

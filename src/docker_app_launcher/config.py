@@ -113,6 +113,23 @@ class LauncherConfig:
     show_advanced_ports: bool = False
 
     # === Docker ===
+    # Deployment mode (#51): "compose" (default for existing configs - a
+    # configured compose file keeps working unchanged) or "dockerfile"
+    # (single-service build/run directly through the docker-py API, zero
+    # compose dependency - runs on Docker 20.10 systems without the
+    # compose plugin). "" resolves to "compose". Any other value is a
+    # hard error at resolve() time (#32 philosophy: never guess).
+    deployment_mode: str = ""
+    # --- dockerfile-mode block (ignored in compose mode) ---
+    dockerfile_file: str = "Dockerfile"  # relative to build_context
+    build_context: str = "."  # relative to install_dir
+    # Container-internal port the published host port maps onto; 0 = same
+    # as the resolved host port.
+    container_port: int = 0
+    # Named volumes: {volume_name: container_mount_path}.
+    container_volumes: dict[str, str] = field(default_factory=dict)
+    container_env: dict[str, str] = field(default_factory=dict)
+    restart_policy: str = "unless-stopped"
     compose_file: str = "docker-compose.prod.yml"
     build_timeout: int = 600
     start_timeout: int = 120
@@ -226,7 +243,35 @@ class LauncherConfig:
             self.releases_url = f"{self.repo_url.rstrip('/')}/releases/latest"
         if self.locale == "auto":
             self.locale = detect_system_locale()
+        if self.deployment_mode not in ("", "compose", "dockerfile"):
+            raise ValueError(
+                f"deployment_mode must be 'compose' or 'dockerfile', got {self.deployment_mode!r} "
+                "(#51 - the mode is explicit, never guessed)"
+            )
         return self
+
+    @property
+    def effective_deployment_mode(self) -> str:
+        """``"compose"`` or ``"dockerfile"`` - the default rule for existing
+        configs is compose, so no consumer breaks (#51)."""
+        return self.deployment_mode or "compose"
+
+    @property
+    def build_context_path(self) -> Path:
+        """Absolute build context for dockerfile mode (relative to install_dir)."""
+        context = Path(self.build_context).expanduser()
+        if context.is_absolute():
+            return context
+        base = Path(self.install_dir).expanduser() if self.install_dir else Path.cwd()
+        return base / context
+
+    @property
+    def dockerfile_path(self) -> Path:
+        """Absolute Dockerfile path for dockerfile mode."""
+        dockerfile = Path(self.dockerfile_file).expanduser()
+        if dockerfile.is_absolute():
+            return dockerfile
+        return self.build_context_path / dockerfile
 
     # --- computed paths / filters (pure) ----------------------------------
 

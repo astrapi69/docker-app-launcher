@@ -307,3 +307,32 @@ class TestFromJsonRequire:
         path = tmp_path / "launcher.json"
         path.write_text('{"app_name": "Real App"}', encoding="utf-8")
         assert LauncherConfig.from_json(path, require=True).app_name == "Real App"
+
+
+class TestMinVersionValidation:
+    """#54: a declared Docker minimum must parse, or resolve() is a hard error."""
+
+    def test_empty_means_not_declared(self) -> None:
+        cfg = LauncherConfig(app_name="X").resolve()
+        assert cfg.min_buildx_version == "" and cfg.min_engine_version == ""
+
+    def test_valid_versions_accepted(self) -> None:
+        cfg = LauncherConfig(
+            app_name="X",
+            min_engine_version="20.10",
+            min_api_version="1.41",
+            min_compose_version="2.40.2",
+            min_buildx_version="0.17",
+        ).resolve()
+        assert cfg.min_compose_version == "2.40.2"
+
+    def test_unparsable_min_version_is_a_hard_error(self) -> None:
+        import pytest
+
+        with pytest.raises(ValueError, match="min_buildx_version"):
+            LauncherConfig(app_name="X", min_buildx_version="latest").resolve()
+
+    def test_dirty_but_real_version_string_is_accepted(self) -> None:
+        # A consumer may paste a raw 'docker version' string; the core parses.
+        cfg = LauncherConfig(app_name="X", min_engine_version="20.10.21+dfsg1").resolve()
+        assert cfg.min_engine_version == "20.10.21+dfsg1"

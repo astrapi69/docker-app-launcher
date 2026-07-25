@@ -136,3 +136,12 @@ compose_missing: "Docker Compose kullanılamıyor. Compose v2 eklentisini kurun 
 compose_v1_incompatible: "Yalnızca eski docker-compose v1 bulundu ve bu uygulamanın compose dosyasını ({path}) okuyamıyor. Compose v2 eklentisini kurun: 'sudo apt install docker-compose-plugin', ardından launcher'ı yeniden başlatın."
 dockerfile_not_found: "Dockerfile bulunamadı: {path}. Launcher yapılandırmasında deployment_mode/Dockerfile ayarlarını kontrol edin."
 dockerfile_mode_needs_dockerpy: "dockerfile modu, bu kurulumda kullanılamayan Python docker paketine (docker-py) ihtiyaç duyar."
+
+# --- build readiness / capability gate (#54) ---
+buildx_too_old: "Docker Compose derlemesi buildx'e devreder ve buildx {required} veya sonrasını gerektirir, ancak buildx {found} kurulu. Daha yeni bir buildx kurun: platformunuz için ikili dosyayı docker/buildx sürümlerinden indirin, {path} konumuna koyun ve 'chmod +x {path}' ile çalıştırılabilir yapın. Dağıtım paketleri bunun için güvenilmez çıktı."
+buildx_missing: "Docker Compose derlemesi buildx'e devreder ve buildx {required} veya sonrasını gerektirir, ancak buildx eklentisi bulunamadı. buildx kurun: platformunuz için ikili dosyayı docker/buildx sürümlerinden indirin, {path} konumuna koyun ve 'chmod +x {path}' ile çalıştırılabilir yapın. Dağıtım paketleri bunun için güvenilmez çıktı."
+app_requirement_too_old: "Bu uygulama {component} {required} veya sonrasını gerektirir, ancak {found} kurulu. Karşılamak için Docker'ı güncelleyin."
+app_requirement_missing: "Bu uygulama {component} {required} veya sonrasını gerektirir, ancak {component} algılanamadı. Karşılamak için Docker'ı kurun veya güncelleyin."
+compose_unreadable: "Compose dosyası bulundu ama okunamıyor: {path} ({error})."
+dockerfile_unreadable: "Dockerfile bulundu ama okunamıyor: {path} ({error})."
+build_context_not_found: "Derleme bağlamı dizini bulunamadı: {path}. Launcher yapılandırmasındaki build_context'i kontrol edin."

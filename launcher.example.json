@@ -21,6 +21,12 @@
   "docker_desktop_path": "",
   "docker_install_url": "",
 
+  "_comment_min_versions": "App-declared MINIMUM Docker environment (all optional, empty = not declared). The launcher's own intrinsic needs always apply (compose mode requires buildx >= 0.17 when compose >= 2.40.2); these can only RAISE the bar, never lower it. Prefer min_api_version over min_engine_version for engine features. Unparsable values are a hard error at startup.",
+  "min_engine_version": "",
+  "min_api_version": "",
+  "min_compose_version": "",
+  "min_buildx_version": "",
+
   "icon_path": "branding/app-icon.png",
   "tray_icon_path": "",
   "config_dir": "",

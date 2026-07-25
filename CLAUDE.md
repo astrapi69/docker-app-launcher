@@ -21,6 +21,12 @@ base works for any Docker app.
       dispatches per `deployment_mode` (compose | dockerfile, #51)
     - `compose_runtime.py` — which Compose frontend is usable (plugin /
       legacy v1 / none), cached per process (#48)
+    - `tool_versions.py` — engine/CLI/compose/buildx versions (parsed via
+      `packaging`), cached + logged as one chain line; the intrinsic buildx
+      floor (#54)
+    - `build_readiness.py` — the per-mode build capability gate: collect
+      every missing/too-old link BEFORE the build, intrinsic + app-declared
+      minimums, source-attributed (#54)
     - `dockerfile_backend.py` — single-service build/run via docker-py,
       zero compose dependency (#51)
     - `py_client.py` — native Docker API access, typed exception
@@ -79,3 +85,45 @@ base works for any Docker app.
 - Provide a configurable log level (DEBUG, INFO, WARNING, ERROR) via environment variable or config file. The default must be INFO.
 - print() statements are forbidden in production code. Use the logging module exclusively.
 - Every fix for message visibility must include a test that verifies the output reaches the logging system.
+
+## Readiness Rules and Error Classes
+
+Recorded error classes (a fix is not done until it is measured against these):
+
+- **Present is not functional.** A check that only proves an artifact EXISTS
+  (binary there, file there, plugin there) proves nothing about the
+  capability actually needed. Precedents: the compose plugin was present but
+  the build was impossible because buildx was 0.8.2 (#54); the launcher
+  config was found but loaded from the wrong path (frozen-branding bug, #32);
+  a compose file was referenced but not shipped in the bundle. Every
+  readiness check must verify the needed CAPABILITY, not its proxy. Related to
+  the "CI green, actually broken" and "the push never landed" classes.
+- **Piecemeal discovery is a design defect, not bad luck.** Preconditions are
+  checked COMPLETELY and BEFORE the expensive operation, with a COLLECTING
+  message that names every missing/too-old link at once. A minutes-long build
+  must never fail on a precondition that was knowable up front, and a user
+  must never have to fail, fix, and retry N times to discover N gaps.
+
+Concretely: the build paths go through one capability gate per mode
+(`docker/build_readiness.py`) that collects all blockers before the build
+(`compose_blockers` / `dockerfile_blockers`), never a chain of independent
+green checkmarks.
+
+### Docker requirement sources (intrinsic vs app-declared)
+
+Two sources, kept separate and attributed in every message:
+
+- **Intrinsic (launcher):** what the launcher needs for the chosen mode.
+  Non-negotiable, lives in code (compose mode: buildx >= 0.17 once compose is
+  new enough to gate it; dockerfile mode: a reachable engine API). Minimums
+  are BACKED (compose source / release notes), never set from memory.
+- **App-declared (config):** what the app's own Dockerfile / compose file
+  demands - `min_engine_version`, `min_api_version`, `min_compose_version`,
+  `min_buildx_version` (all optional). Effective requirement = MAX(intrinsic,
+  declared): the config can only RAISE the bar. A declared value below the
+  intrinsic floor is warned about and the intrinsic value wins. Prefer
+  `min_api_version` for engine features (the API version is the more robust
+  signal). Version strings are dirty in the real world (`20.10.21+dfsg1`,
+  `v0.8.2-docker`): normalize, then compare with a real version library
+  (`packaging`), never a string compare or a home-grown parser. Unparsable
+  declared versions are a hard error at `resolve()`.

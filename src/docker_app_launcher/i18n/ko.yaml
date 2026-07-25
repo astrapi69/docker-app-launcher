@@ -136,3 +136,12 @@ compose_missing: "Docker Compose를 사용할 수 없습니다. Compose v2 플�
 compose_v1_incompatible: "구버전 docker-compose v1만 발견되었고 이 앱의 compose 파일({path})을 읽을 수 없습니다. Compose v2 플러그인을 설치하세요: 'sudo apt install docker-compose-plugin', 그 후 런처를 다시 시작하세요."
 dockerfile_not_found: "Dockerfile을 찾을 수 없습니다: {path}. launcher 설정의 deployment_mode/Dockerfile을 확인하세요."
 dockerfile_mode_needs_dockerpy: "dockerfile 모드에는 Python 패키지 docker(docker-py)가 필요하지만 이 설치에서는 사용할 수 없습니다."
+
+# --- build readiness / capability gate (#54) ---
+buildx_too_old: "Docker Compose 빌드는 buildx에 위임되며 buildx {required} 이상이 필요하지만, 설치된 것은 buildx {found}입니다. 최신 buildx를 설치하세요: 플랫폼용 바이너리를 docker/buildx 릴리스에서 내려받아 {path}에 두고 'chmod +x {path}'로 실행 가능하게 만드세요. 배포판 패키지는 이 용도에 신뢰할 수 없는 것으로 확인되었습니다."
+buildx_missing: "Docker Compose 빌드는 buildx에 위임되며 buildx {required} 이상이 필요하지만, buildx 플러그인을 찾을 수 없습니다. buildx를 설치하세요: 플랫폼용 바이너리를 docker/buildx 릴리스에서 내려받아 {path}에 두고 'chmod +x {path}'로 실행 가능하게 만드세요. 배포판 패키지는 이 용도에 신뢰할 수 없는 것으로 확인되었습니다."
+app_requirement_too_old: "이 앱은 {component} {required} 이상이 필요하지만, 설치된 것은 {found}입니다. Docker를 업데이트하세요."
+app_requirement_missing: "이 앱은 {component} {required} 이상이 필요하지만, {component}를 감지할 수 없습니다. Docker를 설치하거나 업데이트하세요."
+compose_unreadable: "Compose 파일을 찾았지만 읽을 수 없습니다: {path} ({error})."
+dockerfile_unreadable: "Dockerfile을 찾았지만 읽을 수 없습니다: {path} ({error})."
+build_context_not_found: "빌드 컨텍스트 디렉터리를 찾을 수 없습니다: {path}. launcher 설정의 build_context를 확인하세요."

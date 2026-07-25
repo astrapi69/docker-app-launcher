@@ -136,3 +136,12 @@ compose_missing: "Docker Compose tidak tersedia. Pasang plugin Compose v2 — Ub
 compose_v1_incompatible: "Hanya docker-compose v1 lama yang ditemukan dan tidak bisa membaca berkas compose aplikasi ini ({path}). Pasang plugin Compose v2: 'sudo apt install docker-compose-plugin', lalu mulai ulang launcher."
 dockerfile_not_found: "Dockerfile tidak ditemukan: {path}. Periksa pengaturan deployment_mode/Dockerfile di konfigurasi launcher."
 dockerfile_mode_needs_dockerpy: "Mode dockerfile memerlukan paket Python docker (docker-py), yang tidak tersedia di instalasi ini."
+
+# --- build readiness / capability gate (#54) ---
+buildx_too_old: "Build Docker Compose mendelegasikan ke buildx dan memerlukan buildx {required} atau lebih baru, tetapi yang terpasang buildx {found}. Pasang buildx yang lebih baru: unduh biner untuk platform Anda dari rilis docker/buildx, letakkan di {path}, lalu buat dapat dieksekusi dengan 'chmod +x {path}'. Paket distribusi terbukti tidak dapat diandalkan untuk ini."
+buildx_missing: "Build Docker Compose mendelegasikan ke buildx dan memerlukan buildx {required} atau lebih baru, tetapi plugin buildx tidak ditemukan. Pasang buildx: unduh biner untuk platform Anda dari rilis docker/buildx, letakkan di {path}, lalu buat dapat dieksekusi dengan 'chmod +x {path}'. Paket distribusi terbukti tidak dapat diandalkan untuk ini."
+app_requirement_too_old: "Aplikasi ini memerlukan {component} {required} atau lebih baru, tetapi yang terpasang {found}. Perbarui Docker untuk memenuhinya."
+app_requirement_missing: "Aplikasi ini memerlukan {component} {required} atau lebih baru, tetapi {component} tidak terdeteksi. Pasang atau perbarui Docker untuk memenuhinya."
+compose_unreadable: "Berkas compose ditemukan tetapi tidak terbaca: {path} ({error})."
+dockerfile_unreadable: "Dockerfile ditemukan tetapi tidak terbaca: {path} ({error})."
+build_context_not_found: "Direktori konteks build tidak ditemukan: {path}. Periksa build_context di konfigurasi launcher."

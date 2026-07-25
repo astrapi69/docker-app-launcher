@@ -187,6 +187,23 @@ class LauncherConfig:
     docker_desktop_path: str = ""
     docker_install_url: str = ""
 
+    # === Docker minimum versions (app-declared capability floor) ===
+    # What the APP's Dockerfile / compose file demands of the Docker
+    # environment. All optional; empty = not declared, so ONLY the
+    # launcher's intrinsic, non-negotiable requirements apply (compose mode
+    # needs buildx >= 0.17 when compose >= 2.40.2). The config can only RAISE
+    # the bar, never lower it: a value below the intrinsic threshold is
+    # warned about in the log and the intrinsic value wins. Prefer
+    # ``min_api_version`` over ``min_engine_version`` for engine-feature
+    # checks - the Docker API version is the more robust signal across
+    # distributions. Unparsable values are a hard error at resolve() (#32:
+    # never guess, never silently ignore). Backward compatible: existing
+    # configs declare nothing and keep their behaviour.
+    min_engine_version: str = ""
+    min_api_version: str = ""
+    min_compose_version: str = ""
+    min_buildx_version: str = ""
+
     # === Update check ===
     # ``app_version`` is the version this launcher ships for; the update
     # check compares it against the latest GitHub release of ``repo_url``.
@@ -248,7 +265,25 @@ class LauncherConfig:
                 f"deployment_mode must be 'compose' or 'dockerfile', got {self.deployment_mode!r} "
                 "(#51 - the mode is explicit, never guessed)"
             )
+        self._validate_min_versions()
         return self
+
+    def _validate_min_versions(self) -> None:
+        """Reject an unparsable declared Docker minimum at resolve() time.
+
+        A version the launcher cannot understand must never be silently
+        ignored (that would let a consumer THINK it raised the bar while the
+        check does nothing). An empty string means "not declared" and is
+        always fine (#32 philosophy: hard error, clear message).
+        """
+        for field_name in ("min_engine_version", "min_api_version", "min_compose_version", "min_buildx_version"):
+            raw = getattr(self, field_name)
+            if raw and normalize_version_core(raw) is None:
+                raise ValueError(
+                    f"{field_name}={raw!r} is not a parseable version (expected e.g. '0.17' or '2.40.2'); "
+                    "a declared Docker minimum must be a real version, never guessed (#32)"
+                )
+        return
 
     @property
     def effective_deployment_mode(self) -> str:
@@ -374,3 +409,22 @@ class LauncherConfig:
 def slugify(text: str) -> str:
     """Turn an app name into a lowercase, hyphen-separated slug."""
     return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+
+
+# A version's comparable core is the first ``major.minor[.patch...]`` run.
+_VERSION_CORE_RE = re.compile(r"\d+(?:\.\d+)+")
+
+
+def normalize_version_core(raw: str) -> str | None:
+    """Extract the comparable dotted-numeric core from a dirty version string.
+
+    Real Docker version strings are messy: ``v0.8.2-docker`` (buildx),
+    ``20.10.21+dfsg1`` (Debian engine), ``Docker Compose version v2.40.2``,
+    ``github.com/docker/buildx v0.17.1 <sha>``. This pulls out the first
+    ``major.minor[.patch...]`` run so a real version library can compare it
+    - stripping the leading ``v``, any ``+build`` / ``-suffix`` and any
+    surrounding prose. Returns ``None`` when the string carries no version at
+    all (``"latest"``, ``""``); the caller treats that as unparsable.
+    """
+    match = _VERSION_CORE_RE.search(raw or "")
+    return match.group(0) if match else None

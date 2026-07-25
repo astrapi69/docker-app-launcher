@@ -218,6 +218,7 @@ class TestInstall:
 
 class TestStart:
     def test_success(self, config, monkeypatch) -> None:
+        _make_repo(config)  # start now runs the build capability gate before (re)building (#54)
         states = iter(["stopped", "running"])
         monkeypatch.setattr(lifecycle, "check_docker", lambda: (True, "ok"))
         monkeypatch.setattr(lifecycle, "get_state", lambda c: next(states))
@@ -238,6 +239,7 @@ class TestStart:
         assert ok is False
 
     def test_compose_failure(self, config, monkeypatch) -> None:
+        _make_repo(config)
         monkeypatch.setattr(lifecycle, "check_docker", lambda: (True, "ok"))
         monkeypatch.setattr(lifecycle, "get_state", lambda c: "stopped")
         monkeypatch.setattr(lifecycle, "_stream_compose", lambda c, *a, **k: (1, "fail"))
@@ -245,12 +247,71 @@ class TestStart:
         assert ok is False and "fail" in msg
 
     def test_no_container_after(self, config, monkeypatch) -> None:
+        _make_repo(config)
         states = iter(["stopped", "stopped"])
         monkeypatch.setattr(lifecycle, "check_docker", lambda: (True, "ok"))
         monkeypatch.setattr(lifecycle, "get_state", lambda c: next(states))
         monkeypatch.setattr(lifecycle, "_stream_compose", lambda c, *a, **k: (0, ""))
         ok, _ = lifecycle.start(config)
         assert ok is False
+
+
+class TestBuildCapabilityGate:
+    """The compose build gate fires BEFORE the build, not during it (#54).
+
+    Device forensics: compose plugin present, buildx 0.8.2, the build started
+    and failed minutes in with 'compose build requires buildx 0.17 or later'.
+    The gate must surface that up front and never reach the build stream.
+    """
+
+    def _old_buildx(self, monkeypatch) -> None:
+        from packaging.version import Version
+
+        from docker_app_launcher.docker import build_readiness, tool_versions
+
+        old = tool_versions.ToolVersions(
+            engine_raw="20.10.21",
+            engine=Version("20.10.21"),
+            compose_raw="2.40.2",
+            compose=Version("2.40.2"),
+            buildx_raw="0.8.2",
+            buildx=Version("0.8.2"),
+        )
+        monkeypatch.setattr(build_readiness, "detect_tool_versions", lambda c: old)
+
+    def test_install_blocks_old_buildx_before_build(self, config, monkeypatch) -> None:
+        _make_repo(config)
+        self._old_buildx(monkeypatch)
+        monkeypatch.setattr(lifecycle, "check_docker", lambda: (True, "ok"))
+        monkeypatch.setattr(lifecycle, "get_state", lambda c: "not_installed")
+        monkeypatch.setattr(lifecycle, "check_port", lambda p, **k: (True, "free"))
+        reached_build = {"v": False}
+
+        def fake_stream(c, *a, **k):
+            reached_build["v"] = True
+            return (1, "compose build requires buildx 0.17 or later")
+
+        monkeypatch.setattr(lifecycle, "_stream_compose", fake_stream)
+        ok, msg = lifecycle.install(config)
+        assert ok is False
+        assert reached_build["v"] is False, "readiness must fail BEFORE the build stream runs"
+        assert "buildx" in msg and "0.17" in msg and "0.8.2" in msg
+
+    def test_start_blocks_old_buildx_before_build(self, config, monkeypatch) -> None:
+        _make_repo(config)
+        self._old_buildx(monkeypatch)
+        monkeypatch.setattr(lifecycle, "check_docker", lambda: (True, "ok"))
+        monkeypatch.setattr(lifecycle, "get_state", lambda c: "stopped")
+        reached_build = {"v": False}
+
+        def fake_stream(c, *a, **k):
+            reached_build["v"] = True
+            return (0, "")
+
+        monkeypatch.setattr(lifecycle, "_stream_compose", fake_stream)
+        ok, msg = lifecycle.start(config)
+        assert ok is False and reached_build["v"] is False
+        assert "buildx" in msg
 
 
 class TestStop:

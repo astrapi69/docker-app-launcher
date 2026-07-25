@@ -136,3 +136,12 @@ compose_missing: "Docker Compose が利用できません。Compose v2 プラグ
 compose_v1_incompatible: "古い docker-compose v1 のみが見つかりましたが、このアプリの compose ファイル（{path}）を読み込めません。Compose v2 プラグインをインストールしてください: 'sudo apt install docker-compose-plugin'。その後ランチャーを再起動してください。"
 dockerfile_not_found: "Dockerfile が見つかりません: {path}。launcher 設定の deployment_mode/Dockerfile を確認してください。"
 dockerfile_mode_needs_dockerpy: "dockerfile モードには Python パッケージ docker（docker-py）が必要ですが、このインストールでは利用できません。"
+
+# --- build readiness / capability gate (#54) ---
+buildx_too_old: "Docker Compose のビルドは buildx に委譲され、buildx {required} 以降が必要ですが、インストールされているのは buildx {found} です。新しい buildx をインストールしてください: お使いのプラットフォーム向けバイナリを docker/buildx のリリースから入手し、{path} に配置して 'chmod +x {path}' で実行可能にします。ディストリビューションのパッケージはこの用途では信頼できないことが分かっています。"
+buildx_missing: "Docker Compose のビルドは buildx に委譲され、buildx {required} 以降が必要ですが、buildx プラグインが見つかりませんでした。buildx をインストールしてください: お使いのプラットフォーム向けバイナリを docker/buildx のリリースから入手し、{path} に配置して 'chmod +x {path}' で実行可能にします。ディストリビューションのパッケージはこの用途では信頼できないことが分かっています。"
+app_requirement_too_old: "このアプリは {component} {required} 以降を必要としますが、インストールされているのは {found} です。Docker を更新してください。"
+app_requirement_missing: "このアプリは {component} {required} 以降を必要としますが、{component} を検出できませんでした。Docker をインストールまたは更新してください。"
+compose_unreadable: "Compose ファイルは見つかりましたが読み取れません: {path} ({error})。"
+dockerfile_unreadable: "Dockerfile は見つかりましたが読み取れません: {path} ({error})。"
+build_context_not_found: "ビルドコンテキストのディレクトリが見つかりません: {path}。launcher 設定の build_context を確認してください。"

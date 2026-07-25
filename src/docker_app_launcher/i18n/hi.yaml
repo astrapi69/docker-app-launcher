@@ -136,3 +136,12 @@ compose_missing: "Docker Compose उपलब्ध नहीं है। Compo
 compose_v1_incompatible: "केवल पुराना docker-compose v1 मिला और वह इस ऐप की compose फ़ाइल ({path}) नहीं पढ़ सकता। Compose v2 प्लगइन इंस्टॉल करें: 'sudo apt install docker-compose-plugin', फिर launcher फिर से शुरू करें।"
 dockerfile_not_found: "Dockerfile नहीं मिला: {path}। launcher कॉन्फ़िगरेशन में deployment_mode/Dockerfile सेटिंग जाँचें।"
 dockerfile_mode_needs_dockerpy: "dockerfile मोड को Python पैकेज docker (docker-py) चाहिए, जो इस इंस्टॉलेशन में उपलब्ध नहीं है।"
+
+# --- build readiness / capability gate (#54) ---
+buildx_too_old: "Docker Compose बिल्ड buildx को सौंपता है और buildx {required} या नया चाहिए, लेकिन buildx {found} इंस्टॉल है। नया buildx इंस्टॉल करें: अपने प्लेटफ़ॉर्म के लिए बाइनरी docker/buildx releases से डाउनलोड करें, उसे {path} पर रखें, फिर 'chmod +x {path}' से executable बनाएं। इसके लिए डिस्ट्रीब्यूशन पैकेज अविश्वसनीय साबित हुए हैं।"
+buildx_missing: "Docker Compose बिल्ड buildx को सौंपता है और buildx {required} या नया चाहिए, लेकिन कोई buildx प्लगइन नहीं मिला। buildx इंस्टॉल करें: अपने प्लेटफ़ॉर्म के लिए बाइनरी docker/buildx releases से डाउनलोड करें, उसे {path} पर रखें, फिर 'chmod +x {path}' से executable बनाएं। इसके लिए डिस्ट्रीब्यूशन पैकेज अविश्वसनीय साबित हुए हैं।"
+app_requirement_too_old: "यह ऐप {component} {required} या नया माँगता है, लेकिन {found} इंस्टॉल है। इसे पूरा करने के लिए Docker अपडेट करें।"
+app_requirement_missing: "यह ऐप {component} {required} या नया माँगता है, लेकिन {component} का पता नहीं चला। इसे पूरा करने के लिए Docker इंस्टॉल या अपडेट करें।"
+compose_unreadable: "Compose फ़ाइल मिली पर पढ़ी नहीं जा सकी: {path} ({error})।"
+dockerfile_unreadable: "Dockerfile मिली पर पढ़ी नहीं जा सकी: {path} ({error})।"
+build_context_not_found: "बिल्ड कॉन्टेक्स्ट डायरेक्टरी नहीं मिली: {path}. launcher config में build_context जाँचें।"

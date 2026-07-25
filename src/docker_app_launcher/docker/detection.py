@@ -190,7 +190,7 @@ def _docker_info_rc(extra_env: dict[str, str] | None = None) -> tuple[int | None
     ``DOCKER_HOST`` without touching the process environment.
     """
     try:
-        result = _run(["docker", "info"], timeout=10.0, extra_env=extra_env)
+        result = _run(["docker", "info"], timeout=10.0, extra_env=extra_env, probe=True)
     except FileNotFoundError:
         return 127, "docker not found"
     except subprocess.TimeoutExpired:

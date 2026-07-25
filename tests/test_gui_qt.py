@@ -124,6 +124,30 @@ class TestRegistry:
 
 
 class TestWindow:
+    def test_window_is_resizable_by_default(self, app) -> None:
+        # A fixed window would pin maximumSize to the current size.
+        assert app.maximumSize().width() > app.width()
+        assert app.maximumSize().height() > app.height()
+
+    def test_window_resizable_opt_out_pins_the_size(self, qapp, gui_state) -> None:
+        config = LauncherConfig(
+            app_name="Fixed Qt App",
+            default_port=8080,
+            locale="en",
+            cleanup_on_start=False,
+            update_check_enabled=False,
+            window_resizable=False,
+        )
+        window = qt_frontend.QtLauncherApp(config)
+        qapp.processEvents()
+        try:
+            assert window.maximumSize().width() == window.width()
+            assert window.minimumSize().width() == window.width()
+        finally:
+            window._stop_tray()
+            window.deleteLater()
+            qapp.processEvents()
+
     def test_builds_with_title_and_all_buttons(self, app) -> None:
         import docker_app_launcher
 

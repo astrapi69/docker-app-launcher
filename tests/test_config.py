@@ -274,3 +274,17 @@ class TestDetectSystemLocaleEdges:
 
         monkeypatch.setattr(_locale, "getlocale", lambda: ("de-DE", "UTF-8"))
         assert detect_system_locale() == "de"
+
+
+class TestWindowResizable:
+    def test_resizable_by_default(self) -> None:
+        # The log panel is the window's core; a fixed size clips it on small
+        # screens, so resizing must work out of the box.
+        assert LauncherConfig(app_name="X").window_resizable is True
+
+    def test_opt_out_survives_json_roundtrip(self, tmp_path) -> None:
+        import json
+
+        path = tmp_path / "launcher.json"
+        path.write_text(json.dumps({"app_name": "X", "window_resizable": False}), encoding="utf-8")
+        assert LauncherConfig.from_json(path).window_resizable is False

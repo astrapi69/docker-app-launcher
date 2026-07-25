@@ -471,6 +471,24 @@ class TestActionFlow:
         assert "worker blew up" in app._status.get("1.0", "end")
         assert any(r.exc_info for r in caplog.records)
 
+    def test_window_is_resizable_by_default(self, app) -> None:
+        assert tuple(map(int, app.resizable())) == (1, 1)
+
+    def test_window_resizable_opt_out(self, gui_state) -> None:
+        config = LauncherConfig(
+            app_name="Fixed App",
+            default_port=8080,
+            locale="en",
+            cleanup_on_start=False,
+            update_check_enabled=False,
+            window_resizable=False,
+        )
+        window = gui.LauncherApp(config)
+        try:
+            assert tuple(map(int, window.resizable())) == (0, 0)
+        finally:
+            window.destroy()
+
     def test_busy_disables_every_button_in_the_window(self, app) -> None:
         app._set_busy(True)
         assert all(str(btn["state"]) == "disabled" for btn in app._iter_buttons())

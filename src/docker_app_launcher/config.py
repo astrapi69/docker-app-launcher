@@ -136,7 +136,11 @@ class LauncherConfig:
     # === GUI ===
     window_width: int = 620
     window_height: int = 520
-    window_resizable: bool = False
+    # Resizable by default: the log panel is the window's core (P0) and a
+    # fixed 620x520 clips it on small screens / large fonts. The persisted
+    # geometry (#31) keeps whatever size the user settles on. Apps that
+    # need a fixed layout opt out with window_resizable=False.
+    window_resizable: bool = True
     # ``"auto"`` detects the OS language (resolved by :meth:`resolve`); any
     # explicit code in :data:`SUPPORTED_LOCALES` overrides it.
     locale: str = "auto"

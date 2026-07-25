@@ -98,7 +98,13 @@ if HAS_QT:
             if match:
                 self.resize(int(match.group(1)), int(match.group(2)))
                 self.move(int(match.group(3)), int(match.group(4)))
-            self.setMinimumSize(min(600, config.window_width), min(420, config.window_height))
+            if not config.window_resizable:
+                # Parity with the tk/ctk frontends: honor the opt-out.
+                # setFixedSize pins min=max=current; no setMinimumSize after
+                # it - that would re-loosen the minimum.
+                self.setFixedSize(self.width(), self.height())
+            else:
+                self.setMinimumSize(min(600, config.window_width), min(420, config.window_height))
             if config.icon_path:
                 self.setWindowIcon(QIcon(config.icon_path))
 

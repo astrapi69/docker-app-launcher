@@ -6,6 +6,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **The window is resizable by default.** `window_resizable` now defaults
+  to `True` — the log panel is the window's core and a fixed 620×520 clips
+  it on small screens or with large fonts; the persisted geometry (#31)
+  keeps whatever size the user settles on. The Qt frontend now honors the
+  `window_resizable=False` opt-out too (`setFixedSize`, parity with
+  tk/ctk — it previously ignored the flag).
+
 ## [0.17.0] - 2026-07-25
 
 ### Added

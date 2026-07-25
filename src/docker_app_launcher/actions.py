@@ -169,6 +169,9 @@ from docker_app_launcher.docker.lifecycle import (
     _uninstall_images as _uninstall_images,
 )
 from docker_app_launcher.docker.lifecycle import (
+    app_logs as app_logs,
+)
+from docker_app_launcher.docker.lifecycle import (
     change_internal_port as change_internal_port,
 )
 from docker_app_launcher.docker.lifecycle import (

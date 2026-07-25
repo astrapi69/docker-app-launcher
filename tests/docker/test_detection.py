@@ -675,3 +675,82 @@ class TestErrnoBasedPermissionClassification:
         assert info["can_start"] is True
         ok, msg = detection.check_docker()
         assert ok is False and "not started" in msg
+
+
+class TestNativeApiDetection:
+    """#44: the docker-py ping is authoritative for ok/permission; everything
+    else falls back to the CLI probe."""
+
+    def test_api_ok_short_circuits_cli(self, monkeypatch) -> None:
+        monkeypatch.setattr(detection, "_api_ping", lambda endpoint=None: ("ok", ""))
+
+        def cli_must_not_run(*a, **k):
+            raise AssertionError("CLI probe must not run when the API answered")
+
+        monkeypatch.setattr(detection, "_docker_info_rc", cli_must_not_run)
+        ok, msg = detection.check_docker()
+        assert ok is True and "running" in msg
+
+    def test_api_permission_short_circuits_cli(self, monkeypatch) -> None:
+        monkeypatch.setattr(detection, "_api_ping", lambda endpoint=None: ("permission", "EACCES"))
+        ok, msg = detection.check_docker()
+        assert ok is False
+        assert "not started" not in msg
+        assert "usermod -aG docker" in msg
+
+    def test_api_down_still_detects_missing_cli(self, monkeypatch) -> None:
+        monkeypatch.setattr(detection, "_api_ping", lambda endpoint=None: ("down", "refused"))
+        monkeypatch.setattr(detection, "_docker_info_rc", lambda extra_env=None: (127, "docker not found"))
+        ok, msg = detection.check_docker()
+        assert ok is False and "not installed" in msg
+
+    def test_api_down_sweeps_contexts(self, monkeypatch) -> None:
+        monkeypatch.setattr(detection, "_api_ping", lambda endpoint=None: ("down", "refused"))
+        monkeypatch.setattr(detection, "_docker_info_rc", lambda extra_env=None: (1, "cannot connect"))
+        monkeypatch.setattr(detection, "_sweep_other_contexts", lambda *a, **k: ("desktop-linux", "unix:///d.sock"))
+        ok, msg = detection.check_docker()
+        assert ok is True and "desktop-linux" in msg
+
+    def test_api_unavailable_uses_cli_verdict(self, monkeypatch) -> None:
+        # The conftest isolation fixture already forces "unavailable".
+        monkeypatch.setattr(detection, "_docker_info_rc", lambda extra_env=None: (0, ""))
+        ok, _ = detection.check_docker()
+        assert ok is True
+
+    def test_detailed_linux_permission_from_api(self, config, monkeypatch) -> None:
+        monkeypatch.setattr("platform.system", lambda: "Linux")
+        monkeypatch.setattr("shutil.which", lambda _x: "/usr/bin/docker")
+        monkeypatch.setattr(detection, "_api_ping", lambda endpoint=None: ("permission", "EACCES"))
+        r = detection.check_docker_detailed(config)
+        assert r["can_fix_permission"] is True and not r["running"]
+        assert "usermod -aG docker" in r["command"]
+
+    def test_sweep_probes_endpoints_via_api(self, monkeypatch) -> None:
+        probed: list[str] = []
+
+        def fake_ping(endpoint=None):
+            probed.append(endpoint or "<env>")
+            return ("ok", "") if endpoint == "unix:///d.sock" else ("down", "")
+
+        monkeypatch.setattr(detection, "_api_ping", fake_ping)
+        monkeypatch.setattr(
+            detection,
+            "_docker_contexts",
+            lambda: [("default", "unix:///var/run/docker.sock", True), ("desktop", "unix:///d.sock", False)],
+        )
+        hit = detection._sweep_other_contexts()
+        assert hit == ("desktop", "unix:///d.sock")
+        assert probed == ["unix:///d.sock"]
+        assert docker_cli.docker_host_override() == "unix:///d.sock"
+
+    def test_probe_endpoint_cli_fallback(self, monkeypatch) -> None:
+        # API unavailable (conftest default) -> the CLI probes the endpoint.
+        seen_env: list[dict[str, str] | None] = []
+
+        def fake_info_rc(extra_env=None):
+            seen_env.append(extra_env)
+            return (0, "")
+
+        monkeypatch.setattr(detection, "_docker_info_rc", fake_info_rc)
+        assert detection._probe_endpoint("unix:///x.sock") is True
+        assert seen_env == [{"DOCKER_HOST": "unix:///x.sock"}]

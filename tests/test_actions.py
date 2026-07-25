@@ -1745,3 +1745,66 @@ class TestGetAppVersion:
         monkeypatch.setattr(actions, "_health_payload", self._payload(None))
         monkeypatch.setattr(actions, "read_manifest", lambda config: {"app_version": "0.3.0", "status": "uninstalled"})
         assert actions.get_app_version(cfg) == ("9.0.0", "expected")
+
+
+class TestErrnoBasedPermissionClassification:
+    """Device finding (#27 reopened): classification must come from the actual
+    socket signal, never from an unguaranteed CLI message string. These tests
+    build a REAL socket with the target errno - no mock of the probe itself."""
+
+    def _generic_cli(self, monkeypatch) -> None:
+        # The device class: CLI reports the generic connect message even
+        # though the underlying failure is EACCES.
+        monkeypatch.setattr(
+            actions,
+            "_docker_info_rc",
+            lambda extra_env=None: (
+                1,
+                "Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?",
+            ),
+        )
+        monkeypatch.setattr(actions, "_docker_contexts", lambda: [])
+
+    def _denied_socket(self, tmp_path) -> str:
+        import socket as socket_module
+
+        path = str(tmp_path / "s.sock")
+        server = socket_module.socket(socket_module.AF_UNIX)
+        server.bind(path)
+        server.listen(1)
+        os.chmod(path, 0o000)
+        return f"unix://{path}"
+
+    def test_eacces_socket_classifies_as_permission_despite_generic_cli_text(
+        self, config, tmp_path, monkeypatch
+    ) -> None:
+        endpoint = self._denied_socket(tmp_path)
+        self._generic_cli(monkeypatch)
+        monkeypatch.setattr(actions, "_active_context", lambda: ("default", endpoint))
+        ok, msg = actions.check_docker()
+        assert ok is False
+        assert "usermod -aG docker" in msg, f"EACCES misclassified: {msg!r}"
+        assert "not started" not in msg
+
+    def test_detailed_eacces_offers_the_permission_fix(self, config, tmp_path, monkeypatch) -> None:
+        endpoint = self._denied_socket(tmp_path)
+        self._generic_cli(monkeypatch)
+        monkeypatch.setattr(actions, "_active_context", lambda: ("default", endpoint))
+        monkeypatch.setattr("platform.system", lambda: "Linux")
+        monkeypatch.setattr("shutil.which", lambda _x: "/usr/bin/docker")
+        info = actions.check_docker_detailed(config)
+        assert info["can_fix_permission"] is True, f"got: {info['detail']!r}"
+        assert info["can_start"] is False
+        assert "usermod -aG docker" in info["detail"]
+
+    def test_missing_socket_stays_daemon_down_with_start_offer(self, config, tmp_path, monkeypatch) -> None:
+        endpoint = f"unix://{tmp_path}/never-created.sock"
+        self._generic_cli(monkeypatch)
+        monkeypatch.setattr(actions, "_active_context", lambda: ("default", endpoint))
+        monkeypatch.setattr("platform.system", lambda: "Linux")
+        monkeypatch.setattr("shutil.which", lambda _x: "/usr/bin/docker")
+        info = actions.check_docker_detailed(config)
+        assert info["can_fix_permission"] is False
+        assert info["can_start"] is True
+        ok, msg = actions.check_docker()
+        assert ok is False and "not started" in msg

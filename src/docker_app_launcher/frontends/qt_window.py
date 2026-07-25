@@ -22,7 +22,7 @@ import sys
 import threading
 from typing import Any
 
-from docker_app_launcher import actions, i18n, tray, update_check
+from docker_app_launcher import actions, i18n, lockfile, tray, update_check
 from docker_app_launcher.config import LOCALE_LABELS, LauncherConfig, locale_for_label
 from docker_app_launcher.ui_model import (
     _STATE_KEYS,
@@ -36,6 +36,7 @@ from docker_app_launcher.ui_model import (
     default_internal_ports,
     disabled_reason_key,
     dispatch_action,
+    initial_focus_button,
     internal_port_fields,
     issue_tracker_url,
     log_panel_line,
@@ -196,6 +197,21 @@ if HAS_QT:
                 self._offer_cleanup_if_stale()
             if config.update_check_enabled:
                 self._check_for_update()
+            if config.single_instance:
+                # A refused second launch drops a focus marker (#31).
+                self._focus_timer = QTimer(self)
+                self._focus_timer.timeout.connect(self._poll_focus_request)
+                self._focus_timer.start(1000)
+
+        def _poll_focus_request(self) -> None:
+            """Bring the window up when a second launch asked for focus (#31)."""
+            if lockfile.consume_focus_request(self._cfg.lock_path):
+                self._bring_to_front()
+
+        def _bring_to_front(self) -> None:
+            self.showNormal()
+            self.raise_()
+            self.activateWindow()
 
         # --- thread marshaling ---
 
@@ -275,6 +291,18 @@ if HAS_QT:
                 btn.setEnabled(enabled)
                 reason = disabled_reason_key(name, state)
                 btn.setToolTip(self._t(reason) if reason else "")
+            self._apply_initial_focus(state)
+
+        def _apply_initial_focus(self, state: str) -> None:
+            """Keyboard focus lands on the state's primary action (#31) - only
+            on a real state CHANGE, never on polling refreshes. Fusion draws
+            the focus frame itself."""
+            if state == getattr(self, "_focused_state", None):
+                return
+            self._focused_state = state
+            target = initial_focus_button(state)
+            if button_enabled(state, target):
+                self._buttons[target].setFocus()
 
         def _relabel_buttons(self) -> None:
             for name, btn in self._buttons.items():

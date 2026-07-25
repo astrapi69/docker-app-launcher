@@ -204,6 +204,23 @@ BUTTON_STATES: dict[str, dict[str, bool]] = {
 }
 
 
+# Which button owns keyboard focus after entering a state (#31): the
+# state's most likely next action. ``info`` for no_docker - every other
+# button is disabled there and the help panel's transient buttons are not
+# part of this fixed table.
+INITIAL_FOCUS = {
+    "no_docker": "info",
+    "not_installed": "install",
+    "stopped": "start",
+    "running": "open_browser",
+}
+
+
+def initial_focus_button(state: str) -> str:
+    """The button that should receive keyboard focus for ``state``."""
+    return INITIAL_FOCUS.get(state, "info")
+
+
 def port_editable(state: str) -> bool:
     """Whether the port field is editable.
 

@@ -192,6 +192,7 @@ def _busy_app(monkeypatch: pytest.MonkeyPatch, buttons: list[_FakeButton]) -> tu
     monkeypatch.setattr(app, "attributes", lambda *a: calls["attributes"].append(a))
     monkeypatch.setattr(app, "lift", lambda: calls.__setitem__("lift", calls["lift"] + 1))
     monkeypatch.setattr(app, "focus_force", lambda: calls.__setitem__("focus_force", calls["focus_force"] + 1))
+    monkeypatch.setattr(app, "deiconify", lambda: None, raising=False)
     monkeypatch.setattr(app, "_clear_status", lambda: calls.__setitem__("cleared", calls["cleared"] + 1))
     monkeypatch.setattr(app, "_log", lambda *a, **k: calls.__setitem__("logged", calls["logged"] + 1))
     return app, calls
@@ -560,3 +561,27 @@ class TestRunGuarded:
         assert ok is False
         assert "ValueError" in msg and "port table corrupt" in msg
         assert any(r.exc_info and "change_port" in r.message for r in caplog.records)
+
+
+class TestInitialFocus:
+    """#31: keyboard focus lands on the state's primary next action."""
+
+    def test_mapping(self) -> None:
+        from docker_app_launcher import ui_model
+
+        assert ui_model.initial_focus_button("not_installed") == "install"
+        assert ui_model.initial_focus_button("stopped") == "start"
+        assert ui_model.initial_focus_button("running") == "open_browser"
+        assert ui_model.initial_focus_button("no_docker") == "info"
+
+    def test_unknown_state_falls_back_to_info(self) -> None:
+        from docker_app_launcher import ui_model
+
+        assert ui_model.initial_focus_button("weird") == "info"
+
+    def test_target_is_always_enabled_in_its_state(self) -> None:
+        from docker_app_launcher import ui_model
+
+        for state in ("no_docker", "not_installed", "stopped", "running"):
+            target = ui_model.initial_focus_button(state)
+            assert ui_model.button_enabled(state, target), f"{state}: focus target {target!r} is disabled"

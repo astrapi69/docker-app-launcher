@@ -31,7 +31,7 @@ from collections.abc import Callable
 from pathlib import Path
 from tkinter import messagebox, ttk
 
-from docker_app_launcher import actions, i18n, tray, update_check
+from docker_app_launcher import actions, i18n, lockfile, tray, update_check
 from docker_app_launcher.config import LOCALE_LABELS, LauncherConfig, locale_for_label
 from docker_app_launcher.frontends.tooltip import Tooltip as _Tooltip
 
@@ -73,6 +73,9 @@ from docker_app_launcher.ui_model import (
 )
 from docker_app_launcher.ui_model import (
     dispatch_action as dispatch_action,
+)
+from docker_app_launcher.ui_model import (
+    initial_focus_button as initial_focus_button,
 )
 from docker_app_launcher.ui_model import (
     internal_port_fields as internal_port_fields,
@@ -226,6 +229,10 @@ class LauncherApp(tk.Tk):
             self._offer_cleanup_if_stale()
         if config.update_check_enabled:
             self._check_for_update()
+        if config.single_instance:
+            # A refused second launch drops a focus marker (#31); poll it so
+            # the running window comes to the foreground.
+            self.after(1000, self._poll_focus_request)
 
     # --- button construction ---
 
@@ -256,7 +263,15 @@ class LauncherApp(tk.Tk):
         The caller places the returned button (``.grid`` for the primary grid,
         ``.pack`` for the secondary row).
         """
-        btn = tk.Button(parent, text=self._t(BUTTON_LABELS[name]), width=18, command=command)
+        # Explicit focus ring (#31): the default hairline is easy to miss.
+        btn = tk.Button(
+            parent,
+            text=self._t(BUTTON_LABELS[name]),
+            width=18,
+            command=command,
+            highlightthickness=2,
+            highlightcolor="#2a5db0",
+        )
         self._buttons[name] = btn
         self._tooltips[name] = _Tooltip(btn)
         return btn
@@ -265,6 +280,12 @@ class LauncherApp(tk.Tk):
 
     def _t(self, key: str, **kwargs: object) -> str:
         return i18n.t(key, self._cfg, **kwargs)
+
+    def _poll_focus_request(self) -> None:
+        """Bring the window up when a second launch asked for focus (#31)."""
+        if lockfile.consume_focus_request(self._cfg.lock_path):
+            self._bring_to_front()
+        self.after(1000, self._poll_focus_request)
 
     def _on_window_configure(self, event: tk.Event[tk.Misc]) -> None:
         """Re-wrap the state text to the CURRENT window width (#47).
@@ -330,6 +351,18 @@ class LauncherApp(tk.Tk):
             btn.configure(state="normal" if enabled else "disabled")
             reason = disabled_reason_key(name, state)
             self._tooltips[name].set_text(self._t(reason) if reason else "")
+        self._apply_initial_focus(state)
+
+    def _apply_initial_focus(self, state: str) -> None:
+        """Keyboard focus lands on the state's primary action (#31) - only on
+        a real state CHANGE, so polling refreshes never steal the focus from
+        the port field."""
+        if state == getattr(self, "_focused_state", None):
+            return
+        self._focused_state = state
+        target = initial_focus_button(state)
+        if button_enabled(state, target):
+            self._buttons[target].focus_set()
 
     def _relabel_buttons(self) -> None:
         """Re-apply translated labels to every fixed button (language change)."""
@@ -746,8 +779,13 @@ class LauncherApp(tk.Tk):
             logger.debug("could not set -topmost=%s: %s", on, exc)
 
     def _bring_to_front(self) -> None:
-        """Raise and focus the window once (after an action completes)."""
+        """Raise and focus the window (after an action, or a #31 focus request).
+
+        ``deiconify`` first: a minimized/tray-hidden window must come back
+        before lift/focus can have any visible effect.
+        """
         try:
+            self.deiconify()
             self.lift()
             self.focus_force()
         except tk.TclError as exc:  # pragma: no cover - platform/WM dependent

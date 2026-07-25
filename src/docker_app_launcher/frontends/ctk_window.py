@@ -19,7 +19,7 @@ import threading
 import tkinter as tk
 from typing import Any
 
-from docker_app_launcher import actions, i18n, tray, update_check
+from docker_app_launcher import actions, i18n, lockfile, tray, update_check
 from docker_app_launcher.config import LOCALE_LABELS, LauncherConfig, locale_for_label
 from docker_app_launcher.frontends.tk_window import _set_window_icon
 from docker_app_launcher.frontends.tooltip import Tooltip as _Tooltip
@@ -35,6 +35,7 @@ from docker_app_launcher.ui_model import (
     default_internal_ports,
     disabled_reason_key,
     dispatch_action,
+    initial_focus_button,
     internal_port_fields,
     issue_tracker_url,
     log_panel_line,
@@ -159,6 +160,20 @@ if HAS_CTK:
                 self._offer_cleanup_if_stale()
             if config.update_check_enabled:
                 self._check_for_update()
+            if config.single_instance:
+                # A refused second launch drops a focus marker (#31).
+                self.after(1000, self._poll_focus_request)
+
+        def _poll_focus_request(self) -> None:
+            """Bring the window up when a second launch asked for focus (#31)."""
+            if lockfile.consume_focus_request(self._cfg.lock_path):
+                self._bring_to_front()
+            self.after(1000, self._poll_focus_request)
+
+        def _bring_to_front(self) -> None:
+            self.deiconify()
+            self.lift()
+            self.focus_force()
 
         # --- construction helpers ---
 
@@ -179,6 +194,9 @@ if HAS_CTK:
 
         def _make_button(self, parent: Any, name: str, command: Any) -> Any:
             btn = ctk.CTkButton(parent, text=self._t(BUTTON_LABELS[name]), width=170, command=command)
+            # Explicit focus ring (#31): CTk paints none by default.
+            btn.bind("<FocusIn>", lambda _e, b=btn: b.configure(border_width=2, border_color="#2a5db0"))
+            btn.bind("<FocusOut>", lambda _e, b=btn: b.configure(border_width=0))
             self._buttons[name] = btn
             self._tooltips[name] = _Tooltip(btn)
             return btn
@@ -241,6 +259,17 @@ if HAS_CTK:
                 btn.configure(state="normal" if enabled else "disabled")
                 reason = disabled_reason_key(name, state)
                 self._tooltips[name].set_text(self._t(reason) if reason else "")
+            self._apply_initial_focus(state)
+
+        def _apply_initial_focus(self, state: str) -> None:
+            """Keyboard focus lands on the state's primary action (#31) - only
+            on a real state CHANGE, never on polling refreshes."""
+            if state == getattr(self, "_focused_state", None):
+                return
+            self._focused_state = state
+            target = initial_focus_button(state)
+            if button_enabled(state, target):
+                self._buttons[target].focus_set()
 
         def _relabel_buttons(self) -> None:
             for name, btn in self._buttons.items():

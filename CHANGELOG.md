@@ -6,6 +6,30 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **A second launch now focuses the running window (#31).** The refused
+  second instance drops a focus marker next to the lockfile; the running
+  window polls it (1s) and brings itself to the foreground
+  (deiconify/lift/focus in Tk terms, showNormal/raise/activate in Qt) —
+  instead of only printing "already running" while the user searches for
+  the window. File-based on purpose: portable and unit-testable without a
+  second process.
+- **Keyboard accessibility (#31).** Entering a state puts keyboard focus
+  on its primary action (install / start / open browser / about) — only on
+  a real state change, never on polling refreshes, so the port field keeps
+  its focus while typing. Tk buttons get an explicit focus ring; CTk
+  buttons paint a focus border on FocusIn (they had no indicator at all);
+  Qt keeps Fusion's native focus frame.
+
+### Fixed
+
+- **A missing explicit `--config` path is now a hard error (#32).** It
+  used to silently launch an all-defaults "My App" window — the wrapper
+  deployment bug class where only strace found the wrong bundled path.
+  Exit code 2 with the path on stderr; the implicit `launcher.json`
+  lookup stays fail-open.
+
 ## [0.18.0] - 2026-07-25
 
 ### Fixed

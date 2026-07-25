@@ -142,3 +142,26 @@ class TestPidIsAliveRouting:
         monkeypatch.setattr(sys, "platform", "win32")
         monkeypatch.setattr(lockfile, "_pid_alive_windows", lambda pid: True)
         assert lockfile.pid_is_alive(1234) is True
+
+
+class TestFocusHandshake:
+    """#31: the refused second launch asks the running window for focus."""
+
+    def test_request_then_consume(self, tmp_path) -> None:
+        lock = tmp_path / "app.lock"
+        lockfile.request_focus(lock)
+        assert lockfile.focus_request_path(lock).is_file()
+        assert lockfile.consume_focus_request(lock) is True
+        assert not lockfile.focus_request_path(lock).is_file()  # one-shot
+
+    def test_consume_without_request_is_false(self, tmp_path) -> None:
+        assert lockfile.consume_focus_request(tmp_path / "app.lock") is False
+
+    def test_request_into_missing_dir_creates_it(self, tmp_path) -> None:
+        lock = tmp_path / "deep" / "dir" / "app.lock"
+        lockfile.request_focus(lock)
+        assert lockfile.consume_focus_request(lock) is True
+
+    def test_request_failure_is_nonfatal(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.setattr("pathlib.Path.write_text", lambda *a, **k: (_ for _ in ()).throw(OSError("read-only")))
+        lockfile.request_focus(tmp_path / "app.lock")  # must not raise

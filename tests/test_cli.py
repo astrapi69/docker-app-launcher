@@ -168,6 +168,15 @@ class TestSingleInstance:
         assert rc == 0
         assert "already running" in capsys.readouterr().out.lower()
 
+    def test_second_instance_requests_focus(self, monkeypatch) -> None:
+        # #31: the refusal also asks the RUNNING window to come forward.
+        monkeypatch.setattr(lockfile, "another_instance_alive", lambda path: True)
+        monkeypatch.setattr(tk_window, "run", lambda *a, **k: 0)
+        requested: list[object] = []
+        monkeypatch.setattr(lockfile, "request_focus", lambda path: requested.append(path))
+        assert __main__.main([]) == 0
+        assert len(requested) == 1
+
     def test_single_instance_false_skips_lockfile(self, monkeypatch, tmp_path) -> None:
         from docker_app_launcher.config import LauncherConfig
 

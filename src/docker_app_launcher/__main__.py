@@ -180,6 +180,9 @@ def _launch_window(config: LauncherConfig, *, debug: bool) -> int:
 
         return int(get_frontend(config.gui_backend).run(config, debug=debug))
     if lockfile.another_instance_alive(config.lock_path):
+        # Ask the running window to come to the foreground (#31) - the
+        # refusal notice alone left the user searching for the window.
+        lockfile.request_focus(config.lock_path)
         message = i18n.t("already_running", config)
         print(message)
         logger.info("second instance refused: %s", message)

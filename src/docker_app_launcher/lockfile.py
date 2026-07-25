@@ -100,3 +100,38 @@ def another_instance_alive(path: Path) -> bool:
     if pid == os.getpid():
         return False
     return pid_is_alive(pid)
+
+
+# --- focus handshake (#31) --------------------------------------------------
+# A refused second launch should not just print a notice - it should bring
+# the FIRST window to the foreground. The channel is a marker file next to
+# the lockfile: the second instance touches it, the running window polls and
+# consumes it. File-based on purpose: portable (no socket permissions story
+# on Windows), unit-testable without a second process, and self-cleaning.
+
+
+def focus_request_path(lock_path: Path) -> Path:
+    """The focus-request marker belonging to ``lock_path``."""
+    return lock_path.with_name(lock_path.name + ".focus")
+
+
+def request_focus(lock_path: Path) -> None:
+    """Second instance: ask the running window to come to the foreground."""
+    try:
+        marker = focus_request_path(lock_path)
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.write_text(str(os.getpid()), encoding="utf-8")
+    except OSError as exc:
+        # Focus is best-effort: the notice on stdout still tells the user.
+        logger.debug("could not write focus request: %s", exc)
+
+
+def consume_focus_request(lock_path: Path) -> bool:
+    """Running window: True once per pending focus request (marker removed)."""
+    marker = focus_request_path(lock_path)
+    if not marker.is_file():
+        return False
+    with contextlib.suppress(OSError):
+        marker.unlink()
+        return True
+    return False

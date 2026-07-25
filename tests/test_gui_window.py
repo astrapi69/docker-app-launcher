@@ -517,6 +517,43 @@ class TestActionFlow:
             app.update()
             assert app._state_label.winfo_reqwidth() <= app.winfo_width(), f"clipped in state {state!r}"
 
+    def test_focus_poll_consumes_marker_and_raises_window(self, app, monkeypatch) -> None:
+        # #31: a pending focus request brings the window up exactly once.
+        from docker_app_launcher import lockfile as _lockfile
+
+        raised: list[bool] = []
+        monkeypatch.setattr(app, "_bring_to_front", lambda: raised.append(True))
+        _lockfile.request_focus(app._cfg.lock_path)
+        app._poll_focus_request()
+        assert raised == [True]
+        assert not _lockfile.focus_request_path(app._cfg.lock_path).is_file()
+        app._poll_focus_request()  # no pending request -> no second raise
+        assert raised == [True]
+
+    def test_initial_focus_follows_the_state(self, app, gui_state) -> None:
+        # #31: entering a state puts keyboard focus on its primary action.
+        recorded: list[str] = []
+        for name, btn in app._buttons.items():
+            btn.focus_set = lambda n=name: recorded.append(n)
+        app._focused_state = None
+        for state, expected in (("not_installed", "install"), ("stopped", "start"), ("running", "open_browser")):
+            gui_state["value"] = state
+            recorded.clear()
+            app._refresh()
+            assert recorded == [expected], f"state {state!r}: focus went to {recorded}"
+
+    def test_refresh_without_state_change_keeps_focus(self, app, gui_state) -> None:
+        # Polling refreshes must never steal focus from the port field.
+        recorded: list[str] = []
+        for name, btn in app._buttons.items():
+            btn.focus_set = lambda n=name: recorded.append(n)
+        gui_state["value"] = "running"
+        app._focused_state = None
+        app._refresh()
+        recorded.clear()
+        app._refresh()  # same state again
+        assert recorded == []
+
     def test_window_is_resizable_by_default(self, app) -> None:
         assert tuple(map(int, app.resizable())) == (1, 1)
 

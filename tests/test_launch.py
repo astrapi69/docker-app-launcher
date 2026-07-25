@@ -36,3 +36,22 @@ class TestLaunch:
     def test_launch_propagates_exit_code(self, monkeypatch) -> None:
         monkeypatch.setattr(tk_window, "run", lambda config, **k: 3)
         assert docker_app_launcher.launch(app_name="X") == 3
+
+    def test_launch_configures_logging(self, monkeypatch) -> None:
+        from docker_app_launcher import logging_setup
+
+        calls: list[LauncherConfig] = []
+        monkeypatch.setattr(logging_setup, "setup_logging", lambda config, **k: calls.append(config))
+        monkeypatch.setattr(tk_window, "run", lambda config, **k: 0)
+        docker_app_launcher.launch(app_name="Log App")
+        assert len(calls) == 1
+        assert calls[0].app_name == "Log App"
+
+    def test_launch_configure_logging_false_skips_setup(self, monkeypatch) -> None:
+        from docker_app_launcher import logging_setup
+
+        calls: list[LauncherConfig] = []
+        monkeypatch.setattr(logging_setup, "setup_logging", lambda config, **k: calls.append(config))
+        monkeypatch.setattr(tk_window, "run", lambda config, **k: 0)
+        docker_app_launcher.launch(app_name="Silent App", configure_logging=False)
+        assert calls == []

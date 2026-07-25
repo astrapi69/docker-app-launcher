@@ -32,4 +32,8 @@ open("launcher.spec", "w").write(broken)
 PYEOF
 fi
 pyinstaller --noconfirm --log-level ERROR launcher.spec > /dev/null
-./dist/frozen-probe --config launcher.json --render-probe
+# The JSON contract goes to a FILE, never through the stdout pipe: xvfb-run
+# merges its client's stderr into stdout (`2>&1` in its exec line), so any
+# log line - e.g. the panel mirror at INFO - would corrupt piped JSON.
+./dist/frozen-probe --config launcher.json --render-probe \
+    > "$WORK/probe.json" 2> "$WORK/probe-stderr.log"

@@ -101,12 +101,16 @@ jobs:
 
       - name: Build the frozen binary and probe its rendered window
         run: |
-          xvfb-run -a bash tests/frozen/build_and_probe.sh /tmp/frozen-ci > /tmp/probe.json
+          # No stdout redirect: the script writes the JSON contract to a file
+          # itself, because xvfb-run merges the client's stderr into stdout.
+          xvfb-run -a bash tests/frozen/build_and_probe.sh /tmp/frozen-ci
           VERSION=$(python -c "import docker_app_launcher; print(docker_app_launcher.__version__)")
           python tests/frozen/assert_render_probe.py \
             --expect-version "$VERSION" \
-            --expect-app-name "Frozen Probe App" < /tmp/probe.json || {
+            --expect-app-name "Frozen Probe App" < /tmp/frozen-ci/probe.json || {
               echo "--- probe.json head (od -c), so a parse failure is diagnosable ---"
-              head -c 600 /tmp/probe.json | od -c | head -30
+              head -c 600 /tmp/frozen-ci/probe.json | od -c | head -30
+              echo "--- probe-stderr.log tail ---"
+              tail -20 /tmp/frozen-ci/probe-stderr.log
               exit 1
             }

@@ -8,6 +8,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Snap-confinement detection (#63).** When the launcher runs inside a Snap
+  sandbox (`SNAP` / `SNAP_NAME` set), it logs a clear, documented warning at
+  startup that paths outside the snap-writable area (a compose file or build
+  context under the real home, `/mnt`, `/media`) can fail to read and that
+  bind mounts to them can silently do nothing, instead of failing silently.
+  New `docker_app_launcher.snap` module. Part of the environment matrix (#56).
+
+### Added
+
 - **Build capability gate: readiness now proves capability, not existence
   (#54).** The compose path had an unwritten version chain (engine -> CLI ->
   compose plugin -> buildx) and the old ladder only proved the plugin

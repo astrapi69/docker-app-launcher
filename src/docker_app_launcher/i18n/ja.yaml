@@ -145,3 +145,5 @@ app_requirement_missing: "このアプリは {component} {required} 以降を必
 compose_unreadable: "Compose ファイルは見つかりましたが読み取れません: {path} ({error})。"
 dockerfile_unreadable: "Dockerfile は見つかりましたが読み取れません: {path} ({error})。"
 build_context_not_found: "ビルドコンテキストのディレクトリが見つかりません: {path}。launcher 設定の build_context を確認してください。"
+compose_base_unresolved: "Compose ファイルが {path} に見つかりません。install_dir が設定されていないため、現在のディレクトリを基準に探索されました。これはランチャーがメニューショートカット、Snap、ファイルマネージャーから起動された場合に不確実です。ランチャー設定の install_dir を compose ファイルのあるディレクトリに設定してください。"
+dockerfile_base_unresolved: "Dockerfile が {path} に見つかりません。install_dir が設定されていないため、現在のディレクトリを基準に探索されました。これはランチャーがメニューショートカット、Snap、ファイルマネージャーから起動された場合に不確実です。ランチャー設定の install_dir をビルドディレクトリに設定してください。"

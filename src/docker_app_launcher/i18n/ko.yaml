@@ -145,3 +145,5 @@ app_requirement_missing: "이 앱은 {component} {required} 이상이 필요하�
 compose_unreadable: "Compose 파일을 찾았지만 읽을 수 없습니다: {path} ({error})."
 dockerfile_unreadable: "Dockerfile을 찾았지만 읽을 수 없습니다: {path} ({error})."
 build_context_not_found: "빌드 컨텍스트 디렉터리를 찾을 수 없습니다: {path}. launcher 설정의 build_context를 확인하세요."
+compose_base_unresolved: "Compose 파일을 {path}에서 찾을 수 없습니다. install_dir이 설정되지 않아 현재 디렉터리를 기준으로 찾았는데, 이는 런처가 메뉴 바로가기, Snap, 파일 관리자에서 시작될 때 신뢰할 수 없습니다. 런처 설정의 install_dir을 compose 파일이 있는 디렉터리로 설정하세요."
+dockerfile_base_unresolved: "Dockerfile을 {path}에서 찾을 수 없습니다. install_dir이 설정되지 않아 현재 디렉터리를 기준으로 찾았는데, 이는 런처가 메뉴 바로가기, Snap, 파일 관리자에서 시작될 때 신뢰할 수 없습니다. 런처 설정의 install_dir을 빌드 디렉터리로 설정하세요."

@@ -297,8 +297,7 @@ class LauncherConfig:
         context = Path(self.build_context).expanduser()
         if context.is_absolute():
             return context
-        base = Path(self.install_dir).expanduser() if self.install_dir else Path.cwd()
-        return base / context
+        return self._base_dir()[0] / context
 
     @property
     def dockerfile_path(self) -> Path:
@@ -340,14 +339,37 @@ class LauncherConfig:
         """Path of the install manifest."""
         return self.config_path / self.manifest_file
 
+    def _base_dir(self) -> tuple[Path, bool]:
+        """``(base, is_cwd_fallback)`` for app-relative paths (compose file,
+        build context).
+
+        Prefer an explicit ``install_dir``; else the current working directory
+        - which is unreliable for a frozen binary launched from a ``.desktop``
+        file, a Snap, or a file-manager double-click (G3, #64). ``from_json``
+        fills ``install_dir`` from the config file's own directory, so a
+        file-loaded config never silently depends on the CWD.
+        """
+        if self.install_dir:
+            return Path(self.install_dir).expanduser(), False
+        return Path.cwd(), True
+
+    @property
+    def base_is_cwd_fallback(self) -> bool:
+        """Whether app-relative paths resolve against the fragile CWD (G3, #64).
+
+        When True and a build fails to find the compose file / Dockerfile, the
+        readiness gate says so loudly and advises setting ``install_dir``,
+        rather than silently building against the wrong directory.
+        """
+        return self._base_dir()[1]
+
     @property
     def compose_path(self) -> Path:
         """Absolute path of the compose file (relative to ``install_dir``)."""
         compose = Path(self.compose_file).expanduser()
         if compose.is_absolute():
             return compose
-        base = Path(self.install_dir).expanduser() if self.install_dir else Path.cwd()
-        return base / compose
+        return self._base_dir()[0] / compose
 
     def name_filters(self) -> list[str]:
         """``docker --filter name=`` values: the container plus legacy names."""
@@ -391,6 +413,13 @@ class LauncherConfig:
             data = json.loads(p.read_text(encoding="utf-8"))
             valid = {k: v for k, v in data.items() if k in cls.__dataclass_fields__}
             cfg = cls(**valid)
+            # A file-loaded config that does not set install_dir gets the
+            # config file's OWN directory as the base for app-relative paths
+            # (compose file, build context), instead of the fragile current
+            # working directory (G3, #64). The config file sits next to the
+            # app it describes, so its directory is the robust default.
+            if not cfg.install_dir:
+                cfg.install_dir = str(p.resolve().parent)
         elif require:
             raise FileNotFoundError(f"config file not found: {p} (explicitly passed via --config)")
         else:

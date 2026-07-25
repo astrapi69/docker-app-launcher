@@ -145,3 +145,5 @@ app_requirement_missing: "यह ऐप {component} {required} या नया 
 compose_unreadable: "Compose फ़ाइल मिली पर पढ़ी नहीं जा सकी: {path} ({error})।"
 dockerfile_unreadable: "Dockerfile मिली पर पढ़ी नहीं जा सकी: {path} ({error})।"
 build_context_not_found: "बिल्ड कॉन्टेक्स्ट डायरेक्टरी नहीं मिली: {path}. launcher config में build_context जाँचें।"
+compose_base_unresolved: "Compose फ़ाइल {path} पर नहीं मिली। install_dir सेट नहीं है, इसलिए इसे वर्तमान डायरेक्टरी के सापेक्ष खोजा गया, जो तब अविश्वसनीय है जब launcher मेनू शॉर्टकट, Snap या फ़ाइल मैनेजर से शुरू होता है। launcher config में install_dir को उस डायरेक्टरी पर सेट करें जिसमें compose फ़ाइल है।"
+dockerfile_base_unresolved: "Dockerfile {path} पर नहीं मिली। install_dir सेट नहीं है, इसलिए इसे वर्तमान डायरेक्टरी के सापेक्ष खोजा गया, जो तब अविश्वसनीय है जब launcher मेनू शॉर्टकट, Snap या फ़ाइल मैनेजर से शुरू होता है। launcher config में install_dir को build डायरेक्टरी पर सेट करें।"

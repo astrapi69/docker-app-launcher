@@ -145,3 +145,5 @@ app_requirement_missing: "Bu uygulama {component} {required} veya sonrasını ge
 compose_unreadable: "Compose dosyası bulundu ama okunamıyor: {path} ({error})."
 dockerfile_unreadable: "Dockerfile bulundu ama okunamıyor: {path} ({error})."
 build_context_not_found: "Derleme bağlamı dizini bulunamadı: {path}. Launcher yapılandırmasındaki build_context'i kontrol edin."
+compose_base_unresolved: "Compose dosyası {path} konumunda bulunamadı. install_dir ayarlı değil, bu yüzden geçerli dizine göre arandı; bu, launcher bir menü kısayolundan, bir Snap'ten veya dosya yöneticisinden başlatıldığında güvenilmez. Launcher yapılandırmasında install_dir'i compose dosyasını içeren dizine ayarlayın."
+dockerfile_base_unresolved: "Dockerfile {path} konumunda bulunamadı. install_dir ayarlı değil, bu yüzden geçerli dizine göre arandı; bu, launcher bir menü kısayolundan, bir Snap'ten veya dosya yöneticisinden başlatıldığında güvenilmez. Launcher yapılandırmasında install_dir'i derleme dizinine ayarlayın."

@@ -145,3 +145,5 @@ app_requirement_missing: "Αυτή η εφαρμογή απαιτεί {component
 compose_unreadable: "Το αρχείο compose βρέθηκε αλλά δεν είναι αναγνώσιμο: {path} ({error})."
 dockerfile_unreadable: "Το Dockerfile βρέθηκε αλλά δεν είναι αναγνώσιμο: {path} ({error})."
 build_context_not_found: "Ο κατάλογος build context δεν βρέθηκε: {path}. Ελέγξτε το build_context στη διαμόρφωση του launcher."
+compose_base_unresolved: "Το αρχείο compose δεν βρέθηκε στο {path}. Το install_dir δεν έχει οριστεί, οπότε αναζητήθηκε σε σχέση με τον τρέχοντα κατάλογο, κάτι που είναι αναξιόπιστο όταν ο launcher ξεκινά από συντόμευση μενού, Snap ή διαχειριστή αρχείων. Ορίστε το install_dir στη διαμόρφωση του launcher στον κατάλογο που περιέχει το αρχείο compose."
+dockerfile_base_unresolved: "Το Dockerfile δεν βρέθηκε στο {path}. Το install_dir δεν έχει οριστεί, οπότε αναζητήθηκε σε σχέση με τον τρέχοντα κατάλογο, κάτι που είναι αναξιόπιστο όταν ο launcher ξεκινά από συντόμευση μενού, Snap ή διαχειριστή αρχείων. Ορίστε το install_dir στη διαμόρφωση του launcher στον κατάλογο build."

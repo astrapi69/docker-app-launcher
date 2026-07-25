@@ -145,3 +145,5 @@ app_requirement_missing: "Diese App verlangt {component} {required} oder neuer, 
 compose_unreadable: "Compose-Datei gefunden, aber nicht lesbar: {path} ({error})."
 dockerfile_unreadable: "Dockerfile gefunden, aber nicht lesbar: {path} ({error})."
 build_context_not_found: "Build-Kontext-Verzeichnis nicht gefunden: {path}. build_context in der Launcher-Konfiguration prüfen."
+compose_base_unresolved: "Compose-Datei nicht gefunden unter {path}. install_dir ist nicht gesetzt, daher wurde relativ zum aktuellen Verzeichnis gesucht, was unzuverlässig ist, wenn der Launcher aus einer Menüverknüpfung, einem Snap oder einem Dateimanager gestartet wird. Setze install_dir in der Launcher-Konfiguration auf das Verzeichnis mit der Compose-Datei."
+dockerfile_base_unresolved: "Dockerfile nicht gefunden unter {path}. install_dir ist nicht gesetzt, daher wurde relativ zum aktuellen Verzeichnis gesucht, was unzuverlässig ist, wenn der Launcher aus einer Menüverknüpfung, einem Snap oder einem Dateimanager gestartet wird. Setze install_dir in der Launcher-Konfiguration auf das Build-Verzeichnis."

@@ -18,9 +18,15 @@ import pytest
 
 from docker_app_launcher import launcher_settings as settings
 from docker_app_launcher.config import LauncherConfig
+
+# Bound at import time - BEFORE the conftest isolation fixture pins _probe -
+# so ladder tests can exercise the real detection against mocked _run.
+from docker_app_launcher.docker import compose_runtime as _compose_runtime
 from docker_app_launcher.docker import inventory
 from docker_app_launcher.docker import lifecycle as lifecycle
 from tests.conftest import make_result
+
+_REAL_COMPOSE_PROBE = _compose_runtime._probe
 
 
 def _bind_free_port() -> tuple[socket.socket, int]:
@@ -710,3 +716,60 @@ class TestStreamAppLogs:
 
         ok, _ = lifecycle.stream_app_logs(config, on_line=bad, poll_interval=0.01)
         assert ok is True
+
+
+class TestComposeDetectionGuard:
+    """#48: install must refuse BEFORE the build when no compose frontend
+    exists - never surface the docker help dump as the error message."""
+
+    _HELP_DUMP_TAIL = (
+        "unknown shorthand flag: 'p' in -p\nSee 'docker --help'.\n\n"
+        "Usage:  docker [OPTIONS] COMMAND\n\nA self-sufficient runtime for containers"
+    )
+
+    def _no_compose_env(self, config, monkeypatch) -> None:
+        """The verified device situation: daemon fine, compose frontend absent."""
+        _make_repo(config)
+        monkeypatch.setattr(lifecycle, "check_docker", lambda: (True, "ok"))
+        monkeypatch.setattr(lifecycle, "get_state", lambda c: "not_installed")
+        monkeypatch.setattr(lifecycle, "check_port", lambda p, **k: (True, "free"))
+        # Run the REAL ladder against the VERIFIED 20.10 behaviour (rc 125 +
+        # flag error, docker-compose absent). The conftest pin on _probe is
+        # undone so the ladder itself runs. (RED proof before the ladder
+        # existed: install invoked compose and returned the help dump.)
+        from docker_app_launcher.docker import compose_runtime
+
+        compose_runtime.reset_compose_cache()
+        monkeypatch.setattr(compose_runtime, "_probe", _REAL_COMPOSE_PROBE)
+
+        def fake_run(cmd, **k):
+            if cmd[:2] == ["docker", "compose"]:
+                return make_result(returncode=125, stderr="unknown shorthand flag: 'p' in -p")
+            raise FileNotFoundError(f"{cmd[0]} not found")
+
+        monkeypatch.setattr(compose_runtime, "_run", fake_run)
+
+    def test_install_refuses_before_the_build(self, config, monkeypatch) -> None:
+        self._no_compose_env(config, monkeypatch)
+        streamed: list[bool] = []
+
+        def fake_stream(c, *a, **k):
+            streamed.append(True)
+            return (125, self._HELP_DUMP_TAIL)
+
+        monkeypatch.setattr(lifecycle, "_stream_compose", fake_stream)
+        ok, msg = lifecycle.install(config)
+        assert ok is False
+        assert streamed == [], "compose must never be invoked without a detected frontend"
+        assert "docker --help" not in msg and "Usage:" not in msg, f"help dump leaked into: {msg!r}"
+        assert "docker-compose-plugin" in msg, "error must tell the user WHAT to install"
+
+    def test_compose_args_use_the_detected_legacy_frontend(self, config, monkeypatch) -> None:
+        from docker_app_launcher.docker import compose_runtime
+
+        compose_runtime.reset_compose_cache()
+        monkeypatch.setattr(compose_runtime, "_probe", lambda c: ("legacy", "docker-compose 1.29.2"))
+        args = lifecycle._compose_args(config, "up", "-d")
+        assert args[:1] == ["docker-compose"]
+        assert "-p" in args and "-f" in args and args[-2:] == ["up", "-d"]
+        compose_runtime.reset_compose_cache()

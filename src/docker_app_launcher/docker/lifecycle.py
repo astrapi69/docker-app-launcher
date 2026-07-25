@@ -37,6 +37,7 @@ from docker_app_launcher.docker.command_runner import (
     _stream_command,
     _t,
 )
+from docker_app_launcher.docker.compose_runtime import compose_available, compose_base_args
 from docker_app_launcher.docker.detection import check_docker
 from docker_app_launcher.docker.inventory import _project_container_ids, _project_containers, _project_images
 from docker_app_launcher.install_manifest import _record_manifest, mark_uninstalled, read_manifest
@@ -123,6 +124,9 @@ def change_internal_port(
 
     was_running = get_state(config) == "running"
     if was_running:
+        compose_error = _ensure_compose(config)
+        if compose_error is not None:
+            return compose_error
         stopped, stop_msg = stop(config)
         if not stopped:
             return False, stop_msg
@@ -187,6 +191,9 @@ def change_port(
 
     was_running = get_state(config) == "running"
     if was_running:
+        compose_error = _ensure_compose(config)
+        if compose_error is not None:
+            return compose_error
         stopped, stop_msg = stop(config)
         if not stopped:
             return False, stop_msg
@@ -218,15 +225,37 @@ def change_port(
 
 
 def _compose_args(config: LauncherConfig, *args: str) -> list[str]:
+    """Build a compose invocation through the DETECTED frontend (#48).
+
+    ``docker compose`` (plugin) or ``docker-compose`` (accepted legacy v1) -
+    both support ``-p``/``-f``. Callers guard with :func:`_ensure_compose`
+    first, so this never constructs a command for a machine that cannot
+    run it.
+    """
     return [
-        "docker",
-        "compose",
+        *compose_base_args(config),
         "-p",
         config.compose_project,
         "-f",
         str(config.compose_path),
         *args,
     ]
+
+
+def _ensure_compose(config: LauncherConfig) -> tuple[bool, str] | None:
+    """The pre-build guard: ``None`` when compose is usable, else the
+    actionable ``(False, message)`` the caller returns as-is.
+
+    Verified device failure without this guard (#48): the 20.10 CLI
+    swallows the unknown word ``compose`` and dies on ``-p`` with the full
+    help dump as the "error message".
+    """
+    usable, verdict = compose_available(config)
+    if usable:
+        return None
+    if verdict == "legacy_incompatible":
+        return False, _t(config, "compose_v1_incompatible", path=config.compose_path)
+    return False, _t(config, "compose_missing")
 
 
 def _stream_compose(
@@ -279,6 +308,9 @@ def install(
         return True, _t(config, "already_installed")
     if not config.compose_path.is_file():
         return False, _t(config, "compose_not_found", path=config.compose_path)
+    compose_error = _ensure_compose(config)
+    if compose_error is not None:
+        return compose_error
     port_free, _ = check_port(port)
     if not port_free:
         return False, _t(config, "port_occupied", port=port)
@@ -363,6 +395,9 @@ def start(
     both 'stopped' and a removed state.
     """
     _call(config, config.on_before_start)
+    compose_error = _ensure_compose(config)
+    if compose_error is not None:
+        return compose_error
     docker_ok, _ = check_docker()
     if not docker_ok:
         return False, _t(config, "docker_unavailable")
@@ -411,6 +446,9 @@ def app_logs(config: LauncherConfig, *, lines: int | None = None) -> tuple[bool,
         return False, _t(config, "docker_unavailable")
     if get_state(config) == "not_installed":
         return False, _t(config, "not_installed")
+    compose_error = _ensure_compose(config)
+    if compose_error is not None:
+        return compose_error
     tail = lines if lines is not None else config.log_tail_lines
     cmd = _compose_args(config, "logs", "--no-color", "--tail", str(tail))
     try:

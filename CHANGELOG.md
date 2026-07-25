@@ -6,6 +6,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Compose availability ladder (#48).** The launcher now detects a usable
+  Compose frontend BEFORE any build: `docker compose version` (plugin) →
+  `docker-compose --version` (legacy v1, accepted only when it can parse
+  the app's compose file via `config -q`) → neither: a hard, actionable
+  error naming the missing piece and how to install it (Ubuntu:
+  `docker-compose-plugin`). Verified device forensics: a Docker 20.10 CLI
+  without the plugin swallows the word `compose` and dies on `-p` with
+  `unknown shorthand flag: 'p'` plus the full help dump — reproduced
+  character-identically against a real 20.10.24 CLI in a plugin-free
+  container. The detected frontend is cached per process and every compose
+  invocation (build/up/logs) is constructed through it, so legacy v1
+  systems keep working via `docker-compose`.
+
 ## [0.19.0] - 2026-07-25
 
 ### Added

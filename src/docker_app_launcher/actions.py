@@ -81,6 +81,15 @@ from docker_app_launcher.docker.command_runner import (
 from docker_app_launcher.docker.command_runner import (
     docker_host_override as docker_host_override,
 )
+from docker_app_launcher.docker.compose_runtime import (
+    compose_available as compose_available,
+)
+from docker_app_launcher.docker.compose_runtime import (
+    detect_compose as detect_compose,
+)
+from docker_app_launcher.docker.compose_runtime import (
+    reset_compose_cache as reset_compose_cache,
+)
 from docker_app_launcher.docker.detection import (
     _DOCKER_INSTALL_URLS as _DOCKER_INSTALL_URLS,
 )

@@ -95,6 +95,19 @@ def _isolate_docker_api(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _isolate_compose_frontend(monkeypatch):
+    """Pin the compose ladder (#48) to 'plugin' so no test ever probes the
+    real CLI, and reset the process cache on both sides. Ladder tests
+    override ``_probe`` (or ``_run``) themselves."""
+    from docker_app_launcher.docker import compose_runtime
+
+    compose_runtime.reset_compose_cache()
+    monkeypatch.setattr(compose_runtime, "_probe", lambda config: ("plugin", "test isolation"))
+    yield
+    compose_runtime.reset_compose_cache()
+
+
+@pytest.fixture(autouse=True)
 def _reset_docker_host_override():
     """Reset the #25 context-fallback override on BOTH sides of every test
     (module-level state must not leak across test boundaries)."""

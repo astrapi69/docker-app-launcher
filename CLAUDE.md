@@ -13,17 +13,23 @@ base works for any Docker app.
 
 - `src/docker_app_launcher/`
   - `config.py` — `LauncherConfig` dataclass (the single source of truth)
-  - `actions.py` — all business logic, **no `tkinter`**, fully testable
-  - `ui_model.py` — framework-neutral UI behaviour (button tables, per-state
-    enablement, action dispatch, close policy) shared by every frontend
-  - `gui.py` — `LauncherApp(tk.Tk)`, the default `tk` frontend
-  - `frontends/` — frontend registry (`gui_backend`: `tk` | `ctk` | `qt`,
-    plus third-party via the `docker_app_launcher.frontends` entry-point
-    group); `ctk.py` (CustomTkinter, the `ctk` extra) and `qt.py` (PySide6,
-    the `qt` extra) render the same `ui_model` tables
+  - `actions.py` — FACADE: re-exports the public API; the code lives in:
+  - `docker/` — everything Docker, one concern per module:
+    - `detection.py` — is Docker usable here (checks, context sweep, errno
+      socket probe, daemon/Desktop start, group self-repair)
+    - `lifecycle.py` — install/start/stop/uninstall/health/get_state
+    - `cleanup.py` — find + remove leftovers of previous installs
+    - `inventory.py` — which docker objects belong to this app (read-only)
+    - `command_runner.py` — shared subprocess/streaming layer, DOCKER_HOST override
+  - `launcher_settings.py` — launcher.json/.env persistence (ports, locale, geometry)
+  - `install_manifest.py` — what we installed, for precise cleanup
+  - `ui_model.py` — framework-neutral UI behaviour shared by every frontend
+  - `gui.py` — FACADE for the old import path; the Tk window lives in:
+  - `frontends/` — registry (`gui_backend`: `tk` | `ctk` | `qt`) plus one
+    window per file: `tk_window.py`, `ctk_window.py`, `qt_window.py`,
+    `tooltip.py`
   - `tray.py` — optional system tray (pystray + Pillow; the `tray` extra)
-  - `i18n/` — string catalogs as one YAML per language (11 languages),
-    `custom_strings` overrides
+  - `i18n/` — string catalogs as one YAML per language (11 languages)
   - `__main__.py` — CLI entry point + GUI router
 - `tests/` — pytest suite (no Docker, no display)
 - `pyproject.toml` — single source of truth for metadata and tool config
@@ -50,3 +56,19 @@ base works for any Docker app.
   11 languages; a parity test enforces matching keys across all of them).
 - **Tests:** ≥5 tests per non-trivial action; mock Docker, never shell out.
 - **Python:** target 3.10+; CI verifies 3.10 – 3.14.
+
+## Naming and Architecture Rules
+
+- Filenames must be self-documenting and intention-revealing. Avoid generic names like utils, helper, or script. The name must precisely describe the file's purpose or content. Apply Clean Code naming principles strictly.
+- Enforce the Single Responsibility Principle at the file level. Each file should contain exactly one primary class or a tightly coupled set of functions. The filename must describe this primary responsibility. Do not force exact class-name matching if it violates Python module conventions.
+
+## Logging and Diagnostics Rules
+
+- The launcher must never swallow messages. All stdout, stderr, and exception output must be visible to the user either in a dedicated log panel or in a persistent log file.
+- Every subprocess call must capture stdout and stderr and forward them to the logging system. Silent subprocess execution is forbidden.
+- The Tk mainloop must not silently discard exceptions. Install a global exception handler (tk.Tk.report_callback_exception) that logs the full traceback and surfaces a user-visible error dialog.
+- Docker container logs must be tailable from the GUI. Provide a mechanism to stream docker logs output into the UI without blocking the main thread.
+- Configure the Python logging module at application startup with at least two handlers: a console handler and a rotating file handler. The log file location must follow platformdirs conventions.
+- Provide a configurable log level (DEBUG, INFO, WARNING, ERROR) via environment variable or config file. The default must be INFO.
+- print() statements are forbidden in production code. Use the logging module exclusively.
+- Every fix for message visibility must include a test that verifies the output reaches the logging system.

@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from docker_app_launcher import __main__, __version__, actions, gui, lockfile
+from docker_app_launcher import __main__, __version__, actions, lockfile
+from docker_app_launcher.frontends import tk_window
 
 
 class TestParser:
@@ -89,7 +90,7 @@ class TestPortFlag:
 class TestGuiFallback:
     def test_no_action_launches_window(self, monkeypatch) -> None:
         launched: dict[str, object] = {}
-        monkeypatch.setattr(gui, "run", lambda c, **k: launched.setdefault("v", 0) or 0)
+        monkeypatch.setattr(tk_window, "run", lambda c, **k: launched.setdefault("v", 0) or 0)
         rc = __main__.main([])
         assert rc == 0 and "v" in launched
 
@@ -101,7 +102,7 @@ class TestSingleInstance:
         def boom(*a, **k):
             raise AssertionError("a second instance must not open a window")
 
-        monkeypatch.setattr(gui, "run", boom)
+        monkeypatch.setattr(tk_window, "run", boom)
         rc = __main__.main([])
         assert rc == 0
         assert "already running" in capsys.readouterr().out.lower()
@@ -117,7 +118,7 @@ class TestSingleInstance:
 
         monkeypatch.setattr(lockfile, "another_instance_alive", boom)
         launched: dict[str, object] = {}
-        monkeypatch.setattr(gui, "run", lambda c, **k: launched.setdefault("v", 0) or 0)
+        monkeypatch.setattr(tk_window, "run", lambda c, **k: launched.setdefault("v", 0) or 0)
         rc = __main__.main(["--config", str(cfg_path)])
         assert rc == 0 and "v" in launched
 
@@ -130,7 +131,7 @@ class TestSingleInstance:
             state["existed_during"] = config.lock_path.is_file()
             return 0
 
-        monkeypatch.setattr(gui, "run", fake_run)
+        monkeypatch.setattr(tk_window, "run", fake_run)
         rc = __main__.main([])
         assert rc == 0
         assert state["existed_during"] is True

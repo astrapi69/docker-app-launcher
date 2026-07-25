@@ -6,13 +6,14 @@ import types
 
 import pytest
 
-from docker_app_launcher import frontends, gui
+from docker_app_launcher import frontends
 from docker_app_launcher.config import LauncherConfig
+from docker_app_launcher.frontends import tk_window
 
 
 class TestBuiltins:
     def test_tk_resolves_to_the_gui_module(self) -> None:
-        assert frontends.get_frontend("tk") is gui
+        assert frontends.get_frontend("tk") is tk_window
 
     def test_tk_module_satisfies_the_contract(self) -> None:
         assert callable(frontends.get_frontend("tk").run)
@@ -50,7 +51,7 @@ class TestResolution:
                 raise AssertionError("builtin must win")
 
         monkeypatch.setattr(frontends, "entry_points", lambda group: [_FakeEp()])
-        assert frontends.get_frontend("tk") is gui
+        assert frontends.get_frontend("tk") is tk_window
 
     def test_frontend_without_run_is_rejected(self, monkeypatch) -> None:
         broken = types.ModuleType("broken_frontend")

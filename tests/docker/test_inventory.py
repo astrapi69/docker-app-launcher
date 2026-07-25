@@ -17,7 +17,11 @@ import pytest
 
 from docker_app_launcher.config import LauncherConfig
 from docker_app_launcher.docker import inventory as inventory
-from tests.conftest import make_result
+
+# Bound at import time - BEFORE the conftest isolation fixture patches the
+# module attribute - so native-path tests can restore the real function.
+_real_api_containers = inventory._api_containers
+from tests.conftest import make_result  # noqa: E402
 
 
 def _bind_free_port() -> tuple[socket.socket, int]:
@@ -223,3 +227,90 @@ class TestImageSizeBytes:
 
         monkeypatch.setattr(inventory, "_run", boom)
         assert inventory._image_size_bytes("x") == 0
+
+
+class _FakeContainer:
+    def __init__(self, cid: str, name: str) -> None:
+        self.id = cid
+        self.name = name
+
+
+class _FakeContainersApi:
+    def __init__(self, containers, exc=None) -> None:
+        self._containers = containers
+        self._exc = exc
+        self.calls: list[dict] = []
+
+    def list(self, *, all=False, filters=None):
+        if self._exc is not None:
+            raise self._exc
+        self.calls.append({"all": all, "filters": filters})
+        return self._containers
+
+
+class _FakeApiClient:
+    def __init__(self, containers_api) -> None:
+        self.containers = containers_api
+        self.closed = False
+
+    def close(self) -> None:
+        self.closed = True
+
+
+class TestNativeContainerListing:
+    """#44: container queries via the native API, CLI stays the fallback."""
+
+    def _wire(self, monkeypatch, containers_api) -> _FakeApiClient:
+        from docker_app_launcher.docker import py_client
+
+        client = _FakeApiClient(containers_api)
+        monkeypatch.setattr(py_client, "available", lambda: True)
+        monkeypatch.setattr(py_client, "get_client", lambda *a, **k: client)
+        # undo the conftest isolation: exercise the REAL native path
+        monkeypatch.setattr(inventory, "_api_containers", _real_api_containers)
+        return client
+
+    def test_ids_come_from_api(self, config, monkeypatch) -> None:
+        api = _FakeContainersApi([_FakeContainer("abc123", "web-1")])
+        client = self._wire(monkeypatch, api)
+        assert inventory._project_container_ids(config, running_only=True) == ["abc123"]
+        assert api.calls[0]["all"] is False  # running_only -> all=False
+        assert client.closed
+
+    def test_all_containers_when_not_running_only(self, config, monkeypatch) -> None:
+        api = _FakeContainersApi([_FakeContainer("abc123", "web-1"), _FakeContainer("def456", "db-1")])
+        self._wire(monkeypatch, api)
+        pairs = inventory._project_containers(config, running_only=False)
+        assert pairs == [("abc123", "web-1"), ("def456", "db-1")]
+        assert api.calls[0]["all"] is True
+
+    def test_name_filters_forwarded(self, config, monkeypatch) -> None:
+        api = _FakeContainersApi([])
+        self._wire(monkeypatch, api)
+        inventory._project_container_ids(config, running_only=True)
+        expected = list(config.name_filters())
+        assert api.calls[0]["filters"] == ({"name": expected} if expected else None)
+
+    def test_running_names_from_api(self, config, monkeypatch) -> None:
+        api = _FakeContainersApi([_FakeContainer("abc123", "web-1")])
+        self._wire(monkeypatch, api)
+        assert inventory._running_container_names(config) == ["web-1"]
+
+    def test_api_error_falls_back_to_cli(self, config, monkeypatch) -> None:
+        from docker_app_launcher.docker import py_client
+
+        monkeypatch.setattr(py_client, "available", lambda: True)
+        monkeypatch.setattr(py_client, "get_client", lambda *a, **k: _FakeApiClient(_FakeContainersApi([], exc=RuntimeError("api died"))))
+        monkeypatch.setattr(inventory, "_api_containers", _real_api_containers)
+        monkeypatch.setattr(inventory, "_run", lambda *a, **k: make_result(stdout="cli123\n"))
+        assert inventory._project_container_ids(config, running_only=True) == ["cli123"]
+
+    def test_empty_api_answer_is_not_a_fallback(self, config, monkeypatch) -> None:
+        api = _FakeContainersApi([])
+        self._wire(monkeypatch, api)
+
+        def cli_must_not_run(*a, **k):
+            raise AssertionError("empty API answer must not trigger the CLI")
+
+        monkeypatch.setattr(inventory, "_run", cli_must_not_run)
+        assert inventory._project_container_ids(config, running_only=True) == []

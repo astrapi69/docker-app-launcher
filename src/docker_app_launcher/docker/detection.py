@@ -32,9 +32,23 @@ from docker_app_launcher.docker.command_runner import (
     _set_docker_host_override,
     _t,
 )
+from docker_app_launcher.docker import py_client
 from docker_app_launcher.subprocess_utils import subprocess_kwargs
 
 logger = logging.getLogger("docker_app_launcher.docker.detection")
+
+# Daemon up, socket refused us: the ONE case that must never read as
+# "not started" (#27).
+_PERMISSION_MESSAGE = (
+    "Docker is running, but your user lacks permission (not in the 'docker' group). "
+    "Run 'sudo usermod -aG docker $USER' AND then log out and back in (or reboot) - "
+    "the group change only becomes active in a new login session."
+)
+
+
+def _api_ping(endpoint: str | None = None) -> tuple[str, str]:
+    """Indirection over :func:`py_client.ping` so tests can isolate the API."""
+    return py_client.ping(endpoint)
 
 
 def docker_installed() -> tuple[bool, str]:
@@ -98,12 +112,20 @@ def _sweep_other_contexts(
             continue
         if on_step is not None and config is not None:
             _notify(on_step, _t(config, "checking_context", context=name, endpoint=endpoint))
-        rc, _stderr = _docker_info_rc(extra_env={"DOCKER_HOST": endpoint})
-        if rc == 0:
+        if _probe_endpoint(endpoint):
             logger.info("docker reachable via context %r (%s); overriding DOCKER_HOST", name, endpoint)
             _set_docker_host_override(endpoint)
             return name, endpoint
     return None
+
+
+def _probe_endpoint(endpoint: str) -> bool:
+    """Whether a daemon answers on ``endpoint`` - native API first, CLI fallback."""
+    status, _ = _api_ping(endpoint)
+    if status == "unavailable":
+        rc, _stderr = _docker_info_rc(extra_env={"DOCKER_HOST": endpoint})
+        return rc == 0
+    return status == "ok"
 
 
 def _active_context() -> tuple[str, str]:
@@ -147,6 +169,29 @@ def _probe_unix_socket(endpoint: str) -> str | None:
         sock.close()
 
 
+def _daemon_status() -> tuple[str, str]:
+    """Combined native+CLI verdict for the ACTIVE endpoint.
+
+    ``('ok'|'permission'|'down'|'no_response'|'no_cli', detail)``. The
+    docker-py ping is authoritative for ``ok`` and ``permission`` (typed
+    exceptions, #27); everything else falls through to the CLI probe, which
+    still owns not-installed detection (exit 127) and the timeout signal.
+    """
+    api_status, api_detail = _api_ping()
+    if api_status in ("ok", "permission"):
+        return api_status, api_detail
+    rc, stderr = _docker_info_rc()
+    if rc == 0:
+        return "ok", ""
+    if rc == 127:
+        return "no_cli", stderr
+    if rc is None:
+        return "no_response", stderr
+    if "permission denied" in stderr.lower() or _probe_unix_socket(_active_context()[1]) == "permission":
+        return "permission", stderr
+    return "down", stderr
+
+
 def check_docker() -> tuple[bool, str]:
     """Return ``(running, message)``. True only when the daemon is reachable.
 
@@ -154,26 +199,22 @@ def check_docker() -> tuple[bool, str]:
     and, on a hit, used for every later docker command (#25).
     """
     _reset_docker_host_override()
-    rc, stderr = _docker_info_rc()
-    if rc == 127:
+    status, _detail = _daemon_status()
+    if status == "ok":
+        return True, "Docker is running."
+    if status == "no_cli":
         return False, "Docker is not installed (docker not in PATH)."
-    if rc is None:
+    if status == "no_response":
         return False, "Docker is not responding (Docker Desktop may still be starting)."
-    if rc != 0:
-        if "permission denied" in stderr.lower() or _probe_unix_socket(_active_context()[1]) == "permission":
-            # The daemon is (very likely) up - the socket exists but refused
-            # us. Reporting "not started" here sends the user chasing
-            # systemctl for a service that already runs (#27).
-            return False, (
-                "Docker is running, but your user lacks permission (not in the 'docker' group). "
-                "Run 'sudo usermod -aG docker $USER' AND then log out and back in (or reboot) - "
-                "the group change only becomes active in a new login session."
-            )
-        fallback = _sweep_other_contexts()
-        if fallback is not None:
-            return True, f"Docker is running (via context '{fallback[0]}')."
-        return False, "Docker is not started."
-    return True, "Docker is running."
+    if status == "permission":
+        # The daemon is (very likely) up - the socket exists but refused
+        # us. Reporting "not started" here sends the user chasing
+        # systemctl for a service that already runs (#27).
+        return False, _PERMISSION_MESSAGE
+    fallback = _sweep_other_contexts()
+    if fallback is not None:
+        return True, f"Docker is running (via context '{fallback[0]}')."
+    return False, "Docker is not started."
 
 
 _DOCKER_INSTALL_URLS = {
@@ -226,14 +267,14 @@ def check_docker_detailed(config: LauncherConfig, *, on_step: ProgressFn | None 
             out["command"] = "sudo apt install docker.io docker-compose-plugin"
             return out
         out["installed"] = True
-        rc, stderr = _docker_info_rc()
-        if rc == 0:
+        status, detail = _daemon_status()
+        if status == "ok":
             out["running"] = True
             out["detail"] = _t(config, "docker_running")
-        elif rc is None:
+        elif status == "no_response":
             out["detail"] = _t(config, "docker_no_response")
             out["command"] = "sudo systemctl restart docker"
-        elif "permission denied" in stderr.lower() or _probe_unix_socket(_active_context()[1]) == "permission":
+        elif status == "permission":
             out["detail"] = _t(config, "docker_no_permission")
             out["command"] = "sudo usermod -aG docker $USER"
             out["can_fix_permission"] = True
@@ -249,7 +290,7 @@ def check_docker_detailed(config: LauncherConfig, *, on_step: ProgressFn | None 
                 "docker_not_running_detail",
                 context=name,
                 endpoint=endpoint,
-                error=_first_line(stderr) or "no response",
+                error=_first_line(detail) or "no response",
             )
             out["command"] = "sudo systemctl start docker"
             out["can_start"] = True
@@ -271,13 +312,15 @@ def check_docker_detailed(config: LauncherConfig, *, on_step: ProgressFn | None 
             out["detail"] = _t(config, "docker_not_installed")
         return out
     out["installed"] = True
-    rc, stderr = _docker_info_rc()
-    if rc == 0:
+    status, detail = _daemon_status()
+    if status == "ok":
         out["running"] = True
         out["detail"] = _t(config, "docker_running")
-    elif rc is None:
+    elif status == "no_response":
         out["detail"] = _t(config, "docker_no_response")
     else:
+        # "permission" has no self-repair on Desktop platforms - treated as
+        # not-running with the start offer, exactly as before.
         fallback = _sweep_other_contexts(config, on_step)
         if fallback is not None:
             out["running"] = True
@@ -289,7 +332,7 @@ def check_docker_detailed(config: LauncherConfig, *, on_step: ProgressFn | None 
             "docker_not_running_detail",
             context=name,
             endpoint=endpoint,
-            error=_first_line(stderr) or "no response",
+            error=_first_line(detail) or "no response",
         )
         out["can_start"] = True
     return out

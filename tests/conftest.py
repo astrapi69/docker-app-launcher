@@ -79,6 +79,20 @@ def docker_ok(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _isolate_docker_api(monkeypatch):
+    """Route every test through the CLI code path by default (#44).
+
+    ``detection._api_ping`` would otherwise hit the REAL daemon socket via
+    docker-py — tests must never talk to Docker. API-path tests override
+    this per-test; ``test_py_client`` is unaffected (it stubs the docker
+    module itself, not this indirection).
+    """
+    from docker_app_launcher.docker import detection
+
+    monkeypatch.setattr(detection, "_api_ping", lambda endpoint=None: ("unavailable", "test isolation"))
+
+
+@pytest.fixture(autouse=True)
 def _reset_docker_host_override():
     """Reset the #25 context-fallback override on BOTH sides of every test
     (module-level state must not leak across test boundaries)."""

@@ -471,6 +471,52 @@ class TestActionFlow:
         assert "worker blew up" in app._status.get("1.0", "end")
         assert any(r.exc_info for r in caplog.records)
 
+    def _force_permission_state(self, app, gui_state, monkeypatch) -> None:
+        """Drive the window into the WORDIEST known state (#47): the
+        docker_no_permission detail plus the usermod command line."""
+        from docker_app_launcher import i18n
+
+        detail = i18n.t("docker_no_permission", app._cfg)
+        monkeypatch.setattr(
+            actions,
+            "check_docker_detailed",
+            lambda c, **k: {
+                "status": "permission",
+                "detail": detail,
+                "command": "sudo usermod -aG docker $USER",
+                "can_start": False,
+                "installed": True,
+                "can_fix_permission": True,
+                "platform": "Linux",
+            },
+        )
+        gui_state["value"] = "no_docker"
+        app._refresh()
+        app.update()
+
+    def test_permission_message_fits_the_window_width(self, app, gui_state, monkeypatch) -> None:
+        # RED before #47: no wraplength -> the label demands more width than
+        # the window has and the text clips at the edge.
+        self._force_permission_state(app, gui_state, monkeypatch)
+        assert app._state_label.winfo_reqwidth() <= app.winfo_width(), (
+            f"state label needs {app._state_label.winfo_reqwidth()}px, window is {app.winfo_width()}px - text clipped"
+        )
+        _screenshot(app, "no_docker_permission_wrapped")
+
+    def test_state_label_rewraps_on_resize(self, app, gui_state, monkeypatch) -> None:
+        # Growing the window must widen the wrap, not leave a narrow column.
+        self._force_permission_state(app, gui_state, monkeypatch)
+        app.geometry("900x520")
+        app.update()
+        assert int(app._state_label.cget("wraplength")) > 700
+
+    def test_every_state_fits_the_window_width(self, app, gui_state) -> None:
+        for state in ("not_installed", "stopped", "running", "no_docker"):
+            gui_state["value"] = state
+            app._refresh()
+            app.update()
+            assert app._state_label.winfo_reqwidth() <= app.winfo_width(), f"clipped in state {state!r}"
+
     def test_window_is_resizable_by_default(self, app) -> None:
         assert tuple(map(int, app.resizable())) == (1, 1)
 

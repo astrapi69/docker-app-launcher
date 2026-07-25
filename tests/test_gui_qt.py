@@ -124,6 +124,37 @@ class TestRegistry:
 
 
 class TestWindow:
+    def test_state_label_wraps_long_messages(self, app, qapp, gui_state, monkeypatch) -> None:
+        # RED before #47: no word wrap -> the permission message renders as
+        # one over-wide line and clips at the window edge.
+        from docker_app_launcher import i18n
+
+        detail = i18n.t("docker_no_permission", app._cfg)
+        monkeypatch.setattr(
+            actions,
+            "check_docker_detailed",
+            lambda c, **k: {
+                "status": "permission",
+                "detail": detail,
+                "command": "sudo usermod -aG docker $USER",
+                "can_start": False,
+                "installed": True,
+                "can_fix_permission": True,
+                "platform": "Linux",
+            },
+        )
+        gui_state["value"] = "no_docker"
+        app._refresh()
+        qapp.processEvents()
+        assert app._state_label.wordWrap() is True
+        # Wrapping is ACTIVE: at window width the text needs more lines than
+        # on an ultra-wide canvas. (sizeHint is Qt's preferred width, not the
+        # rendered width - with wordWrap the label never paints past the
+        # layout width, it wraps.)
+        assert app._state_label.heightForWidth(app.width()) > app._state_label.heightForWidth(2000)
+        app.layout().activate()
+        assert app._state_label.width() <= app.width(), "state label wider than the window"
+
     def test_window_is_resizable_by_default(self, app) -> None:
         # A fixed window would pin maximumSize to the current size.
         assert app.maximumSize().width() > app.width()

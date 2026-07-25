@@ -128,8 +128,12 @@ class LauncherApp(tk.Tk):
         _set_window_icon(self, config.icon_path)
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
-        self._state_label = tk.Label(self, font=("Segoe UI", 12, "bold"))
+        # wraplength keeps the wordiest state text (docker_no_permission +
+        # usermod command, #47) inside the window; the <Configure> binding
+        # re-wraps it while the user resizes.
+        self._state_label = tk.Label(self, font=("Segoe UI", 12, "bold"), wraplength=config.window_width - 40)
         self._state_label.pack(pady=(18, 8))
+        self.bind("<Configure>", self._on_window_configure)
 
         port_row = tk.Frame(self)
         port_row.pack(pady=(0, 8))
@@ -261,6 +265,15 @@ class LauncherApp(tk.Tk):
 
     def _t(self, key: str, **kwargs: object) -> str:
         return i18n.t(key, self._cfg, **kwargs)
+
+    def _on_window_configure(self, event: tk.Event[tk.Misc]) -> None:
+        """Re-wrap the state text to the CURRENT window width (#47).
+
+        The toplevel sits in every child's bindtags, so this fires for child
+        configures too - the widget guard keeps it to real window resizes.
+        """
+        if event.widget is self and event.width > 1:
+            self._state_label.configure(wraplength=max(200, event.width - 40))
 
     def _log(self, line: str, *, tag: str = "info") -> None:
         log_panel_line(line, tag)

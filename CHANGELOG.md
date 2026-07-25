@@ -6,6 +6,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **State text no longer clips at the window edge (#47).** The wordiest
+  state message (docker_no_permission: detail + usermod command + re-login
+  hint) rendered as over-wide lines with no word wrap in ANY frontend and
+  was cut off on the device. tk/ctk now set a dynamic `wraplength` that
+  follows the actual window width while resizing; Qt sets
+  `setWordWrap(True)`. Verified with the longest catalog text: the label's
+  required width stays within the window in every state.
+
 ### Changed
 
 - **The window is resizable by default.** `window_resizable` now defaults

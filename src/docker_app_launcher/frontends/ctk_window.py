@@ -83,8 +83,14 @@ if HAS_CTK:
             _set_window_icon(self, config.icon_path)
             self.protocol("WM_DELETE_WINDOW", self._on_close)
 
-            self._state_label = ctk.CTkLabel(self, font=ctk.CTkFont(size=16, weight="bold"))
+            # wraplength keeps the wordiest state text (docker_no_permission +
+            # usermod command, #47) inside the window; the <Configure> binding
+            # re-wraps it while the user resizes.
+            self._state_label = ctk.CTkLabel(
+                self, font=ctk.CTkFont(size=16, weight="bold"), wraplength=config.window_width - 40
+            )
             self._state_label.pack(pady=(18, 8))
+            self.bind("<Configure>", self._on_window_configure)
 
             port_row = ctk.CTkFrame(self, fg_color="transparent")
             port_row.pack(pady=(0, 8))
@@ -181,6 +187,11 @@ if HAS_CTK:
             return i18n.t(key, self._cfg, **kwargs)
 
         # --- log ---
+
+        def _on_window_configure(self, event: tk.Event[tk.Misc]) -> None:
+            """Re-wrap the state text to the CURRENT window width (#47)."""
+            if event.widget is self and event.width > 1:
+                self._state_label.configure(wraplength=max(200, event.width - 40))
 
         def _log(self, line: str, *, tag: str = "info") -> None:
             log_panel_line(line, tag)

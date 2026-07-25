@@ -113,6 +113,9 @@ if HAS_QT:
             self._state_label = QLabel()
             self._state_label.setStyleSheet("font-size: 15px; font-weight: bold;")
             self._state_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            # The wordiest state text (docker_no_permission + usermod command,
+            # #47) must wrap instead of clipping at the window edge.
+            self._state_label.setWordWrap(True)
             root.addWidget(self._state_label)
 
             port_row = QHBoxLayout()

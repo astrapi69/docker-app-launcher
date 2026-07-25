@@ -6,6 +6,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **EACCES no longer misclassified as daemon-down (#27 reopened).** Device
+  verification on the frozen v0.16.0 binary showed the daemon-down flow
+  (systemctl hint + start button) although the daemon ran and only the
+  docker-group membership was missing. Classification no longer depends on
+  the docker CLI's unguaranteed error text: a direct connect on the active
+  unix socket yields the truthful errno (EACCES/EPERM → permission,
+  ECONNREFUSED/ENOENT → down) before any context sweep. New real-daemon
+  integration tests (privileged container, both directions) cover the signal
+  GENERATION — the previous simulation only ever validated signal
+  processing.
+
 ### Added
 
 - **Frozen-binary CI gate (#38).** A bug that only exists in the frozen

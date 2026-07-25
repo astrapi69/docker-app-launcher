@@ -24,6 +24,7 @@ cares.
 from __future__ import annotations
 
 import contextlib
+import errno
 import getpass
 import json
 import logging
@@ -341,6 +342,39 @@ def _active_context() -> tuple[str, str]:
     return "default", os.environ.get("DOCKER_HOST", "unix:///var/run/docker.sock")
 
 
+def _probe_unix_socket(endpoint: str) -> str | None:
+    """Classify the ACTUAL socket signal: ``"permission"`` | ``"down"`` | ``None``.
+
+    The docker CLI's error text is neither versioned nor guaranteed - on a
+    real device it reported the generic connect message for an EACCES socket,
+    which routed the user into the daemon-down flow (#27 reopened). A direct
+    connect on the active unix endpoint gives the truthful errno instead:
+    EACCES/EPERM -> missing docker-group membership; ECONNREFUSED/ENOENT ->
+    the daemon really is down. Non-unix endpoints (tcp, npipe) return None
+    and leave the caller's existing logic untouched.
+    """
+    if not endpoint.startswith("unix://"):
+        return None
+    path = endpoint[len("unix://") :]
+    if not os.path.exists(path):
+        return "down"
+    sock = socket.socket(socket.AF_UNIX)
+    sock.settimeout(2.0)
+    try:
+        sock.connect(path)
+        return None  # connectable: neither down nor a permission problem
+    except PermissionError:
+        return "permission"
+    except OSError as exc:
+        if exc.errno in (errno.EACCES, errno.EPERM):
+            return "permission"
+        if exc.errno in (errno.ECONNREFUSED, errno.ENOENT):
+            return "down"
+        return None
+    finally:
+        sock.close()
+
+
 def check_docker() -> tuple[bool, str]:
     """Return ``(running, message)``. True only when the daemon is reachable.
 
@@ -354,7 +388,7 @@ def check_docker() -> tuple[bool, str]:
     if rc is None:
         return False, "Docker is not responding (Docker Desktop may still be starting)."
     if rc != 0:
-        if "permission denied" in stderr.lower():
+        if "permission denied" in stderr.lower() or _probe_unix_socket(_active_context()[1]) == "permission":
             # The daemon is (very likely) up - the socket exists but refused
             # us. Reporting "not started" here sends the user chasing
             # systemctl for a service that already runs (#27).
@@ -427,7 +461,7 @@ def check_docker_detailed(config: LauncherConfig, *, on_step: ProgressFn | None 
         elif rc is None:
             out["detail"] = _t(config, "docker_no_response")
             out["command"] = "sudo systemctl restart docker"
-        elif "permission denied" in stderr.lower():
+        elif "permission denied" in stderr.lower() or _probe_unix_socket(_active_context()[1]) == "permission":
             out["detail"] = _t(config, "docker_no_permission")
             out["command"] = "sudo usermod -aG docker $USER"
             out["can_fix_permission"] = True

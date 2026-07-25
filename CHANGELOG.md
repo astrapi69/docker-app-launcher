@@ -8,6 +8,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Command transparency (#49).** Every external command is announced in
+  the log BEFORE it runs (one shlex-quoted line, INFO; expected-to-fail
+  status probes stay DEBUG) and its result carries the exit code. Failed
+  operations report the FIRST meaningful stderr line + exit code + the
+  exact command — a trailing help dump never becomes the error message
+  (the full output stays in the log / App-logs button).
 - **Dockerfile deployment mode (#51).** New `deployment_mode:
   "dockerfile"`: build and run a single-service app directly through the
   docker-py API — zero Compose dependency, so it runs on Docker-20.10-era

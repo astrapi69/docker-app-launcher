@@ -11,6 +11,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+import shlex
 import subprocess
 import threading
 from collections.abc import Callable
@@ -123,7 +124,15 @@ def _run(
     level. ``probe=True`` keeps them at DEBUG — status polls (``docker info``
     while waiting for the daemon) fail by design and must not spam the log.
     """
-    logger.debug("exec: %s (cwd=%s, timeout=%ss)", " ".join(cmd), cwd, timeout)
+    # Announce BEFORE execution (#49): device forensics must never again
+    # require reconstructing the argv from source. Probes stay at DEBUG.
+    logger.log(
+        logging.DEBUG if probe else logging.INFO,
+        "exec: %s (cwd=%s, timeout=%ss)",
+        shlex.join(cmd),
+        cwd,
+        timeout,
+    )
     env: dict[str, str] | None = None
     if extra_env or _DOCKER_HOST_OVERRIDE:
         env = os.environ.copy()
@@ -144,7 +153,7 @@ def _run(
     except subprocess.TimeoutExpired:
         # WARNING, not DEBUG: a swallowed timeout is exactly the kind of
         # "the launcher ate my error" report this log exists to answer.
-        _log_failure(probe, "timeout after %ss: %s", timeout, " ".join(cmd))
+        _log_failure(probe, "timeout after %ss: %s", timeout, shlex.join(cmd))
         raise
     except FileNotFoundError:
         _log_failure(probe, "binary not found: %s", cmd[0])
@@ -154,10 +163,12 @@ def _run(
             probe,
             "command failed (exit=%s): %s stderr=%r",
             result.returncode,
-            " ".join(cmd),
+            shlex.join(cmd),
             (result.stderr or "")[-1500:],
         )
     else:
+        if not probe:
+            logger.info("exit=0: %s", cmd[0])
         logger.debug(
             "exit=%s stdout=%r stderr=%r",
             result.returncode,
@@ -198,7 +209,7 @@ def _stream_command(
     process after ``timeout`` and the call then raises
     :class:`subprocess.TimeoutExpired`, matching :func:`_run`'s contract.
     """
-    logger.debug("stream: %s (timeout=%ss)", " ".join(cmd), timeout)
+    logger.info("exec: %s (timeout=%ss)", shlex.join(cmd), timeout)
     proc = subprocess.Popen(
         cmd,
         stdout=subprocess.PIPE,
@@ -233,11 +244,11 @@ def _stream_command(
     finally:
         timer.cancel()
     if killed["v"]:
-        logger.warning("stream timeout after %ss: %s", timeout, " ".join(cmd))
+        logger.warning("stream timeout after %ss: %s", timeout, shlex.join(cmd))
         raise subprocess.TimeoutExpired(cmd, timeout)
     tail = "\n".join(lines[-tail_lines:])
     if proc.returncode != 0:
-        logger.warning("stream failed (exit=%s): %s tail=%r", proc.returncode, " ".join(cmd), tail)
+        logger.warning("stream failed (exit=%s): %s tail=%r", proc.returncode, shlex.join(cmd), tail)
     return proc.returncode, tail
 
 
@@ -259,6 +270,9 @@ def _docker_op(cmd: list[str], *, timeout: float = 60.0) -> tuple[bool, str]:
     except subprocess.TimeoutExpired:
         return False, "timed out"
     if result.returncode != 0:
-        stderr = (result.stderr or "").strip()
-        return False, stderr.splitlines()[-1] if stderr else "unknown error"
+        # FIRST meaningful stderr line + exit code + the exact command (#49):
+        # the real diagnosis leads, a trailing help dump never makes it into
+        # the message (the full output is in the log).
+        first = _first_line(result.stderr or "") or "unknown error"
+        return False, f"{first} (exit {result.returncode}: {shlex.join(cmd)})"
     return True, ""

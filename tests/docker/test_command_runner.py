@@ -118,13 +118,15 @@ class TestDockerOp:
         monkeypatch.setattr(docker_cli, "_run", lambda *a, **k: make_result())
         assert docker_cli._docker_op(["docker", "rm", "x"]) == (True, "")
 
-    def test_failure_returns_last_stderr_line(self, monkeypatch) -> None:
+    def test_failure_returns_first_stderr_line_with_context(self, monkeypatch) -> None:
+        # #49: the FIRST line carries the diagnosis (a trailing help dump
+        # must never win); exit code + exact command give the forensics.
         monkeypatch.setattr(docker_cli, "_run", lambda *a, **k: make_result(returncode=1, stderr="first\nlast line"))
-        assert docker_cli._docker_op(["docker", "rm", "x"]) == (False, "last line")
+        assert docker_cli._docker_op(["docker", "rm", "x"]) == (False, "first (exit 1: docker rm x)")
 
     def test_failure_empty_stderr(self, monkeypatch) -> None:
         monkeypatch.setattr(docker_cli, "_run", lambda *a, **k: make_result(returncode=1))
-        assert docker_cli._docker_op(["docker", "rm", "x"]) == (False, "unknown error")
+        assert docker_cli._docker_op(["docker", "rm", "x"]) == (False, "unknown error (exit 1: docker rm x)")
 
     def test_docker_missing(self, monkeypatch) -> None:
         monkeypatch.setattr(docker_cli, "_run", lambda *a, **k: (_ for _ in ()).throw(FileNotFoundError()))
@@ -235,3 +237,44 @@ class TestStreamCommand:
         monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: fake)
         with pytest.raises(subprocess.TimeoutExpired):
             docker_cli._stream_command(["docker", "build"], timeout=0.05)
+
+
+class TestCommandTransparency:
+    """#49: every external command is announced BEFORE it runs (one
+    shlex-quoted line) and its result carries the exit code - device
+    forensics must never again require reconstructing the argv from source."""
+
+    def test_command_announced_before_execution_at_info(self, caplog, monkeypatch) -> None:
+        monkeypatch.setattr(subprocess, "run", lambda *a, **k: make_result(stdout="ok"))
+        with caplog.at_level(logging.INFO, logger="docker_app_launcher.docker.command_runner"):
+            docker_cli._run(["docker", "stop", "my app"])  # space forces quoting
+        announcements = [r.message for r in caplog.records if "exec:" in r.message]
+        assert announcements, "the command must be logged BEFORE execution"
+        assert "'my app'" in announcements[0], "argv must be shlex-quoted"
+
+    def test_probe_commands_stay_quiet_at_info(self, caplog, monkeypatch) -> None:
+        monkeypatch.setattr(subprocess, "run", lambda *a, **k: make_result(returncode=1, stderr="down"))
+        with caplog.at_level(logging.INFO, logger="docker_app_launcher.docker.command_runner"):
+            docker_cli._run(["docker", "info"], probe=True)
+        assert caplog.records == [], "status probes must not spam INFO"
+
+    def test_success_result_carries_the_exit_code(self, caplog, monkeypatch) -> None:
+        monkeypatch.setattr(subprocess, "run", lambda *a, **k: make_result(stdout="ok"))
+        with caplog.at_level(logging.INFO, logger="docker_app_launcher.docker.command_runner"):
+            docker_cli._run(["docker", "start", "x"])
+        assert any("exit=0" in r.message for r in caplog.records)
+
+    def test_docker_op_failure_names_action_code_and_first_error(self, monkeypatch) -> None:
+        stderr = "unknown flag: '-p'\nUsage: docker..."
+        monkeypatch.setattr(docker_cli, "_run", lambda *a, **k: make_result(returncode=125, stderr=stderr))
+        ok, detail = docker_cli._docker_op(["docker", "rm", "x"])
+        assert ok is False
+        assert "unknown flag" in detail and "exit 125" in detail and "docker rm x" in detail
+        assert "Usage:" not in detail, "never a help dump in the error message"
+
+    def test_stream_announced_at_info(self, caplog, monkeypatch) -> None:
+        fake = _FakePopen(["line"])
+        monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: fake)
+        with caplog.at_level(logging.INFO, logger="docker_app_launcher.docker.command_runner"):
+            docker_cli._stream_command(["docker", "compose", "up"], timeout=5.0)
+        assert any("exec:" in r.message and "docker compose up" in r.message for r in caplog.records)

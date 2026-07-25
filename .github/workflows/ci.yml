@@ -116,3 +116,45 @@ jobs:
               tail -20 /tmp/frozen-ci/probe-stderr.log
               exit 1
             }
+
+  cross-platform-smoke:
+    # G9 (#58): no macOS or Windows automation existed - the PyPI/pipx install
+    # path (the zero-cost distribution that sidesteps BOTH macOS Gatekeeper and
+    # Windows SmartScreen, since the project already publishes to PyPI) was
+    # never even verified to install, import, and start on those OSes. This
+    # installs the package from source and smoke-runs it on macos-latest and
+    # windows-latest, so cross-platform breakage (path handling, the Windows
+    # CREATE_NO_WINDOW subprocess flag, platformdirs log locations, the console
+    # entry point) is caught by automation instead of by a user.
+    #
+    # This is the issue's "immediate, decision-independent action". The
+    # signing/notarization DECISION for double-click frozen binaries (the
+    # Apple Developer Program / Windows OV/EV cost table in #58) is
+    # deliberately NOT made here - it stays with the maintainer.
+    name: Cross-platform smoke (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install the package (the pipx-from-PyPI path, from source)
+        run: pip install .
+
+      - name: Import + console entry point smoke
+        run: |
+          python -c "import docker_app_launcher; print(docker_app_launcher.__version__)"
+          docker-app-launcher --version
+
+      - name: Headless CLI parity smoke (loads config, reads state, exits 0)
+        # --status runs the same actions layer the GUI uses; with no Docker
+        # daemon it resolves to "no_docker" and exits 0, so this verifies the
+        # cross-platform code path end to end without needing Docker present.
+        run: docker-app-launcher --status

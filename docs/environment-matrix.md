@@ -222,6 +222,13 @@ warning. The immediate, cost-free action independent of the signing decision:
 actually build and start-verify the macOS/Windows binaries in CI (or stop
 advertising them).
 
+Status: the decision-independent half is now in CI. The `cross-platform-smoke`
+job (`.github/workflows/ci.yml`) installs the package and smoke-runs it
+(`import`, `--version`, `--status`) on `macos-latest` and `windows-latest`, so
+the zero-cost PyPI/pipx path is continuously verified to install and start on
+both OSes. The signed downloadable-binary options in the table above remain a
+maintainer decision (still open in #58).
+
 ### 1.5 Prioritization and explicit non-support
 
 Ranked by frequency in the target audience x severity. The collector issue is

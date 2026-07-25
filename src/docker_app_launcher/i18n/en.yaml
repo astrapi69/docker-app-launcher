@@ -136,3 +136,12 @@ compose_missing: "Docker Compose is not available. Install the Compose v2 plugin
 compose_v1_incompatible: "Only the legacy docker-compose v1 was found and it cannot parse this app's compose file ({path}). Install the Compose v2 plugin: 'sudo apt install docker-compose-plugin', then restart the launcher."
 dockerfile_not_found: "Dockerfile not found: {path}. Check deployment_mode/dockerfile settings in the launcher config."
 dockerfile_mode_needs_dockerpy: "The dockerfile deployment mode needs the docker Python package (docker-py), which is not importable in this installation."
+
+# --- build readiness / capability gate (#54) ---
+buildx_too_old: "The Docker Compose build delegates to buildx and needs buildx {required} or later, but buildx {found} is installed. Install a newer buildx: download the binary for your platform from the docker/buildx releases, put it at {path}, then run 'chmod +x {path}'. Distribution packages have proven unreliable for this."
+buildx_missing: "The Docker Compose build delegates to buildx and needs buildx {required} or later, but no buildx plugin was found. Install buildx: download the binary for your platform from the docker/buildx releases, put it at {path}, then run 'chmod +x {path}'. Distribution packages have proven unreliable for this."
+app_requirement_too_old: "This app requires {component} {required} or later, but {found} is installed. Update Docker to satisfy it."
+app_requirement_missing: "This app requires {component} {required} or later, but {component} could not be detected. Install or update Docker to satisfy it."
+compose_unreadable: "Compose file found but not readable: {path} ({error})."
+dockerfile_unreadable: "Dockerfile found but not readable: {path} ({error})."
+build_context_not_found: "Build context directory not found: {path}. Check build_context in the launcher config."

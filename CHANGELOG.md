@@ -6,6 +6,48 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Build capability gate: readiness now proves capability, not existence
+  (#54).** The compose path had an unwritten version chain (engine -> CLI ->
+  compose plugin -> buildx) and the old ladder only proved the plugin
+  EXISTED. On a Docker-20.10-era device the plugin was present, the check
+  went green, and the build still failed minutes in with `compose build
+  requires buildx 0.17 or later` (buildx 0.8.2). The launcher now runs one
+  capability gate per mode BEFORE the build and COLLECTS every missing/too-old
+  link into a single message: compose file present and readable, a usable
+  compose frontend, and buildx at a sufficient version. Minimum backed by the
+  docker/compose source (`getBuildxPlugin`, `buildxMinVersion = 0.17.0`) and
+  applied only when compose is new enough to enforce it (>= 2.40.2, the
+  release that first hard-gates buildx), so no build that would actually
+  succeed is blocked. The buildx message names the distribution-independent
+  fix (download the binary to `~/.docker/cli-plugins/docker-buildx`,
+  `chmod +x`), because package sources proved unreliable.
+- **App-declared Docker minimums.** New optional config fields
+  `min_engine_version`, `min_api_version`, `min_compose_version`,
+  `min_buildx_version` let a consumer app declare the environment its
+  Dockerfile / compose file needs. Effective requirement = max(intrinsic,
+  declared): the config can only RAISE the bar, never lower it (a value below
+  the launcher's intrinsic floor is warned about and the intrinsic value
+  wins). Messages attribute the source (app vs launcher). Dirty real-world
+  version strings (`20.10.21+dfsg1`, `v0.8.2-docker`) are normalized and
+  compared with `packaging`; an unparsable declared minimum is a hard error at
+  startup. Backward compatible: unset fields mean only the intrinsic
+  requirements apply.
+- **Docker toolchain version line in the log (#54).** Engine, CLI, API,
+  compose and buildx versions are read once and logged as a single line
+  before the build, so a future failure report already carries the whole
+  chain without the user running any commands.
+
+### Changed
+
+- **Dockerfile mode preconditions are now collected too (#51/#54).** The
+  dockerfile build path applies the same capability-not-existence gate:
+  docker-py importable, Dockerfile present and readable, build context
+  resolvable, plus any app-declared engine/API floor - reported together, not
+  one failed run at a time. (No buildx gate: the classic docker-py builder
+  does not use buildx.)
+
 ## [0.20.0] - 2026-07-25
 
 ### Added

@@ -22,6 +22,7 @@ import time
 from typing import Any
 
 from docker_app_launcher.config import LauncherConfig
+from docker_app_launcher.docker import py_client
 from docker_app_launcher.docker.command_runner import (
     ProgressFn,
     ProgressPctFn,
@@ -32,7 +33,6 @@ from docker_app_launcher.docker.command_runner import (
     _set_docker_host_override,
     _t,
 )
-from docker_app_launcher.docker import py_client
 from docker_app_launcher.subprocess_utils import subprocess_kwargs
 
 logger = logging.getLogger("docker_app_launcher.docker.detection")

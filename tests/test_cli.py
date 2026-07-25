@@ -19,6 +19,34 @@ class TestParser:
         assert args.install is True and args.port == 9000
 
 
+class TestLogLevelFlag:
+    """P3: the log level is configurable per run, not only via config JSON."""
+
+    def test_defaults_to_none(self) -> None:
+        assert __main__.build_parser().parse_args([]).log_level is None
+
+    def test_accepts_known_levels(self) -> None:
+        assert __main__.build_parser().parse_args(["--log-level", "WARNING"]).log_level == "WARNING"
+
+    def test_rejects_unknown_level(self, capsys) -> None:
+        with pytest.raises(SystemExit):
+            __main__.build_parser().parse_args(["--log-level", "CHATTY"])
+
+    def test_overrides_config_log_level(self, monkeypatch, capsys) -> None:
+        import logging
+
+        monkeypatch.setattr(actions, "check_docker", lambda: (True, "ok"))
+        __main__.main(["--log-level", "ERROR", "--check"])
+        assert logging.getLogger().level == logging.ERROR
+
+    def test_debug_flag_beats_log_level(self, monkeypatch) -> None:
+        import logging
+
+        monkeypatch.setattr(actions, "check_docker", lambda: (True, "ok"))
+        __main__.main(["--log-level", "ERROR", "--debug", "--check"])
+        assert logging.getLogger().level == logging.DEBUG
+
+
 class TestVersion:
     def test_prints_version(self, capsys: pytest.CaptureFixture[str]) -> None:
         rc = __main__.main(["--version"])

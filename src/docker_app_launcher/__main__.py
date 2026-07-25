@@ -30,7 +30,13 @@ def build_parser() -> argparse.ArgumentParser:
         "--config", default="launcher.json", help="Path to the launcher config JSON (default: launcher.json)."
     )
     parser.add_argument("--port", type=int, default=None, help="Host port for the app (1024-65535).")
-    parser.add_argument("--debug", action="store_true", help="Verbose logging to stdout.")
+    parser.add_argument("--debug", action="store_true", help="Verbose logging to stderr.")
+    parser.add_argument(
+        "--log-level",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
+        default=None,
+        help="Log level for all sinks (overrides the config's log_level; --debug wins over both).",
+    )
     parser.add_argument("--version", action="store_true", help="Print the launcher version and exit.")
     # Headless action flags (CLI<->GUI parity).
     parser.add_argument("--check", action="store_true", help="Check Docker status and exit.")
@@ -130,6 +136,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
 
     config = LauncherConfig.from_json(args.config)
+    if args.log_level:
+        config.log_level = args.log_level
     setup_logging(config, debug=args.debug)
 
     if args.port is not None:

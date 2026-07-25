@@ -314,6 +314,60 @@ class TestBuildCapabilityGate:
         assert "buildx" in msg
 
 
+class TestBuildCancellation:
+    """A build cancelled from the UI (window closed mid-build, #60) is a clean
+    cancellation, not a failure: the lifecycle catches :class:`BuildCancelled`
+    and returns the localized ``build_cancelled`` message."""
+
+    def test_install_reports_cancelled(self, config, monkeypatch) -> None:
+        _make_repo(config)
+        monkeypatch.setattr(lifecycle, "check_docker", lambda: (True, "ok"))
+        monkeypatch.setattr(lifecycle, "get_state", lambda c: "not_installed")
+        monkeypatch.setattr(lifecycle, "check_port", lambda p, **k: (True, "free"))
+
+        def cancel(c, *a, **k):
+            raise lifecycle.BuildCancelled("docker compose build")
+
+        monkeypatch.setattr(lifecycle, "_stream_compose", cancel)
+        ok, msg = lifecycle.install(config, should_cancel=lambda: True)
+        assert ok is False
+        assert msg == lifecycle._t(config, "build_cancelled")
+
+    def test_start_reports_cancelled(self, config, monkeypatch) -> None:
+        _make_repo(config)
+        monkeypatch.setattr(lifecycle, "check_docker", lambda: (True, "ok"))
+        monkeypatch.setattr(lifecycle, "get_state", lambda c: "stopped")
+
+        def cancel(c, *a, **k):
+            raise lifecycle.BuildCancelled("docker compose up --build")
+
+        monkeypatch.setattr(lifecycle, "_stream_compose", cancel)
+        ok, msg = lifecycle.start(config, should_cancel=lambda: True)
+        assert ok is False
+        assert msg == lifecycle._t(config, "build_cancelled")
+
+    def test_should_cancel_threaded_to_the_stream(self, config, monkeypatch) -> None:
+        _make_repo(config)
+        states = iter(["not_installed", "running"])
+        monkeypatch.setattr(lifecycle, "check_docker", lambda: (True, "ok"))
+        monkeypatch.setattr(lifecycle, "get_state", lambda c: next(states))
+        monkeypatch.setattr(lifecycle, "check_port", lambda p, **k: (True, "free"))
+        monkeypatch.setattr(lifecycle, "health_check", lambda c, port=None: (True, "ok"))
+        monkeypatch.setattr(lifecycle, "_run", lambda *a, **k: make_result(stdout=""))
+        # install streams twice (build, then `up -d`); only the build carries the
+        # cancel callback, so collect every call and assert the sentinel appears.
+        seen: list[object] = []
+
+        def fake_stream(c, *a, should_cancel=None, **k):
+            seen.append(should_cancel)
+            return (0, "")
+
+        monkeypatch.setattr(lifecycle, "_stream_compose", fake_stream)
+        sentinel = object()
+        lifecycle.install(config, should_cancel=sentinel)  # type: ignore[arg-type]
+        assert sentinel in seen, "the cancel callback must reach the build stream"
+
+
 class TestStop:
     def test_success(self, config, monkeypatch) -> None:
         states = iter(["running", "running"])

@@ -38,6 +38,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   compose and buildx versions are read once and logged as a single line
   before the build, so a future failure report already carries the whole
   chain without the user running any commands.
+- **A running build can be cancelled; closing the window terminates it
+  (#60).** A multi-minute `docker build` used to keep running after the
+  window closed, orphaning the subprocess. `install` / `start` (and the
+  `ensure_installed` entry point) now accept an optional `should_cancel`
+  predicate, polled on its own thread while the build streams; when it fires
+  the build subprocess is killed and the action returns a clean, localized
+  "build cancelled" result rather than a failure. The Tk window arms the
+  signal on close-during-build, so the X button no longer leaves an orphaned
+  build behind.
 
 ### Changed
 

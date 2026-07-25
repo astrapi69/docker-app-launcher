@@ -301,19 +301,25 @@ def dispatch_action(
     on_step: actions.ProgressFn | None = None,
     on_output: actions.OutputFn | None = None,
     on_progress: actions.ProgressPctFn | None = None,
+    should_cancel: Callable[[], bool] | None = None,
 ) -> tuple[bool, str] | None:
     """Run the action for ``action_id`` through the actions layer.
 
     Returns ``(ok, message)`` for actions that report a result, or ``None`` for
     fire-and-forget ids (open, recheck). ``port`` is only consumed by
     ``change_port`` (the in-place host-port change); ``on_progress`` by the
-    install/start build phases. Pure (no widget toolkit) so it is unit-testable
-    by mocking ``actions``.
+    install/start build phases; ``should_cancel`` lets a build be stopped
+    mid-flight (#60). Pure (no widget toolkit) so it is unit-testable by
+    mocking ``actions``.
     """
     if action_id == "install":
-        return actions.ensure_installed(config, on_step=on_step, on_output=on_output, on_progress=on_progress)
+        return actions.ensure_installed(
+            config, on_step=on_step, on_output=on_output, on_progress=on_progress, should_cancel=should_cancel
+        )
     if action_id == "start":
-        return actions.start(config, on_step=on_step, on_output=on_output, on_progress=on_progress)
+        return actions.start(
+            config, on_step=on_step, on_output=on_output, on_progress=on_progress, should_cancel=should_cancel
+        )
     if action_id == "change_port":
         if port is None:
             return False, i18n.t("port_invalid", config, min=actions.MIN_PORT, max=actions.MAX_PORT)

@@ -8,6 +8,7 @@ build-progress parsing. No business decisions live here.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import os
 import re
@@ -191,6 +192,15 @@ def _notify(on_step: ProgressFn | None, label: str) -> None:
             logger.debug("progress callback failed: %s", exc)
 
 
+class BuildCancelled(Exception):
+    """Raised by :func:`_stream_command` when ``should_cancel`` asked to stop.
+
+    Distinct from :class:`subprocess.TimeoutExpired` so the lifecycle can tell
+    a user cancel (close the window / Cancel button, #60) from a timeout and
+    report it as a clean cancellation, not a failure.
+    """
+
+
 def _stream_command(
     cmd: list[str],
     *,
@@ -199,6 +209,7 @@ def _stream_command(
     cwd: Path | None = None,
     tail_lines: int = 15,
     keep: int = 400,
+    should_cancel: Callable[[], bool] | None = None,
 ) -> tuple[int, str]:
     """Run ``cmd``, streaming combined stdout+stderr line-by-line to
     ``on_output`` as each line arrives. Returns ``(returncode, tail)`` where
@@ -208,6 +219,11 @@ def _stream_command(
     for minutes and the user must see it move. A watchdog timer kills the
     process after ``timeout`` and the call then raises
     :class:`subprocess.TimeoutExpired`, matching :func:`_run`'s contract.
+
+    ``should_cancel`` (polled on its own thread while the build runs) lets a
+    caller stop the build cooperatively - closing the window mid-build must
+    not leave an orphaned ``docker build`` (#60). When it fires the process is
+    killed and :class:`BuildCancelled` is raised.
     """
     logger.info("exec: %s (timeout=%ss)", shlex.join(cmd), timeout)
     proc = subprocess.Popen(
@@ -220,14 +236,27 @@ def _stream_command(
         **subprocess_kwargs(),
     )
     lines: list[str] = []
-    killed = {"v": False}
+    killed: dict[str, str | None] = {"reason": None}
 
-    def _kill() -> None:
-        killed["v"] = True
-        proc.kill()
+    def _kill(reason: str) -> None:
+        if killed["reason"] is None:
+            killed["reason"] = reason
+            with contextlib.suppress(Exception):
+                proc.kill()
 
-    timer = threading.Timer(timeout, _kill)
+    timer = threading.Timer(timeout, lambda: _kill("timeout"))
     timer.start()
+    stop_poll = threading.Event()
+
+    def _poll_cancel() -> None:
+        while not stop_poll.wait(0.2):
+            if should_cancel is not None and should_cancel():
+                _kill("cancel")
+                return
+
+    poller = threading.Thread(target=_poll_cancel, daemon=True, name="dal-build-cancel")
+    if should_cancel is not None:
+        poller.start()
     try:
         assert proc.stdout is not None
         for raw in proc.stdout:
@@ -243,9 +272,13 @@ def _stream_command(
         proc.wait()
     finally:
         timer.cancel()
-    if killed["v"]:
+        stop_poll.set()
+    if killed["reason"] == "timeout":
         logger.warning("stream timeout after %ss: %s", timeout, shlex.join(cmd))
         raise subprocess.TimeoutExpired(cmd, timeout)
+    if killed["reason"] == "cancel":
+        logger.info("build cancelled by request: %s", shlex.join(cmd))
+        raise BuildCancelled(shlex.join(cmd))
     tail = "\n".join(lines[-tail_lines:])
     if proc.returncode != 0:
         logger.warning("stream failed (exit=%s): %s tail=%r", proc.returncode, shlex.join(cmd), tail)

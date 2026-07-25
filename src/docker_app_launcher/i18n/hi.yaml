@@ -85,6 +85,7 @@ build_failed: 'Docker बिल्ड विफल रहा:
 
   {detail}'
 build_timeout: Docker बिल्ड का समय समाप्त हो गया।
+build_cancelled: बिल्ड रद्द कर दिया गया।
 start_failed: 'शुरू करना विफल रहा:
 
   {detail}'

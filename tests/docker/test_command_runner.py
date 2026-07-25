@@ -7,6 +7,7 @@ re-exports.
 
 from __future__ import annotations
 
+import logging
 import socket
 import subprocess
 import threading
@@ -135,6 +136,58 @@ class TestDockerOp:
 
         monkeypatch.setattr(docker_cli, "_run", boom)
         assert docker_cli._docker_op(["docker", "rm", "x"]) == (False, "timed out")
+
+
+class TestRunFailureLogging:
+    """Failed subprocesses must land in the log at WARNING (P0): a captured
+    stderr that only ever reached DEBUG was invisible at the default level."""
+
+    def test_nonzero_exit_logs_warning_with_cmd_and_stderr(self, caplog, monkeypatch) -> None:
+        monkeypatch.setattr(subprocess, "run", lambda *a, **k: make_result(returncode=1, stderr="boom: no such image"))
+        with caplog.at_level(logging.WARNING, logger="docker_app_launcher.docker.command_runner"):
+            docker_cli._run(["docker", "rm", "x"])
+        assert any("docker rm x" in r.message and "no such image" in r.message for r in caplog.records)
+
+    def test_success_logs_nothing_at_warning(self, caplog, monkeypatch) -> None:
+        monkeypatch.setattr(subprocess, "run", lambda *a, **k: make_result(stdout="ok"))
+        with caplog.at_level(logging.WARNING, logger="docker_app_launcher.docker.command_runner"):
+            docker_cli._run(["docker", "ps"])
+        assert caplog.records == []
+
+    def test_probe_failure_stays_at_debug(self, caplog, monkeypatch) -> None:
+        monkeypatch.setattr(subprocess, "run", lambda *a, **k: make_result(returncode=1, stderr="cannot connect"))
+        with caplog.at_level(logging.DEBUG, logger="docker_app_launcher.docker.command_runner"):
+            docker_cli._run(["docker", "info"], probe=True)
+        failures = [r for r in caplog.records if "command failed" in r.message]
+        assert failures and all(r.levelno == logging.DEBUG for r in failures)
+
+    def test_timeout_logs_warning_and_raises(self, caplog, monkeypatch) -> None:
+        def boom(*a, **k):
+            raise subprocess.TimeoutExpired(cmd="docker", timeout=5)
+
+        monkeypatch.setattr(subprocess, "run", boom)
+        with (
+            caplog.at_level(logging.WARNING, logger="docker_app_launcher.docker.command_runner"),
+            pytest.raises(subprocess.TimeoutExpired),
+        ):
+            docker_cli._run(["docker", "stop", "x"], timeout=5.0)
+        assert any("timeout" in r.message and "docker stop x" in r.message for r in caplog.records)
+
+    def test_missing_binary_logs_warning_and_raises(self, caplog, monkeypatch) -> None:
+        monkeypatch.setattr(subprocess, "run", lambda *a, **k: (_ for _ in ()).throw(FileNotFoundError()))
+        with (
+            caplog.at_level(logging.WARNING, logger="docker_app_launcher.docker.command_runner"),
+            pytest.raises(FileNotFoundError),
+        ):
+            docker_cli._run(["docker", "ps"])
+        assert any("binary not found: docker" in r.message for r in caplog.records)
+
+    def test_stream_failure_logs_warning_with_tail(self, caplog, monkeypatch) -> None:
+        fake = _FakePopen(["ERROR: build failed"], returncode=17)
+        monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: fake)
+        with caplog.at_level(logging.WARNING, logger="docker_app_launcher.docker.command_runner"):
+            docker_cli._stream_command(["docker", "build"], timeout=5.0)
+        assert any("exit=17" in r.message and "build failed" in r.message for r in caplog.records)
 
 
 class TestStreamCommand:

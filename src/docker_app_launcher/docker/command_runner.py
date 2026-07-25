@@ -112,11 +112,16 @@ def _run(
     timeout: float = 15.0,
     cwd: Path | None = None,
     extra_env: dict[str, str] | None = None,
+    probe: bool = False,
 ) -> subprocess.CompletedProcess[str]:
     """Run a docker command, capturing output. Logs the call for ``--debug``.
 
     ``extra_env`` entries (and the #25 ``DOCKER_HOST`` fallback override,
     when set) are layered over the inherited environment.
+
+    Failures log at WARNING so they land in ``launcher.log`` at the default
+    level. ``probe=True`` keeps them at DEBUG — status polls (``docker info``
+    while waiting for the daemon) fail by design and must not spam the log.
     """
     logger.debug("exec: %s (cwd=%s, timeout=%ss)", " ".join(cmd), cwd, timeout)
     env: dict[str, str] | None = None
@@ -126,22 +131,45 @@ def _run(
             env["DOCKER_HOST"] = _DOCKER_HOST_OVERRIDE
         if extra_env:
             env.update(extra_env)
-    result = subprocess.run(
-        cmd,
-        capture_output=True,
-        text=True,
-        timeout=timeout,
-        cwd=str(cwd) if cwd else None,
-        env=env,
-        **subprocess_kwargs(),
-    )
-    logger.debug(
-        "exit=%s stdout=%r stderr=%r",
-        result.returncode,
-        (result.stdout or "")[-1500:],
-        (result.stderr or "")[-1500:],
-    )
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            cwd=str(cwd) if cwd else None,
+            env=env,
+            **subprocess_kwargs(),
+        )
+    except subprocess.TimeoutExpired:
+        # WARNING, not DEBUG: a swallowed timeout is exactly the kind of
+        # "the launcher ate my error" report this log exists to answer.
+        _log_failure(probe, "timeout after %ss: %s", timeout, " ".join(cmd))
+        raise
+    except FileNotFoundError:
+        _log_failure(probe, "binary not found: %s", cmd[0])
+        raise
+    if result.returncode != 0:
+        _log_failure(
+            probe,
+            "command failed (exit=%s): %s stderr=%r",
+            result.returncode,
+            " ".join(cmd),
+            (result.stderr or "")[-1500:],
+        )
+    else:
+        logger.debug(
+            "exit=%s stdout=%r stderr=%r",
+            result.returncode,
+            (result.stdout or "")[-1500:],
+            (result.stderr or "")[-1500:],
+        )
     return result
+
+
+def _log_failure(probe: bool, msg: str, *args: object) -> None:
+    """A failed command: WARNING normally, DEBUG for expected-to-fail probes."""
+    logger.log(logging.DEBUG if probe else logging.WARNING, msg, *args)
 
 
 def _notify(on_step: ProgressFn | None, label: str) -> None:
@@ -205,8 +233,12 @@ def _stream_command(
     finally:
         timer.cancel()
     if killed["v"]:
+        logger.warning("stream timeout after %ss: %s", timeout, " ".join(cmd))
         raise subprocess.TimeoutExpired(cmd, timeout)
-    return proc.returncode, "\n".join(lines[-tail_lines:])
+    tail = "\n".join(lines[-tail_lines:])
+    if proc.returncode != 0:
+        logger.warning("stream failed (exit=%s): %s tail=%r", proc.returncode, " ".join(cmd), tail)
+    return proc.returncode, tail
 
 
 def _step_label(config: LauncherConfig, label: str, ok: bool, detail: str) -> str:

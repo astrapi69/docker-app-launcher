@@ -13,7 +13,7 @@ import pytest
 
 from docker_app_launcher import actions, frontends
 from docker_app_launcher.config import LOCALE_LABELS, LauncherConfig
-from docker_app_launcher.frontends import ctk as ctk_frontend
+from docker_app_launcher.frontends import ctk_window as ctk_frontend
 from tests.test_gui_window import _display_available, _keep_off_screen, _screenshot
 
 

@@ -43,7 +43,7 @@ from docker_app_launcher.ui_model import (
     window_title,
 )
 
-logger = logging.getLogger("docker_app_launcher.frontends.qt")
+logger = logging.getLogger("docker_app_launcher.frontends.qt_window")
 
 try:
     from PySide6.QtCore import Qt, QTimer, Signal

@@ -1,1887 +1,314 @@
-"""Business logic - the single layer the GUI and CLI both call.
+"""FACADE - the stable public entry point for all launcher actions.
 
-Every launcher operation lives here as an isolated function. ``gui.py`` and
-``__main__.py`` call ONLY these functions; this module imports NO tkinter, so
-every action is unit-testable with pytest without a display.
+The implementation lives in modules whose names say what they do:
 
-Contract for every action:
+- :mod:`docker_detection`  - is Docker usable here, and why not
+- :mod:`docker_lifecycle`  - install / start / stop / uninstall / health
+- :mod:`docker_cleanup`    - find and remove leftovers of old installs
+- :mod:`launcher_settings` - launcher.json + .env persistence (ports, locale, geometry)
+- :mod:`install_manifest`  - what we installed, for precise cleanup
+- :mod:`docker_cli`        - the shared subprocess/streaming layer
 
-- Takes a :class:`~docker_app_launcher.config.LauncherConfig` (plus plain
-  parameters) - nothing is hard-coded; the app name, container name, port,
-  health endpoint and timeouts all come from the config.
-- Returns ``(success: bool, message: str)`` (a few return richer tuples where
-  documented, e.g. :func:`find_free_port`).
-- VERIFIES its result rather than blindly reporting success (uninstall
-  re-lists the containers; install runs a health check).
-
-Long-running actions (:func:`install`, :func:`start`) accept an optional
-``on_step(label)`` progress callback, and stream the Docker build output
-line-by-line through ``on_output(line)``. Both are plain callables; the GUI
-passes ones that marshal onto the Tk thread, but the action neither knows nor
-cares.
+This module only re-exports their public API so ``actions.install`` etc.
+keep working unchanged (the SemVer contract of the package).
 """
 
 from __future__ import annotations
 
-import contextlib
-import errno
-import getpass
-import json
-import logging
-import os
-import platform
-import re
-import shutil
-import socket
-import subprocess
-import threading
-import time
-import urllib.request
-import webbrowser
-from collections.abc import Callable
-from datetime import datetime, timezone
-from pathlib import Path
-from typing import Any
-
-from docker_app_launcher import __version__, i18n
-from docker_app_launcher.config import SUPPORTED_LOCALES, LauncherConfig, detect_system_locale
-from docker_app_launcher.subprocess_utils import subprocess_kwargs
-
-logger = logging.getLogger("docker_app_launcher.actions")
-
-MIN_PORT = 1024
-MAX_PORT = 65535
-# Internal (container) ports are not published on the host, so they are not
-# bound by the 1024 floor a host-published port needs (e.g. nginx :80).
-MIN_INTERNAL_PORT = 1
-
-ProgressFn = Callable[[str], None]
-OutputFn = Callable[[str], None]
-# (percent, label). ``percent`` is 0-100 for determinate progress, or ``None``
-# to request an indeterminate (animated) bar when the duration is unknown.
-ProgressPctFn = Callable[["int | None", str], None]
-
-
-def _t(config: LauncherConfig, key: str, **kwargs: Any) -> str:
-    return i18n.t(key, config, **kwargs)
-
-
-def _first_line(text: str) -> str:
-    """The first non-empty line of ``text`` (docker's stderr headline)."""
-    for line in (text or "").splitlines():
-        if line.strip():
-            return line.strip()
-    return ""
-
-
-def _progress(on_progress: ProgressPctFn | None, percent: int | None, label: str) -> None:
-    """Report determinate (``percent`` 0-100) or indeterminate (``None``) progress."""
-    if on_progress is not None:
-        try:
-            on_progress(percent, label)
-        except Exception as exc:  # noqa: BLE001 - progress UI must never break an action
-            logger.debug("progress callback failed: %s", exc)
-
-
-class DockerBuildProgress:
-    """Turn streamed ``docker build`` output into a 0-99 build percentage.
-
-    BuildKit prints ``#<n> [stage x/y] ...`` lines. The step count is not known
-    up front and differs per Dockerfile, so we DON'T hard-code it: we track the
-    highest ``#<n>`` seen and divide by it (or by ``estimated_total`` when the
-    app provides a hint, giving a smooth bar from the first line). ``CACHED`` /
-    ``DONE`` lines also carry ``#<n>`` and so count too. ``report(percent, line)``
-    is called per parsed line; the caller maps that percentage into its own band.
-    """
-
-    _STEP_RE = re.compile(r"#(\d+)\b")
-
-    def __init__(self, report: Callable[[int, str], None], *, estimated_total: int = 0) -> None:
-        self._report = report
-        self._estimated_total = max(0, estimated_total)
-        self._max_step = 0
-
-    def parse_line(self, line: str) -> None:
-        match = self._STEP_RE.search(line)
-        if not match:
-            return
-        step = int(match.group(1))
-        self._max_step = max(self._max_step, step)
-        total = self._estimated_total or self._max_step
-        if total > 0:
-            # Cap at 99 so the bar never reaches 100% before the health check.
-            self._report(min(step * 100 // total, 99), line.strip())
-
-
-def _stream_build_with_progress(
-    config: LauncherConfig,
-    *args: str,
-    on_output: OutputFn | None,
-    on_progress: ProgressPctFn | None,
-    lo: int,
-    hi: int,
-    timeout: float,
-) -> tuple[int, str]:
-    """Run a ``build`` / ``up --build`` stream, mapping parsed build steps into
-    the ``lo..hi`` percentage band while still forwarding raw lines to ``on_output``."""
-    parser = DockerBuildProgress(
-        lambda pct, label: _progress(on_progress, lo + pct * (hi - lo) // 100, label),
-        estimated_total=config.estimated_build_steps,
-    )
-
-    def out(line: str) -> None:
-        if on_output is not None:
-            on_output(line)
-        parser.parse_line(line)
-
-    return _stream_compose(config, *args, on_output=out, timeout=timeout)
-
-
-# --- low-level command runners --------------------------------------------
-
-# Set when the ACTIVE docker context is unreachable but another context's
-# endpoint answers (#25 - Docker Desktop for Linux / rootless setups). Every
-# subsequent docker command then runs with DOCKER_HOST pointing at the
-# working endpoint, so the launcher CONNECTS instead of reporting a dead
-# Docker while the daemon demonstrably runs elsewhere.
-_DOCKER_HOST_OVERRIDE: str | None = None
-
-
-def docker_host_override() -> str | None:
-    """The endpoint the context fallback connected through, or ``None``."""
-    return _DOCKER_HOST_OVERRIDE
-
-
-def _reset_docker_host_override() -> None:
-    """Forget a previous context-fallback endpoint (tests / re-checks)."""
-    global _DOCKER_HOST_OVERRIDE
-    _DOCKER_HOST_OVERRIDE = None
-
-
-def _run(
-    cmd: list[str],
-    *,
-    timeout: float = 15.0,
-    cwd: Path | None = None,
-    extra_env: dict[str, str] | None = None,
-) -> subprocess.CompletedProcess[str]:
-    """Run a docker command, capturing output. Logs the call for ``--debug``.
-
-    ``extra_env`` entries (and the #25 ``DOCKER_HOST`` fallback override,
-    when set) are layered over the inherited environment.
-    """
-    logger.debug("exec: %s (cwd=%s, timeout=%ss)", " ".join(cmd), cwd, timeout)
-    env: dict[str, str] | None = None
-    if extra_env or _DOCKER_HOST_OVERRIDE:
-        env = os.environ.copy()
-        if _DOCKER_HOST_OVERRIDE:
-            env["DOCKER_HOST"] = _DOCKER_HOST_OVERRIDE
-        if extra_env:
-            env.update(extra_env)
-    result = subprocess.run(
-        cmd,
-        capture_output=True,
-        text=True,
-        timeout=timeout,
-        cwd=str(cwd) if cwd else None,
-        env=env,
-        **subprocess_kwargs(),
-    )
-    logger.debug(
-        "exit=%s stdout=%r stderr=%r",
-        result.returncode,
-        (result.stdout or "")[-1500:],
-        (result.stderr or "")[-1500:],
-    )
-    return result
-
-
-def _notify(on_step: ProgressFn | None, label: str) -> None:
-    if on_step is not None:
-        try:
-            on_step(label)
-        except Exception as exc:  # noqa: BLE001 - progress UI must never break an action
-            logger.debug("progress callback failed: %s", exc)
-
-
-def _stream_command(
-    cmd: list[str],
-    *,
-    on_output: OutputFn | None = None,
-    timeout: float,
-    cwd: Path | None = None,
-    tail_lines: int = 15,
-    keep: int = 400,
-) -> tuple[int, str]:
-    """Run ``cmd``, streaming combined stdout+stderr line-by-line to
-    ``on_output`` as each line arrives. Returns ``(returncode, tail)`` where
-    ``tail`` is the last ``tail_lines`` lines (for an error message).
-
-    Unlike :func:`_run`, this surfaces progress live - a Docker build prints
-    for minutes and the user must see it move. A watchdog timer kills the
-    process after ``timeout`` and the call then raises
-    :class:`subprocess.TimeoutExpired`, matching :func:`_run`'s contract.
-    """
-    logger.debug("stream: %s (timeout=%ss)", " ".join(cmd), timeout)
-    proc = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        bufsize=1,
-        cwd=str(cwd) if cwd else None,
-        **subprocess_kwargs(),
-    )
-    lines: list[str] = []
-    killed = {"v": False}
-
-    def _kill() -> None:
-        killed["v"] = True
-        proc.kill()
-
-    timer = threading.Timer(timeout, _kill)
-    timer.start()
-    try:
-        assert proc.stdout is not None
-        for raw in proc.stdout:
-            line = raw.rstrip("\n")
-            lines.append(line)
-            if len(lines) > keep:
-                lines.pop(0)
-            if on_output is not None:
-                try:
-                    on_output(line)
-                except Exception as exc:  # noqa: BLE001 - output UI must never break the build
-                    logger.debug("output callback failed: %s", exc)
-        proc.wait()
-    finally:
-        timer.cancel()
-    if killed["v"]:
-        raise subprocess.TimeoutExpired(cmd, timeout)
-    return proc.returncode, "\n".join(lines[-tail_lines:])
-
-
-# --- Docker + state -------------------------------------------------------
-
-
-def docker_installed() -> tuple[bool, str]:
-    """Return ``(installed, message)``. True if the ``docker`` binary exists.
-
-    Distinct from :func:`check_docker`: this only checks the CLI is present
-    (``docker --version``), not whether the daemon is running.
-    """
-    try:
-        result = _run(["docker", "--version"], timeout=10.0)
-    except FileNotFoundError:
-        return False, "Docker is not installed (docker not in PATH)."
-    except subprocess.TimeoutExpired:
-        return False, "Docker is not responding."
-    if result.returncode != 0:
-        return False, (result.stderr or "").strip() or "docker --version failed."
-    return True, (result.stdout or "").strip() or "Docker is installed."
-
-
-def _docker_contexts() -> list[tuple[str, str, bool]]:
-    """``[(name, endpoint, is_active)]`` from ``docker context ls``.
-
-    Degrades to ``[]`` on any failure (old CLI without context support,
-    missing binary, timeout) - the caller then behaves exactly as before
-    the #25 sweep existed.
-    """
-    try:
-        result = _run(
-            ["docker", "context", "ls", "--format", "{{.Name}}\t{{.DockerEndpoint}}\t{{.Current}}"],
-            timeout=5.0,
-        )
-    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
-        return []
-    if result.returncode != 0:
-        return []
-    contexts: list[tuple[str, str, bool]] = []
-    for line in (result.stdout or "").splitlines():
-        parts = line.split("\t")
-        if len(parts) >= 2 and parts[0] and parts[1]:
-            contexts.append((parts[0], parts[1], len(parts) > 2 and parts[2].strip().lower() == "true"))
-    return contexts
-
-
-def _sweep_other_contexts(
-    config: LauncherConfig | None = None, on_step: ProgressFn | None = None
-) -> tuple[str, str] | None:
-    """Probe every non-active context; on a hit, connect through it.
-
-    Returns ``(context_name, endpoint)`` of the first context whose
-    ``docker info`` succeeds and sets the module-wide ``DOCKER_HOST``
-    override so every later docker command uses that endpoint (#25 -
-    the active context points at a dead socket while Docker actually
-    runs under e.g. ``desktop-linux`` or a rootless context).
-
-    With ``config`` + ``on_step`` each probed endpoint is reported to the
-    caller ("Checking Docker context 'x' (…)"), so a multi-second sweep is
-    visible in the window log instead of looking frozen (#30).
-    """
-    global _DOCKER_HOST_OVERRIDE
-    for name, endpoint, is_active in _docker_contexts():
-        if is_active:
-            continue
-        if on_step is not None and config is not None:
-            _notify(on_step, _t(config, "checking_context", context=name, endpoint=endpoint))
-        rc, _stderr = _docker_info_rc(extra_env={"DOCKER_HOST": endpoint})
-        if rc == 0:
-            logger.info("docker reachable via context %r (%s); overriding DOCKER_HOST", name, endpoint)
-            _DOCKER_HOST_OVERRIDE = endpoint
-            return name, endpoint
-    return None
-
-
-def _active_context() -> tuple[str, str]:
-    """Best-effort ``(name, endpoint)`` of the active context for diagnostics."""
-    for name, endpoint, is_active in _docker_contexts():
-        if is_active:
-            return name, endpoint
-    return "default", os.environ.get("DOCKER_HOST", "unix:///var/run/docker.sock")
-
-
-def _probe_unix_socket(endpoint: str) -> str | None:
-    """Classify the ACTUAL socket signal: ``"permission"`` | ``"down"`` | ``None``.
-
-    The docker CLI's error text is neither versioned nor guaranteed - on a
-    real device it reported the generic connect message for an EACCES socket,
-    which routed the user into the daemon-down flow (#27 reopened). A direct
-    connect on the active unix endpoint gives the truthful errno instead:
-    EACCES/EPERM -> missing docker-group membership; ECONNREFUSED/ENOENT ->
-    the daemon really is down. Non-unix endpoints (tcp, npipe) return None
-    and leave the caller's existing logic untouched.
-    """
-    if not endpoint.startswith("unix://"):
-        return None
-    path = endpoint[len("unix://") :]
-    if not os.path.exists(path):
-        return "down"
-    sock = socket.socket(socket.AF_UNIX)
-    sock.settimeout(2.0)
-    try:
-        sock.connect(path)
-        return None  # connectable: neither down nor a permission problem
-    except PermissionError:
-        return "permission"
-    except OSError as exc:
-        if exc.errno in (errno.EACCES, errno.EPERM):
-            return "permission"
-        if exc.errno in (errno.ECONNREFUSED, errno.ENOENT):
-            return "down"
-        return None
-    finally:
-        sock.close()
-
-
-def check_docker() -> tuple[bool, str]:
-    """Return ``(running, message)``. True only when the daemon is reachable.
-
-    When the ACTIVE context is unreachable the other contexts are probed
-    and, on a hit, used for every later docker command (#25).
-    """
-    _reset_docker_host_override()
-    rc, stderr = _docker_info_rc()
-    if rc == 127:
-        return False, "Docker is not installed (docker not in PATH)."
-    if rc is None:
-        return False, "Docker is not responding (Docker Desktop may still be starting)."
-    if rc != 0:
-        if "permission denied" in stderr.lower() or _probe_unix_socket(_active_context()[1]) == "permission":
-            # The daemon is (very likely) up - the socket exists but refused
-            # us. Reporting "not started" here sends the user chasing
-            # systemctl for a service that already runs (#27).
-            return False, (
-                "Docker is running, but your user lacks permission (not in the 'docker' group). "
-                "Run 'sudo usermod -aG docker $USER' AND then log out and back in (or reboot) - "
-                "the group change only becomes active in a new login session."
-            )
-        fallback = _sweep_other_contexts()
-        if fallback is not None:
-            return True, f"Docker is running (via context '{fallback[0]}')."
-        return False, "Docker is not started."
-    return True, "Docker is running."
-
-
-_DOCKER_INSTALL_URLS = {
-    "Windows": "https://docs.docker.com/desktop/install/windows-install/",
-    "Linux": "https://docs.docker.com/engine/install/",
-    "Darwin": "https://docs.docker.com/desktop/install/mac-install/",
-}
-
-
-def _docker_info_rc(extra_env: dict[str, str] | None = None) -> tuple[int | None, str]:
-    """Run ``docker info``: ``(returncode, stderr)``; ``returncode=None`` on timeout.
-
-    ``extra_env`` lets the #25 context sweep probe a specific endpoint via
-    ``DOCKER_HOST`` without touching the process environment.
-    """
-    try:
-        result = _run(["docker", "info"], timeout=10.0, extra_env=extra_env)
-    except FileNotFoundError:
-        return 127, "docker not found"
-    except subprocess.TimeoutExpired:
-        return None, "timeout"
-    return result.returncode, (result.stderr or "")
-
-
-def check_docker_detailed(config: LauncherConfig, *, on_step: ProgressFn | None = None) -> dict[str, Any]:
-    """Platform-specific Docker diagnostics for the "no Docker" screen.
-
-    Returns a dict with ``platform`` (Linux/Windows/Darwin), ``installed``,
-    ``running`` (bools), ``detail`` (a localized message), ``command`` (a
-    copy-pasteable shell hint, or ``""``), ``install_url``, and ``can_start``
-    (whether a Start-Docker button applies). Never raises - every probe is
-    guarded, so a weird host degrades to "not installed".
-    """
-    system = platform.system()
-    out: dict[str, Any] = {
-        "platform": system,
-        "installed": False,
-        "running": False,
-        "detail": "",
-        "command": "",
-        "install_url": config.docker_install_url or _DOCKER_INSTALL_URLS.get(system, _DOCKER_INSTALL_URLS["Linux"]),
-        "can_start": False,
-        "can_fix_permission": False,
-    }
-    has_cli = shutil.which("docker") is not None
-
-    if system == "Linux":
-        if not has_cli:
-            out["detail"] = _t(config, "docker_not_installed")
-            out["command"] = "sudo apt install docker.io docker-compose-plugin"
-            return out
-        out["installed"] = True
-        rc, stderr = _docker_info_rc()
-        if rc == 0:
-            out["running"] = True
-            out["detail"] = _t(config, "docker_running")
-        elif rc is None:
-            out["detail"] = _t(config, "docker_no_response")
-            out["command"] = "sudo systemctl restart docker"
-        elif "permission denied" in stderr.lower() or _probe_unix_socket(_active_context()[1]) == "permission":
-            out["detail"] = _t(config, "docker_no_permission")
-            out["command"] = "sudo usermod -aG docker $USER"
-            out["can_fix_permission"] = True
-        else:
-            fallback = _sweep_other_contexts(config, on_step)
-            if fallback is not None:
-                out["running"] = True
-                out["detail"] = _t(config, "docker_running_other_context", context=fallback[0])
-                return out
-            name, endpoint = _active_context()
-            out["detail"] = _t(
-                config,
-                "docker_not_running_detail",
-                context=name,
-                endpoint=endpoint,
-                error=_first_line(stderr) or "no response",
-            )
-            out["command"] = "sudo systemctl start docker"
-            out["can_start"] = True
-        return out
-
-    # Windows / macOS: Docker Desktop.
-    if system == "Windows":
-        default_path = os.path.expandvars(r"%ProgramFiles%\Docker\Docker\Docker Desktop.exe")
-    else:  # Darwin and any other -> treat as Desktop-style
-        default_path = "/Applications/Docker.app"
-    desktop_path = config.docker_desktop_path or default_path
-
-    if not has_cli:
-        if os.path.exists(desktop_path):
-            out["installed"] = True
-            out["detail"] = _t(config, "docker_no_path")
-            out["can_start"] = True
-        else:
-            out["detail"] = _t(config, "docker_not_installed")
-        return out
-    out["installed"] = True
-    rc, stderr = _docker_info_rc()
-    if rc == 0:
-        out["running"] = True
-        out["detail"] = _t(config, "docker_running")
-    elif rc is None:
-        out["detail"] = _t(config, "docker_no_response")
-    else:
-        fallback = _sweep_other_contexts(config, on_step)
-        if fallback is not None:
-            out["running"] = True
-            out["detail"] = _t(config, "docker_running_other_context", context=fallback[0])
-            return out
-        name, endpoint = _active_context()
-        out["detail"] = _t(
-            config,
-            "docker_not_running_detail",
-            context=name,
-            endpoint=endpoint,
-            error=_first_line(stderr) or "no response",
-        )
-        out["can_start"] = True
-    return out
-
-
-def start_docker_daemon() -> tuple[bool, str]:
-    """Linux: try to start the Docker daemon (systemctl, then a graphical pkexec)."""
-    for cmd in (["systemctl", "start", "docker"], ["pkexec", "systemctl", "start", "docker"]):
-        try:
-            result = _run(cmd, timeout=30.0)
-        except (FileNotFoundError, subprocess.TimeoutExpired):
-            continue
-        if result.returncode == 0:
-            return True, "Docker daemon started."
-    return False, "Could not start the Docker daemon."
-
-
-def start_docker_desktop(config: LauncherConfig) -> tuple[bool, str]:
-    """Windows / macOS: launch Docker Desktop (no wait). Never raises."""
-    system = platform.system()
-    if system == "Windows":
-        path = config.docker_desktop_path or os.path.expandvars(r"%ProgramFiles%\Docker\Docker\Docker Desktop.exe")
-        if os.path.exists(path):
-            with contextlib.suppress(OSError):
-                subprocess.Popen([path], **subprocess_kwargs())
-                return True, "Docker Desktop starting..."
-    elif system == "Darwin":
-        app = config.docker_desktop_path or "/Applications/Docker.app"
-        if os.path.exists(app):
-            with contextlib.suppress(OSError):
-                subprocess.Popen(["open", app], **subprocess_kwargs())
-                return True, "Docker Desktop starting..."
-    return False, "Docker Desktop not found."
-
-
-def wait_for_docker(
-    config: LauncherConfig,
-    *,
-    timeout: float = 90.0,
-    interval: float = 2.0,
-    on_progress: ProgressPctFn | None = None,
-) -> tuple[bool, str]:
-    """Poll :func:`check_docker` until the daemon answers or ``timeout`` hits.
-
-    Docker Desktop boots a VM after ``open -a Docker`` - seconds to minutes -
-    so rechecking immediately after a successful start would report "not
-    started" again although the start worked (#28). ``on_progress`` receives
-    indeterminate updates (``percent=None``) with a localized waiting label.
-    """
-    deadline = time.monotonic() + timeout
-    while True:
-        ok, message = check_docker()
-        if ok:
-            return True, _t(config, "docker_running")
-        if time.monotonic() >= deadline:
-            return False, message
-        if on_progress is not None:
-            with contextlib.suppress(Exception):
-                on_progress(None, _t(config, "docker_desktop_waiting"))
-        time.sleep(interval)
-
-
-def add_user_to_docker_group(config: LauncherConfig) -> tuple[bool, str]:
-    """Linux self-repair for the socket-permission case (#27): add the current
-    user to the ``docker`` group via ``pkexec usermod`` and VERIFY it stuck.
-
-    The caller must have confirmed the security implication first (docker
-    group membership is effectively root). Success is verified against
-    ``getent group docker`` and the success message still demands a re-login:
-    the group change only becomes active in a NEW login session, so this
-    function must never suggest Docker is usable already.
-    """
-    if platform.system() != "Linux":
-        return False, _t(config, "docker_group_failed", error="Linux only")
-    user = getpass.getuser()
-    try:
-        result = _run(["pkexec", "usermod", "-aG", "docker", user], timeout=120.0)
-    except FileNotFoundError:
-        return False, _t(config, "docker_group_failed", error="pkexec not found")
-    except subprocess.TimeoutExpired:
-        return False, _t(config, "docker_group_failed", error="timed out")
-    if result.returncode in (126, 127):  # polkit dialog dismissed / not authorized
-        return False, _t(config, "docker_group_cancelled")
-    if result.returncode != 0:
-        stderr = (result.stderr or "").strip()
-        error = stderr.splitlines()[-1] if stderr else f"exit {result.returncode}"
-        return False, _t(config, "docker_group_failed", error=error)
-    try:
-        verify = _run(["getent", "group", "docker"], timeout=15.0)
-        members_field = (verify.stdout or "").strip().split(":")[-1] if verify.returncode == 0 else ""
-        members = [m.strip() for m in members_field.split(",") if m.strip()]
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        members = []
-    if user not in members:
-        return False, _t(config, "docker_group_failed", error="verification failed (user not in group)")
-    return True, _t(config, "docker_group_added")
-
-
-def _name_filter_args(config: LauncherConfig) -> list[str]:
-    args: list[str] = []
-    for flt in config.name_filters():
-        args += ["--filter", f"name={flt}"]
-    return args
-
-
-def _project_container_ids(config: LauncherConfig, *, running_only: bool) -> list[str]:
-    cmd = ["docker", "ps", "-q"] if running_only else ["docker", "ps", "-aq"]
-    cmd += _name_filter_args(config)
-    try:
-        result = _run(cmd, timeout=15.0)
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        return []
-    return [cid for cid in (result.stdout or "").strip().splitlines() if cid]
-
-
-def get_state(config: LauncherConfig) -> str:
-    """Return ``'no_docker' | 'not_installed' | 'running' | 'stopped'``."""
-    docker_ok, _ = check_docker()
-    if not docker_ok:
-        return "no_docker"
-    if _project_container_ids(config, running_only=True):
-        return "running"
-    if _project_container_ids(config, running_only=False):
-        return "stopped"
-    return "not_installed"
-
-
-# --- Ports ----------------------------------------------------------------
-
-
-def _validate_port(port: object) -> tuple[bool, str]:
-    if not isinstance(port, int) or isinstance(port, bool) or not (MIN_PORT <= port <= MAX_PORT):
-        return False, f"Port must be between {MIN_PORT} and {MAX_PORT}."
-    return True, ""
-
-
-def _validate_internal_port(port: object) -> tuple[bool, str]:
-    """Validate an internal (container) port. Allows the full 1-65535 range."""
-    if not isinstance(port, int) or isinstance(port, bool) or not (MIN_INTERNAL_PORT <= port <= MAX_PORT):
-        return False, f"Internal port must be between {MIN_INTERNAL_PORT} and {MAX_PORT}."
-    return True, ""
-
-
-def check_port(port: int, *, host: str = "") -> tuple[bool, str]:
-    """Return ``(free, message)``. Validates the range, then probes by BIND.
-
-    Bind (not connect) is the correct check for "can docker publish this
-    port": Docker publishes by binding, so we bind the same way. On Windows
-    ``SO_EXCLUSIVEADDRUSE`` is set so an occupied port is detected reliably.
-    """
-    valid, reason = _validate_port(port)
-    if not valid:
-        return False, reason
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    try:
-        if hasattr(socket, "SO_EXCLUSIVEADDRUSE"):  # Windows only
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
-        sock.bind((host, port))
-    except OSError:
-        return False, f"Port {port} is occupied."
-    finally:
-        sock.close()
-    return True, f"Port {port} is free."
-
-
-def find_free_port(start: int, *, max_tries: int = 100) -> tuple[bool, int, str]:
-    """Return ``(found, port, message)``, scanning up to ``max_tries`` ports
-    from ``start``. Returns ``(False, 0, ...)`` on an invalid start or when no
-    free port is found."""
-    valid, _ = _validate_port(start)
-    if not valid:
-        return False, 0, f"Invalid start port: {start}."
-    last = min(start + max_tries - 1, MAX_PORT)
-    for candidate in range(start, last + 1):
-        free, _ = check_port(candidate)
-        if free:
-            return True, candidate, f"Free port found: {candidate}."
-    return False, 0, "No free port found."
-
-
-# --- port persistence -----------------------------------------------------
-
-
-def load_config(path: Path) -> dict[str, Any]:
-    """Load JSON config from ``path``; return ``{}`` when absent/unreadable."""
-    try:
-        data = json.loads(Path(path).read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return {}
-    return data if isinstance(data, dict) else {}
-
-
-def save_config(path: Path, config: dict[str, Any]) -> None:
-    """Write ``config`` as pretty JSON to ``path`` (creating parent dirs)."""
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(config, indent=2, sort_keys=True), encoding="utf-8")
-
-
-def _env_path(config: LauncherConfig) -> Path:
-    """Path of the ``.env`` file Docker Compose reads for this project.
-
-    Compose loads ``.env`` from the project directory - the directory holding
-    the compose file, which is ``install_dir`` when set and the current working
-    directory otherwise (mirrors :attr:`LauncherConfig.compose_path`). Writing
-    the port HERE, rather than only when ``install_dir`` is set, is what makes a
-    port change actually reach Compose: otherwise :func:`set_port` would update
-    only the launcher's own JSON and the running stack would keep publishing the
-    old port (the launcher and Compose then disagree, and the app is unreachable
-    on the launcher's port).
-    """
-    return config.compose_path.parent / ".env"
-
-
-def _upsert_env_line(text: str, key: str, value: object) -> str:
-    """Return ``text`` with ``key=value`` upserted (replacing one occurrence)."""
-    pattern = re.compile(rf"^\s*{re.escape(key)}\s*=.*$", re.MULTILINE)
-    line = f"{key}={value}"
-    if pattern.search(text):
-        return pattern.sub(line, text, count=1)
-    if text and not text.endswith("\n"):
-        text += "\n"
-    return text + line + "\n"
-
-
-def _write_env(config: LauncherConfig, updates: dict[str, object]) -> None:
-    """Upsert every ``key=value`` in ``updates`` into the Compose project's ``.env``.
-
-    Best-effort: a write failure is logged and swallowed so it can never crash a
-    port change.
-    """
-    if not updates:
-        return
-    env_file = _env_path(config)
-    try:
-        text = env_file.read_text(encoding="utf-8") if env_file.is_file() else ""
-        for key, value in updates.items():
-            text = _upsert_env_line(text, key, value)
-        env_file.parent.mkdir(parents=True, exist_ok=True)
-        env_file.write_text(text, encoding="utf-8")
-    except OSError as exc:
-        logger.warning("could not write .env: %s", exc)
-
-
-def _write_env_port(config: LauncherConfig, port: int) -> None:
-    """Upsert only the public host port into ``.env`` (thin wrapper)."""
-    _write_env(config, {config.env_port_key: port})
-
-
-def _env_port_updates(config: LauncherConfig) -> dict[str, object]:
-    """Every port var Compose needs: the public host port + each internal port."""
-    updates: dict[str, object] = {config.env_port_key: resolve_port(config)}
-    for name, key in config.env_internal_port_keys.items():
-        updates[key] = resolve_internal_port(config, name)
-    return updates
-
-
-def _write_env_ports(config: LauncherConfig) -> None:
-    """Write the public host port AND every configured internal port to ``.env``."""
-    _write_env(config, _env_port_updates(config))
-
-
-def resolve_port(config: LauncherConfig, cli_port: int | None = None) -> int:
-    """Resolve the effective host port (first valid wins).
-
-    Precedence: ``cli_port`` -> ``port`` in the launcher JSON config ->
-    :attr:`LauncherConfig.default_port`.
-    """
-    if cli_port is not None and _validate_port(cli_port)[0]:
-        return cli_port
-    stored = load_config(config.launcher_config_file).get("port")
-    if isinstance(stored, int) and _validate_port(stored)[0]:
-        return stored
-    return config.default_port
-
-
-def set_port(config: LauncherConfig, port: int) -> tuple[bool, str]:
-    """Validate and persist ``port`` into the launcher config (and ``.env``)."""
-    valid, reason = _validate_port(port)
-    if not valid:
-        return False, reason
-    data = load_config(config.launcher_config_file)
-    data["port"] = port
-    save_config(config.launcher_config_file, data)
-    _write_env_ports(config)
-    return True, _t(config, "port_set", port=port)
-
-
-def resolve_locale(config: LauncherConfig) -> str:
-    """Resolve the effective UI locale (the picker's persisted choice wins).
-
-    Precedence: ``locale`` in the launcher JSON (the user's last choice) ->
-    :attr:`LauncherConfig.locale`. ``"auto"`` (stored or default) resolves to the
-    system locale; an unsupported value falls back to English.
-    """
-    stored = load_config(config.launcher_config_file).get("locale")
-    candidate = stored if isinstance(stored, str) and stored else config.locale
-    if candidate == "auto":
-        candidate = detect_system_locale()
-    return candidate if candidate in SUPPORTED_LOCALES else "en"
-
-
-def set_locale(config: LauncherConfig, locale: str) -> str:
-    """Persist the chosen UI ``locale`` into the launcher JSON; return it."""
-    data = load_config(config.launcher_config_file)
-    data["locale"] = locale
-    save_config(config.launcher_config_file, data)
-    return locale
-
-
-_GEOMETRY_RE = re.compile(r"^\d+x\d+[+-]-?\d+[+-]-?\d+$")
-
-
-def set_window_geometry(config: LauncherConfig, geometry: str) -> None:
-    """Persist the window geometry (``WxH+X+Y``) so the next start reopens
-    the window where the user left it. Invalid strings are ignored."""
-    if not _GEOMETRY_RE.match(geometry or ""):
-        return
-    data = load_config(config.launcher_config_file)
-    data["window_geometry"] = geometry
-    save_config(config.launcher_config_file, data)
-
-
-def resolve_window_geometry(config: LauncherConfig) -> str:
-    """The stored window geometry from the launcher JSON, or ``""``."""
-    value = load_config(config.launcher_config_file).get("window_geometry", "")
-    return value if isinstance(value, str) and _GEOMETRY_RE.match(value) else ""
-
-
-def resolve_internal_port(config: LauncherConfig, name: str) -> int:
-    """Resolve an internal port: a stored override wins over the config default.
-
-    Returns ``internal_ports[name]`` from the launcher config unless a valid
-    override is stored under ``internal_ports`` in the launcher JSON. Returns
-    ``0`` for an unknown name (no default to fall back to).
-    """
-    stored = load_config(config.launcher_config_file).get("internal_ports")
-    if isinstance(stored, dict):
-        value = stored.get(name)
-        if isinstance(value, int) and not isinstance(value, bool) and _validate_internal_port(value)[0]:
-            return value
-    return config.internal_ports.get(name, 0)
-
-
-def set_internal_port(config: LauncherConfig, name: str, port: int) -> tuple[bool, str]:
-    """Validate and persist an internal port (launcher JSON + ``.env``). No restart."""
-    if name not in config.env_internal_port_keys:
-        return False, _t(config, "internal_port_unknown", name=name)
-    valid, reason = _validate_internal_port(port)
-    if not valid:
-        return False, reason
-    data = load_config(config.launcher_config_file)
-    stored = data.get("internal_ports")
-    if not isinstance(stored, dict):
-        stored = {}
-    stored[name] = port
-    data["internal_ports"] = stored
-    save_config(config.launcher_config_file, data)
-    _write_env_ports(config)
-    return True, _t(config, "internal_port_set", name=name, port=port)
-
-
-def change_internal_port(
-    config: LauncherConfig,
-    name: str,
-    port: int,
-    *,
-    on_step: ProgressFn | None = None,
-    on_output: OutputFn | None = None,
-) -> tuple[bool, str]:
-    """Change an internal container port - this REQUIRES an image rebuild.
-
-    Unlike :func:`change_port` (the public host port, a seconds-fast no-rebuild
-    recreate), an internal port is consumed when the image is built/started, so
-    the chain rebuilds:
-
-    1. validate the name + port and persist (launcher JSON + ``.env``);
-    2. if the stack is running, STOP it, then ``up --build -d`` (minutes - the
-       images are rebuilt with the new internal port);
-    3. health-check on the public port.
-
-    When the stack is not running this only persists (a later build picks it up).
-    Returns ``(ok, message)``.
-    """
-    if name not in config.env_internal_port_keys:
-        return False, _t(config, "internal_port_unknown", name=name)
-    valid, reason = _validate_internal_port(port)
-    if not valid:
-        return False, reason
-    docker_ok, _ = check_docker()
-    if not docker_ok:
-        return False, _t(config, "docker_unavailable")
-
-    was_running = get_state(config) == "running"
-    if was_running:
-        stopped, stop_msg = stop(config)
-        if not stopped:
-            return False, stop_msg
-
-    ok, msg = set_internal_port(config, name, port)
-    if not ok:
-        return False, msg
-    if not was_running:
-        return True, msg
-
-    _notify(on_step, _t(config, "internal_port_rebuilding"))
-    try:
-        rc, tail = _stream_compose(
-            config, "up", "--build", "-d", on_output=on_output, timeout=float(config.build_timeout)
-        )
-    except FileNotFoundError:
-        return False, _t(config, "docker_unavailable")
-    except subprocess.TimeoutExpired:
-        return False, _t(config, "build_timeout")
-    if rc != 0:
-        return False, _t(config, "build_failed", detail=tail)
-    if get_state(config) != "running":
-        return False, _t(config, "start_no_container")
-
-    _notify(on_step, _t(config, "checking_health"))
-    healthy, detail = health_check(config)
-    if not healthy:
-        return False, _t(config, "not_reachable", detail=detail)
-    _record_manifest(config, resolve_port(config), action="internal_port_change")
-    return True, _t(config, "internal_port_changed", name=name, port=port)
-
-
-def change_port(
-    config: LauncherConfig,
-    port: int,
-    *,
-    on_step: ProgressFn | None = None,
-    on_output: OutputFn | None = None,
-) -> tuple[bool, str]:
-    """Change the host port and make a RUNNING stack actually serve on it.
-
-    This is the missing half of :func:`set_port`: persisting the port is not
-    enough, because a running container keeps its old published port until it is
-    recreated. The chain:
-
-    1. validate and persist the port (launcher JSON + ``.env``);
-    2. if the stack is running, STOP it, then recreate with ``up -d`` - and
-       deliberately NOT ``up --build -d``: only the published HOST port changed,
-       the images are untouched, so the restart takes seconds rather than the
-       minutes a rebuild would cost;
-    3. health-check on the NEW port and report reachability.
-
-    When the stack is not running this only persists the port (a later
-    start/install picks it up). Returns ``(ok, message)``.
-    """
-    valid, reason = _validate_port(port)
-    if not valid:
-        return False, reason
-    docker_ok, _ = check_docker()
-    if not docker_ok:
-        return False, _t(config, "docker_unavailable")
-
-    was_running = get_state(config) == "running"
-    if was_running:
-        stopped, stop_msg = stop(config)
-        if not stopped:
-            return False, stop_msg
-
-    ok, msg = set_port(config, port)
-    if not ok:
-        return False, msg
-    if not was_running:
-        return True, msg
-
-    _notify(on_step, _t(config, "port_restarting"))
-    try:
-        rc, tail = _stream_compose(config, "up", "-d", on_output=on_output, timeout=float(config.start_timeout))
-    except FileNotFoundError:
-        return False, _t(config, "docker_unavailable")
-    except subprocess.TimeoutExpired:
-        return False, _t(config, "start_timeout")
-    if rc != 0:
-        return False, _t(config, "start_failed", detail=tail)
-    if get_state(config) != "running":
-        return False, _t(config, "start_no_container")
-
-    _notify(on_step, _t(config, "checking_health"))
-    healthy, detail = health_check(config, port)
-    if not healthy:
-        return False, _t(config, "not_reachable", detail=detail)
-    _record_manifest(config, port, action="port_change")
-    return True, _t(config, "port_changed", port=port)
-
-
-# --- Lifecycle (install / start / stop / uninstall) -----------------------
-
-
-def _compose_args(config: LauncherConfig, *args: str) -> list[str]:
-    return [
-        "docker",
-        "compose",
-        "-p",
-        config.compose_project,
-        "-f",
-        str(config.compose_path),
-        *args,
-    ]
-
-
-def _compose_cwd(config: LauncherConfig) -> Path | None:
-    return Path(config.install_dir).expanduser() if config.install_dir else None
-
-
-def _stream_compose(
-    config: LauncherConfig, *args: str, on_output: OutputFn | None = None, timeout: float
-) -> tuple[int, str]:
-    return _stream_command(
-        _compose_args(config, *args),
-        on_output=on_output,
-        timeout=timeout,
-        cwd=_compose_cwd(config),
-    )
-
-
-def _call(config: LauncherConfig, hook: Callable[..., Any] | None) -> None:
-    """Invoke an optional lifecycle callback; never let it break the action."""
-    if hook is None:
-        return
-    try:
-        hook(config)
-    except Exception as exc:  # noqa: BLE001 - hooks must never break an action
-        logger.warning("lifecycle callback failed: %s", exc)
-
-
-def install(
-    config: LauncherConfig,
-    *,
-    on_step: ProgressFn | None = None,
-    on_output: OutputFn | None = None,
-    on_progress: ProgressPctFn | None = None,
-) -> tuple[bool, str]:
-    """Build + start the stack, then VERIFY it is running and healthy.
-
-    Guards (each returns ``(False, ...)``): invalid port, Docker down, missing
-    compose file, occupied port. If the app is already running it returns
-    ``(True, already_installed)``. Streams the build output through
-    ``on_output`` and reports a 0/25/50/health/100 bar via ``on_progress``.
-    """
-    port = resolve_port(config)
-    valid, reason = _validate_port(port)
-    if not valid:
-        return False, reason
-
-    _call(config, config.on_before_install)
-    _notify(on_step, _t(config, "checking_docker"))
-    _progress(on_progress, 0, _t(config, "checking_docker"))
-    docker_ok, _ = check_docker()
-    if not docker_ok:
-        return False, _t(config, "docker_unavailable")
-    if get_state(config) == "running":
-        return True, _t(config, "already_installed")
-    if not config.compose_path.is_file():
-        return False, _t(config, "compose_not_found", path=config.compose_path)
-    port_free, _ = check_port(port)
-    if not port_free:
-        return False, _t(config, "port_occupied", port=port)
-    _write_env_ports(config)
-    _notify(on_step, _t(config, "docker_ok"))
-
-    _notify(on_step, _t(config, "building"))
-    _progress(on_progress, 5, _t(config, "building"))
-    try:
-        build_rc, build_tail = _stream_build_with_progress(
-            config,
-            "build",
-            on_output=on_output,
-            on_progress=on_progress,
-            lo=5,
-            hi=85,
-            timeout=float(config.build_timeout),
-        )
-    except FileNotFoundError:
-        return False, _t(config, "docker_unavailable")
-    except subprocess.TimeoutExpired:
-        return False, _t(config, "build_timeout")
-    if build_rc != 0:
-        return False, _t(config, "build_failed", detail=build_tail)
-    _notify(on_step, _t(config, "image_built"))
-    _progress(on_progress, 85, _t(config, "image_built"))
-
-    _notify(on_step, _t(config, "starting"))
-    _progress(on_progress, 88, _t(config, "starting"))
-    try:
-        up_rc, up_tail = _stream_compose(config, "up", "-d", on_output=on_output, timeout=float(config.start_timeout))
-    except FileNotFoundError:
-        return False, _t(config, "docker_unavailable")
-    except subprocess.TimeoutExpired:
-        return False, _t(config, "start_timeout")
-    if up_rc != 0:
-        return False, _t(config, "start_failed", detail=up_tail)
-    _notify(on_step, _t(config, "container_started"))
-
-    _notify(on_step, _t(config, "checking_health"))
-    _progress(on_progress, None, _t(config, "checking_health"))  # indeterminate: duration unknown
-    if get_state(config) != "running":
-        return False, _t(config, "container_not_running")
-    healthy, health_msg = health_check(config)
-    if not healthy:
-        return False, _t(config, "not_reachable", detail=health_msg)
-    _notify(on_step, _t(config, "health_ok"))
-    _progress(on_progress, 100, _t(config, "ready"))
-    _record_manifest(config, port, action="install")
-    _call(config, config.on_after_install)
-    return True, _t(config, "ready")
-
-
-def ensure_installed(
-    config: LauncherConfig,
-    *,
-    on_step: ProgressFn | None = None,
-    on_output: OutputFn | None = None,
-    on_progress: ProgressPctFn | None = None,
-) -> tuple[bool, str]:
-    """Single install entry point for the persistent window.
-
-    For a generic app the compose file must already be present, so this is
-    :func:`install`. It exists as a stable seam: an app that ships frozen
-    binaries can wire a download step via ``config.on_before_install``.
-    """
-    return install(config, on_step=on_step, on_output=on_output, on_progress=on_progress)
-
-
-def start(
-    config: LauncherConfig,
-    *,
-    on_step: ProgressFn | None = None,
-    on_output: OutputFn | None = None,
-    on_progress: ProgressPctFn | None = None,
-) -> tuple[bool, str]:
-    """Start the stack via ``compose up --build -d``, then VERIFY it runs.
-
-    Always passes ``--build`` so a code change is picked up on the next start;
-    Docker's layer cache makes an unchanged rebuild near-instant. ``up --build
-    -d`` also creates the containers if they do not exist yet, so it works from
-    both 'stopped' and a removed state.
-    """
-    _call(config, config.on_before_start)
-    docker_ok, _ = check_docker()
-    if not docker_ok:
-        return False, _t(config, "docker_unavailable")
-    if get_state(config) == "running":
-        return True, _t(config, "already_running")
-    _notify(on_step, _t(config, "updating"))
-    _progress(on_progress, 5, _t(config, "updating"))
-    try:
-        rc, tail = _stream_build_with_progress(
-            config,
-            "up",
-            "--build",
-            "-d",
-            on_output=on_output,
-            on_progress=on_progress,
-            lo=5,
-            hi=95,
-            timeout=float(config.build_timeout),
-        )
-    except FileNotFoundError:
-        return False, _t(config, "docker_unavailable")
-    except subprocess.TimeoutExpired:
-        return False, _t(config, "start_timeout")
-    if rc != 0:
-        return False, _t(config, "start_failed", detail=tail)
-    if get_state(config) != "running":
-        return False, _t(config, "start_no_container")
-    _progress(on_progress, 100, _t(config, "start_done"))
-    existing = read_manifest(config) or {}
-    _record_manifest(config, int(existing.get("port", resolve_port(config))), action="update")
-    _call(config, config.on_after_start)
-    return True, _t(config, "start_done")
-
-
-def stop(config: LauncherConfig) -> tuple[bool, str]:
-    """Stop the running containers, then VERIFY none are running.
-
-    Uses ``docker stop`` by id so the containers REMAIN (state -> stopped),
-    keeping data + images for a fast restart.
-    """
-    docker_ok, _ = check_docker()
-    if not docker_ok:
-        return False, _t(config, "docker_unavailable")
-    state = get_state(config)
-    if state == "not_installed":
-        return False, _t(config, "not_installed")
-    if state == "stopped":
-        return True, _t(config, "already_stopped")
-    running = _project_container_ids(config, running_only=True)
-    try:
-        _run(["docker", "stop", *running], timeout=float(config.stop_timeout) + 30.0)
-    except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
-        return False, _t(config, "stop_failed", detail=str(exc))
-    if _project_container_ids(config, running_only=True):
-        return False, _t(config, "stop_not_verified")
-    return True, _t(config, "stop_done")
-
-
-def _step_label(config: LauncherConfig, label: str, ok: bool, detail: str) -> str:
-    """Format one verbose step line: ``<label>... ✓`` or
-    ``<label>... ✗ <Error>: <detail>``."""
-    if ok:
-        return f"{label}... ✓"
-    return f"{label}... ✗ {_t(config, 'error_word')}: {detail}"
-
-
-def _docker_op(cmd: list[str], *, timeout: float = 60.0) -> tuple[bool, str]:
-    """Run ONE docker step. Returns ``(ok, detail)`` - ``detail`` is the
-    trimmed last stderr line on failure. Never raises."""
-    try:
-        result = _run(cmd, timeout=timeout)
-    except FileNotFoundError:
-        return False, "docker not found"
-    except subprocess.TimeoutExpired:
-        return False, "timed out"
-    if result.returncode != 0:
-        stderr = (result.stderr or "").strip()
-        return False, stderr.splitlines()[-1] if stderr else "unknown error"
-    return True, ""
-
-
-def _project_containers(config: LauncherConfig, *, running_only: bool) -> list[tuple[str, str]]:
-    """List this project's containers as ``(id, name)`` pairs."""
-    cmd = ["docker", "ps"] if running_only else ["docker", "ps", "-a"]
-    cmd += _name_filter_args(config)
-    cmd += ["--format", "{{.ID}}\t{{.Names}}"]
-    try:
-        result = _run(cmd, timeout=15.0)
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        return []
-    pairs: list[tuple[str, str]] = []
-    for line in (result.stdout or "").strip().splitlines():
-        cid, _, name = line.partition("\t")
-        if cid:
-            pairs.append((cid, name or cid))
-    return pairs
-
-
-def _project_images(config: LauncherConfig) -> list[tuple[str, str]]:
-    """List this project's images as ``(id, reference)`` pairs, de-duped by id."""
-    cmd = ["docker", "images"]
-    for pat in config.image_patterns():
-        cmd += ["--filter", f"reference=*{pat}*"]
-    cmd += ["--format", "{{.ID}}\t{{.Repository}}"]
-    try:
-        result = _run(cmd, timeout=15.0)
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        return []
-    pairs: list[tuple[str, str]] = []
-    seen: set[str] = set()
-    for line in (result.stdout or "").strip().splitlines():
-        cid, _, ref = line.partition("\t")
-        if cid and cid not in seen:
-            seen.add(cid)
-            pairs.append((cid, ref or cid))
-    return pairs
-
-
-def _uninstall_images(config: LauncherConfig, on_step: ProgressFn | None = None) -> None:
-    """Remove each of this project's images individually (verbose, best-effort)."""
-    for cid, ref in _project_images(config):
-        ok, detail = _docker_op(["docker", "image", "rm", "--force", cid], timeout=60.0)
-        _notify(on_step, _step_label(config, _t(config, "step_remove_image", ref=ref), ok, detail))
-        if not ok:
-            logger.warning("image removal failed for %s: %s", ref, detail)
-
-
-def uninstall(config: LauncherConfig, *, on_step: ProgressFn | None = None) -> tuple[bool, str]:
-    """Force-remove containers (and images), then VERIFY they are gone.
-
-    Verbose: every container stop/remove and every image removal is a separate
-    step reported through ``on_step`` with a ``✓``/``✗`` result. Volumes are
-    PRESERVED (data survives a reinstall).
-    """
-    docker_ok, _ = check_docker()
-    if not docker_ok:
-        return False, _t(config, "docker_unavailable")
-    _notify(on_step, _t(config, "uninstalling"))
-    containers = _project_containers(config, running_only=False)
-    if not containers:
-        _notify(on_step, _t(config, "no_containers"))
-        _uninstall_images(config, on_step)
-        mark_uninstalled(config, get_version(config))
-        return True, _t(config, "nothing_to_uninstall")
-
-    for cid, name in containers:
-        ok, detail = _docker_op(["docker", "stop", cid], timeout=60.0)
-        _notify(on_step, _step_label(config, _t(config, "step_stop_container", name=name), ok, detail))
-    for cid, name in containers:
-        ok, detail = _docker_op(["docker", "rm", "-f", cid], timeout=60.0)
-        _notify(on_step, _step_label(config, _t(config, "step_remove_container", name=name), ok, detail))
-
-    remaining = _project_container_ids(config, running_only=False)
-    if remaining:
-        _notify(on_step, _t(config, "verify_remain", count=len(remaining)))
-        return False, _t(config, "uninstall_partial", count=len(remaining))
-    _notify(on_step, _t(config, "verify_clean"))
-
-    _uninstall_images(config, on_step)
-    mark_uninstalled(config, get_version(config))
-    return True, _t(config, "uninstall_done")
-
-
-# --- Health + browser -----------------------------------------------------
-
-
-def _health_probe(config: LauncherConfig, port: int) -> tuple[bool, str]:
-    """One shot: ``(healthy, detail)``.
-
-    Healthy == HTTP 200, and - when ``health_check_key`` is set - the JSON body
-    has ``health_check_key == health_check_value``. An empty key means a 200 is
-    enough.
-    """
-    url = f"http://localhost:{port}{config.health_check_path}"
-    try:
-        with urllib.request.urlopen(url, timeout=3.0) as resp:  # localhost only
-            status = resp.status
-            body = resp.read().decode("utf-8") if status == 200 else ""
-    except Exception as exc:  # noqa: BLE001 - any failure means not-ready-yet
-        return False, str(exc)
-    if status != 200:
-        if 500 <= status < 600:
-            return False, f"server error (HTTP {status})"
-        return False, f"HTTP {status}"
-    if not config.health_check_key:
-        return True, "reachable (HTTP 200)."
-    try:
-        payload = json.loads(body)
-    except json.JSONDecodeError:
-        return False, "invalid JSON response"
-    if payload.get(config.health_check_key) == config.health_check_value:
-        return True, f"reachable and healthy ({config.health_check_key}={config.health_check_value})."
-    return False, f"response, but {config.health_check_key} != {config.health_check_value}"
-
-
-def is_healthy(config: LauncherConfig, port: int | None = None) -> bool:
-    """One-shot health check (no polling). True == healthy now."""
-    return _health_probe(config, port if port is not None else resolve_port(config))[0]
-
-
-def health_check(config: LauncherConfig, port: int | None = None) -> tuple[bool, str]:
-    """Poll :func:`_health_probe` until healthy or the timeout elapses."""
-    effective = port if port is not None else resolve_port(config)
-    deadline = time.monotonic() + config.health_check_timeout
-    last = "no response"
-    while time.monotonic() < deadline:
-        ok, detail = _health_probe(config, effective)
-        if ok:
-            return True, detail
-        last = detail
-        time.sleep(1.0)
-    return False, _t(config, "not_reachable_after", timeout=config.health_check_timeout, detail=last)
-
-
-def open_browser(config: LauncherConfig, port: int | None = None) -> None:
-    """Open the app in the default browser. Never raises."""
-    effective = port if port is not None else resolve_port(config)
-    url = f"http://localhost:{effective}{config.browser_path}"
-    logger.debug("open browser: %s", url)
-    try:
-        webbrowser.open(url)
-    except OSError as exc:
-        logger.warning("could not open browser: %s", exc)
-
-
-def open_url(url: str) -> None:
-    """Open an arbitrary URL (e.g. the Docker install guide). Never raises."""
-    try:
-        webbrowser.open(url)
-    except OSError as exc:
-        logger.warning("could not open url %s: %s", url, exc)
-
-
-# --- Version --------------------------------------------------------------
-
-
-def get_version(config: LauncherConfig) -> str:
-    """Return the recorded app version (manifest), else the launcher version."""
-    data = read_manifest(config)
-    if data and data.get("app_version"):
-        return str(data["app_version"])
-    return __version__
-
-
-def _health_payload(config: LauncherConfig, port: int, timeout: float = 1.5) -> dict[str, Any] | None:
-    """The parsed health-endpoint JSON body, or None (fail-open, #35).
-
-    A short timeout keeps a synchronous caller (the About dialog) snappy;
-    a stopped stack fails instantly with connection-refused on localhost.
-    """
-    url = f"http://localhost:{port}{config.health_check_path}"
-    try:
-        with urllib.request.urlopen(url, timeout=timeout) as resp:  # localhost only
-            if resp.status != 200:
-                return None
-            payload = json.loads(resp.read().decode("utf-8"))
-    except Exception:  # noqa: BLE001 - any failure means no runtime answer
-        return None
-    return payload if isinstance(payload, dict) else None
-
-
-def get_app_version(config: LauncherConfig) -> tuple[str, str]:
-    """The managed app's version plus its source (#35).
-
-    Ladder, each step failing open to the next:
-
-    1. ("2.6.0", "running") - the running stack's own claim, read from
-       app_version_health_key in the health-endpoint JSON. The only
-       source that survives out-of-band rebuilds (git pull + compose build).
-    2. (.., "installed") - the install manifest's snapshot.
-    3. (.., "expected") - config.app_version, what the NEXT install
-       would deploy.
-    4. ("", "unknown") - nothing known.
-    """
-    if config.app_version_health_key:
-        payload = _health_payload(config, resolve_port(config))
-        if payload:
-            running = payload.get(config.app_version_health_key)
-            if running:
-                return str(running), "running"
-    manifest = read_manifest(config)
-    if manifest and manifest.get("app_version") and manifest.get("status") != "uninstalled":
-        return str(manifest["app_version"]), "installed"
-    if config.app_version:
-        return config.app_version, "expected"
-    return "", "unknown"
-
-
-# --- Install manifest -----------------------------------------------------
-
-
-def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
-
-
-def read_manifest(config: LauncherConfig) -> dict[str, Any] | None:
-    """Read the install manifest, or ``None`` if absent/malformed (fail-open)."""
-    try:
-        data = json.loads(config.manifest_path.read_text(encoding="utf-8"))
-    except (FileNotFoundError, OSError, json.JSONDecodeError, UnicodeDecodeError):
-        return None
-    return data if isinstance(data, dict) else None
-
-
-def _write_manifest(config: LauncherConfig, data: dict[str, Any]) -> None:
-    path = config.manifest_path
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, indent=2, sort_keys=True), encoding="utf-8")
-
-
-def collect_installed_artifacts(config: LauncherConfig) -> dict[str, list[Any]]:
-    """Snapshot the docker artifacts belonging to this project."""
-    containers: list[dict[str, str]] = []
-    try:
-        result = _run(
-            ["docker", "ps", "-a", "--filter", f"name={config.container_name}", "--format", "{{.Names}}\t{{.Image}}"],
-            timeout=15.0,
-        )
-        for line in (result.stdout or "").strip().splitlines():
-            name, _, image = line.partition("\t")
-            if name:
-                containers.append({"name": name, "image": image})
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        pass
-    return {
-        "containers": containers,
-        "images": _image_refs(config, (config.image_name,)),
-        "volumes": _docker_names(config, "volume", (config.container_name,)),
-    }
-
-
-def write_manifest(config: LauncherConfig, version: str) -> None:
-    """Write/refresh the install manifest after a successful install/rebuild.
-
-    Preserves ``installed_at`` and the append-only ``install_history``;
-    refreshes ``updated_at`` and the artifact lists. Never raises.
-    """
-    try:
-        existing = read_manifest(config) or {}
-        arts = collect_installed_artifacts(config)
-        data: dict[str, Any] = {
-            "schema": 1,
-            "app_name": config.app_name,
-            "app_version": version,
-            "version": version,  # legacy alias
-            "launcher_version": __version__,
-            "install_dir": config.install_dir,
-            "installed_at": existing.get("installed_at") or _now(),
-            "updated_at": _now(),
-            "status": "installed",
-            "port": resolve_port(config),
-            "compose_project": config.compose_project,
-            "compose_file": str(config.compose_path),
-            "containers": arts["containers"],
-            "images": arts["images"],
-            "volumes": arts["volumes"],
-            "config_files": [str(config.launcher_config_file)],
-            "install_history": list(existing.get("install_history", [])),
-        }
-        _write_manifest(config, data)
-    except OSError as exc:
-        logger.warning("install-manifest write failed: %s", exc)
-
-
-def append_history(config: LauncherConfig, action: str, version: str) -> None:
-    """Append one entry to the manifest's ``install_history`` audit trail."""
-    data = read_manifest(config) or {}
-    history = list(data.get("install_history", []))
-    history.append({"action": action, "version": version, "at": _now()})
-    data["install_history"] = history
-    with contextlib.suppress(OSError):
-        _write_manifest(config, data)
-
-
-def mark_uninstalled(config: LauncherConfig, version: str) -> None:
-    """Mark the install as uninstalled and clear the artifact lists.
-
-    Keeps the audit trail so a later cleanup scan finds nothing for this
-    install. No-op when no manifest exists.
-    """
-    data = read_manifest(config)
-    if data is None:
-        return
-    history = list(data.get("install_history", []))
-    history.append({"action": "uninstall", "version": version, "at": _now()})
-    data.update(
-        {
-            "install_history": history,
-            "status": "uninstalled",
-            "uninstalled_at": _now(),
-            "containers": [],
-            "images": [],
-            "volumes": [],
-        }
-    )
-    with contextlib.suppress(OSError):
-        _write_manifest(config, data)
-
-
-def _record_manifest(config: LauncherConfig, port: int, *, action: str) -> None:
-    """Best-effort: (re)write the manifest + append a history entry. Never raises."""
-    try:
-        version = get_version(config)
-        write_manifest(config, version)
-        # Pin the exact port this lifecycle action used (write_manifest records
-        # the resolved port; they usually match, but keep them consistent).
-        latest = read_manifest(config)
-        if latest is not None and latest.get("port") != port:
-            latest["port"] = port
-            _write_manifest(config, latest)
-        append_history(config, action, version)
-    except OSError as exc:
-        logger.warning("manifest record failed: %s", exc)
-
-
-def manifest_artifacts(config: LauncherConfig) -> dict[str, list[Any]]:
-    """Return the artifacts the manifest currently records (active install)."""
-    data = read_manifest(config)
-    if data is None or data.get("status") == "uninstalled":
-        return {"containers": [], "images": [], "volumes": [], "configs": []}
-    containers = [c.get("name", "") if isinstance(c, dict) else str(c) for c in data.get("containers", [])]
-    return {
-        "containers": [c for c in containers if c],
-        "images": list(data.get("images", [])),
-        "volumes": list(data.get("volumes", [])),
-        "configs": list(data.get("config_files", [])),
-    }
-
-
-# --- Cleanup --------------------------------------------------------------
-
-
-def _running_container_names(config: LauncherConfig) -> list[str]:
-    try:
-        result = _run(["docker", "ps", "--format", "{{.Names}}", *_name_filter_args(config)])
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        return []
-    return [n for n in (result.stdout or "").strip().splitlines() if n]
-
-
-def _docker_names(config: LauncherConfig, kind: str, patterns: tuple[str, ...]) -> list[str]:
-    """List docker object names matching any of ``patterns`` (de-duped)."""
-    if kind == "container":
-        base = ["docker", "ps", "-a", "--format", "{{.Names}}"]
-    else:  # volume
-        base = ["docker", "volume", "ls", "--format", "{{.Name}}"]
-    found: list[str] = []
-    seen: set[str] = set()
-    for pat in patterns:
-        if not pat:
-            continue
-        try:
-            result = _run([*base, "--filter", f"name={pat}"], timeout=15.0)
-        except (FileNotFoundError, subprocess.TimeoutExpired):
-            continue
-        for name in (result.stdout or "").strip().splitlines():
-            if name and name not in seen:
-                seen.add(name)
-                found.append(name)
-    return found
-
-
-def _image_refs(config: LauncherConfig, patterns: tuple[str, ...]) -> list[str]:
-    """List image references (``repo:tag``) matching any of ``patterns``."""
-    found: list[str] = []
-    seen: set[str] = set()
-    for pat in patterns:
-        if not pat:
-            continue
-        try:
-            result = _run(
-                ["docker", "images", "--filter", f"reference=*{pat}*", "--format", "{{.Repository}}:{{.Tag}}"],
-                timeout=15.0,
-            )
-        except (FileNotFoundError, subprocess.TimeoutExpired):
-            continue
-        for ref in (result.stdout or "").strip().splitlines():
-            if ref and ref not in seen:
-                seen.add(ref)
-                found.append(ref)
-    return found
-
-
-def _searched_config_dirs(config: LauncherConfig, seen: set[str]) -> list[str]:
-    """Scan ``cleanup_search_paths`` for ``legacy_names`` subdirectories.
-
-    For each base directory and legacy name, both ``<base>/<name>`` and the
-    dotted ``<base>/.<name>`` are checked, so a base of ``~/.config`` finds
-    ``~/.config/<name>`` and a base of ``~`` finds ``~/.<name>``. Already-seen
-    paths (explicit ``cleanup_configs`` and the live config dir) are skipped.
-    """
-    out: list[str] = []
-    for base in config.cleanup_search_paths:
-        base_dir = Path(base).expanduser()
-        for name in config.legacy_names:
-            for candidate in (base_dir / name, base_dir / f".{name}"):
-                resolved = str(candidate)
-                if candidate.exists() and resolved not in seen:
-                    seen.add(resolved)
-                    out.append(resolved)
-    return out
-
-
-def _stale_config_dirs(config: LauncherConfig, active_configs: list[str]) -> list[str]:
-    """Stale config dirs: explicit ``cleanup_configs`` plus ``cleanup_search_paths`` hits.
-
-    Excludes anything the active manifest references and the live config dir.
-    """
-    seen = {str(Path(c).expanduser()) for c in active_configs}
-    seen.add(str(config.config_path))  # never target the live config dir
-    out: list[str] = []
-    for candidate in config.cleanup_configs:
-        resolved = str(Path(candidate).expanduser())
-        if Path(resolved).exists() and resolved not in seen:
-            seen.add(resolved)
-            out.append(resolved)
-    out.extend(_searched_config_dirs(config, seen))
-    return out
-
-
-def _project_volumes(config: LauncherConfig) -> list[str]:
-    """Volumes belonging to the active Compose project (``<compose_project>_*``).
-
-    These are NEVER offered or removed by cleanup; the launcher reports them as
-    protected so the user always sees why they were left alone.
-    """
-    prefix = f"{config.compose_project}_" if config.compose_project else ""
-    if not prefix:
-        return []
-    return [v for v in _docker_names(config, "volume", tuple(config.cleanup_patterns())) if v.startswith(prefix)]
-
-
-def find_stale_artifacts(config: LauncherConfig) -> dict[str, list[Any]]:
-    """Find STALE (leftover) artifacts to offer for cleanup at startup.
-
-    Manifest-first: the current install's recorded artifacts are EXCLUDED -
-    only artifacts beyond it (old versions, legacy names, orphans) are
-    returned. Without a manifest, currently-RUNNING containers are protected.
-
-    The active install's own Compose volumes (named ``<compose_project>_*``) are
-    ALWAYS excluded, unconditionally and independent of the manifest or whether
-    containers currently exist - they hold live user data and must never be
-    offered for deletion (deleting one while its container runs also blocks
-    ``docker volume rm`` indefinitely). Legacy volumes (a different prefix) are
-    still offered.
-    """
-    active = manifest_artifacts(config)
-    active_containers = set(active["containers"])
-    active_images = set(active["images"])
-    active_volumes = set(active["volumes"])
-    if not (active_containers or active_images or active_volumes):
-        active_containers |= set(_running_container_names(config))
-
-    patterns = tuple(config.cleanup_patterns())
-    project_prefix = f"{config.compose_project}_" if config.compose_project else ""
-    volumes: list[str] = []
-    for vol in _docker_names(config, "volume", patterns):
-        if vol in active_volumes:
-            continue
-        if project_prefix and vol.startswith(project_prefix):
-            logger.debug("cleanup: protecting active-project volume %s (prefix %r)", vol, project_prefix)
-            continue
-        volumes.append(vol)
-    return {
-        "containers": [n for n in _docker_names(config, "container", patterns) if n not in active_containers],
-        "images": [r for r in _image_refs(config, patterns) if r not in active_images],
-        "volumes": volumes,
-        "configs": _stale_config_dirs(config, active.get("configs", [])),
-    }
-
-
-def has_stale_artifacts(stale: dict[str, list[Any]]) -> bool:
-    """True when any stale category is non-empty."""
-    return any(stale.get(k) for k in ("containers", "images", "volumes", "configs"))
-
-
-def cleanup_offer_lines(config: LauncherConfig, stale: dict[str, list[Any]]) -> list[str]:
-    """Human-readable summary lines for the in-window cleanup offer."""
-    labels = (
-        ("containers", "Container"),
-        ("images", "Image(s)"),
-        ("volumes", "Volume(s)"),
-        ("configs", "Config dir(s)"),
-    )
-    lines: list[str] = []
-    for key, label in labels:
-        items = stale.get(key, [])
-        if items:
-            lines.append(f"{len(items)} {label}: " + ", ".join(str(i) for i in items))
-    return lines
-
-
-def _human_size(num_bytes: int) -> str:
-    """Format a byte count the way Docker does (decimal, e.g. ``245 MB``)."""
-    if num_bytes <= 0:
-        return "0 B"
-    size = float(num_bytes)
-    for unit in ("B", "KB", "MB", "GB", "TB"):
-        if size < 1000 or unit == "TB":
-            return f"{size:.0f} {unit}"
-        size /= 1000
-    return f"{size:.0f} TB"
-
-
-def _image_size_bytes(ref: str) -> int:
-    """Disk size of a docker image in bytes, or ``0`` when undeterminable."""
-    try:
-        result = _run(["docker", "image", "inspect", ref, "--format", "{{.Size}}"], timeout=15.0)
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        return 0
-    if result.returncode != 0:
-        return 0
-    try:
-        return int((result.stdout or "").strip())
-    except ValueError:
-        return 0
-
-
-def _remove_config_path(path: str) -> tuple[bool, str]:
-    """Delete a stale config file or directory. Never raises."""
-    target = Path(path).expanduser()
-    try:
-        if target.is_dir():
-            shutil.rmtree(target)
-        elif target.exists():
-            target.unlink()
-        return True, ""
-    except OSError as exc:
-        return False, str(exc)
-
-
-def cleanup_stale(
-    config: LauncherConfig,
-    selected: dict[str, list[Any]],
-    *,
-    on_step: ProgressFn | None = None,
-    on_progress: ProgressPctFn | None = None,
-    remove_volumes_too: bool = False,
-) -> tuple[bool, str]:
-    """Remove the STALE artifacts in ``selected`` (from :func:`find_stale_artifacts`).
-
-    Verbose: a discovery line per category, then a SEPARATE ``on_step`` line per
-    container / image / config dir (and, when ``remove_volumes_too``, per
-    volume) carrying a ``✓``/``✗`` result, then a closing summary. Volumes are
-    DATA - skipped unless the caller opts in. ``on_progress`` gets a determinate
-    bar over the removable artifacts. Best-effort.
-    """
-    docker_ok, _ = check_docker()
-    if not docker_ok:
-        return False, _t(config, "docker_unavailable")
-
-    containers = selected.get("containers", [])
-    images = selected.get("images", [])
-    volumes = selected.get("volumes", [])
-    configs = selected.get("configs", [])
-
-    _notify(on_step, _t(config, "cleanup_running"))
-    _notify(on_step, _t(config, "scan_containers", count=len(containers)))
-    _notify(on_step, _t(config, "scan_images", count=len(images)))
-    _notify(on_step, _t(config, "scan_volumes", count=len(volumes)))
-    _notify(on_step, _t(config, "scan_configs", count=len(configs)))
-
-    removed = 0
-    failures = 0
-    freed_bytes = 0
-    total_steps = len(containers) + len(images) + len(configs) + (len(volumes) if remove_volumes_too else 0)
-    done = 0
-
-    def _bump(label: str) -> None:
-        nonlocal done
-        done += 1
-        if total_steps > 0:
-            _progress(on_progress, min(done * 100 // total_steps, 100), label)
-
-    _progress(on_progress, 0, _t(config, "cleanup_running"))
-    for name in containers:
-        ok, detail = _docker_op(["docker", "rm", "-f", name], timeout=60.0)
-        _notify(on_step, _step_label(config, _t(config, "step_remove_container", name=name), ok, detail))
-        removed += 1 if ok else 0
-        failures += 0 if ok else 1
-        _bump(_t(config, "step_remove_container", name=name))
-    for ref in images:
-        size = _image_size_bytes(ref)
-        ok, detail = _docker_op(["docker", "image", "rm", "--force", ref], timeout=60.0)
-        size_note = f" ({_human_size(size)})" if ok and size > 0 else ""
-        _notify(on_step, _step_label(config, _t(config, "step_remove_image", ref=ref), ok, detail) + size_note)
-        if ok:
-            removed += 1
-            freed_bytes += size
-        else:
-            failures += 1
-        _bump(_t(config, "step_remove_image", ref=ref))
-    # Volumes are DATA. The active project's own volumes are NEVER touched
-    # (removing one while its container runs blocks ``docker volume rm``); every
-    # volume gets an explicit line so the run never looks stalled.
-    project_volumes = _project_volumes(config)
-    project_set = set(project_volumes)
-    if remove_volumes_too:
-        for vol in volumes:
-            if vol in project_set:
-                continue  # active-project volume; reported below, never removed
-            ok, detail = _docker_op(["docker", "volume", "rm", vol], timeout=30.0)
-            _notify(on_step, _step_label(config, _t(config, "step_remove_volume", name=vol), ok, detail))
-            removed += 1 if ok else 0
-            failures += 0 if ok else 1
-            _bump(_t(config, "step_remove_volume", name=vol))
-    else:
-        for vol in volumes:
-            if vol not in project_set:
-                _notify(on_step, _t(config, "step_skip_volume", name=vol))
-    for vol in project_volumes:
-        _notify(on_step, _t(config, "step_skip_volume_active", name=vol))
-    for path in configs:
-        ok, detail = _remove_config_path(path)
-        _notify(on_step, _step_label(config, _t(config, "step_remove_config", path=path), ok, detail))
-        removed += 1 if ok else 0
-        failures += 0 if ok else 1
-        _bump(_t(config, "step_remove_config", path=path))
-
-    freed = _human_size(freed_bytes)
-    _notify(on_step, _t(config, "data_preserved"))
-    _progress(on_progress, 100, _t(config, "data_preserved"))
-    if failures:
-        return False, _t(config, "cleanup_partial", count=failures)
-    return True, _t(config, "cleanup_done", count=removed, freed=freed)
+from docker_app_launcher.docker.cleanup import (
+    _human_size as _human_size,
+)
+from docker_app_launcher.docker.cleanup import (
+    _remove_config_path as _remove_config_path,
+)
+from docker_app_launcher.docker.cleanup import (
+    _searched_config_dirs as _searched_config_dirs,
+)
+from docker_app_launcher.docker.cleanup import (
+    _stale_config_dirs as _stale_config_dirs,
+)
+from docker_app_launcher.docker.cleanup import (
+    cleanup_offer_lines as cleanup_offer_lines,
+)
+from docker_app_launcher.docker.cleanup import (
+    cleanup_stale as cleanup_stale,
+)
+from docker_app_launcher.docker.cleanup import (
+    find_stale_artifacts as find_stale_artifacts,
+)
+from docker_app_launcher.docker.cleanup import (
+    has_stale_artifacts as has_stale_artifacts,
+)
+from docker_app_launcher.docker.command_runner import (
+    DockerBuildProgress as DockerBuildProgress,
+)
+from docker_app_launcher.docker.command_runner import (
+    OutputFn as OutputFn,
+)
+from docker_app_launcher.docker.command_runner import (
+    ProgressFn as ProgressFn,
+)
+from docker_app_launcher.docker.command_runner import (
+    ProgressPctFn as ProgressPctFn,
+)
+from docker_app_launcher.docker.command_runner import (
+    _docker_op as _docker_op,
+)
+from docker_app_launcher.docker.command_runner import (
+    _first_line as _first_line,
+)
+from docker_app_launcher.docker.command_runner import (
+    _notify as _notify,
+)
+from docker_app_launcher.docker.command_runner import (
+    _progress as _progress,
+)
+from docker_app_launcher.docker.command_runner import (
+    _reset_docker_host_override as _reset_docker_host_override,
+)
+from docker_app_launcher.docker.command_runner import (
+    _run as _run,
+)
+from docker_app_launcher.docker.command_runner import (
+    _step_label as _step_label,
+)
+from docker_app_launcher.docker.command_runner import (
+    _stream_command as _stream_command,
+)
+from docker_app_launcher.docker.command_runner import (
+    _t as _t,
+)
+from docker_app_launcher.docker.command_runner import (
+    docker_host_override as docker_host_override,
+)
+from docker_app_launcher.docker.detection import (
+    _DOCKER_INSTALL_URLS as _DOCKER_INSTALL_URLS,
+)
+from docker_app_launcher.docker.detection import (
+    _active_context as _active_context,
+)
+from docker_app_launcher.docker.detection import (
+    _docker_contexts as _docker_contexts,
+)
+from docker_app_launcher.docker.detection import (
+    _docker_info_rc as _docker_info_rc,
+)
+from docker_app_launcher.docker.detection import (
+    _probe_unix_socket as _probe_unix_socket,
+)
+from docker_app_launcher.docker.detection import (
+    _sweep_other_contexts as _sweep_other_contexts,
+)
+from docker_app_launcher.docker.detection import (
+    add_user_to_docker_group as add_user_to_docker_group,
+)
+from docker_app_launcher.docker.detection import (
+    check_docker as check_docker,
+)
+from docker_app_launcher.docker.detection import (
+    check_docker_detailed as check_docker_detailed,
+)
+from docker_app_launcher.docker.detection import (
+    docker_installed as docker_installed,
+)
+from docker_app_launcher.docker.detection import (
+    start_docker_daemon as start_docker_daemon,
+)
+from docker_app_launcher.docker.detection import (
+    start_docker_desktop as start_docker_desktop,
+)
+from docker_app_launcher.docker.detection import (
+    wait_for_docker as wait_for_docker,
+)
+from docker_app_launcher.docker.inventory import (
+    _docker_names as _docker_names,
+)
+from docker_app_launcher.docker.inventory import (
+    _image_refs as _image_refs,
+)
+from docker_app_launcher.docker.inventory import (
+    _image_size_bytes as _image_size_bytes,
+)
+from docker_app_launcher.docker.inventory import (
+    _name_filter_args as _name_filter_args,
+)
+from docker_app_launcher.docker.inventory import (
+    _project_container_ids as _project_container_ids,
+)
+from docker_app_launcher.docker.inventory import (
+    _project_containers as _project_containers,
+)
+from docker_app_launcher.docker.inventory import (
+    _project_images as _project_images,
+)
+from docker_app_launcher.docker.inventory import (
+    _project_volumes as _project_volumes,
+)
+from docker_app_launcher.docker.inventory import (
+    _running_container_names as _running_container_names,
+)
+from docker_app_launcher.docker.lifecycle import (
+    _call as _call,
+)
+from docker_app_launcher.docker.lifecycle import (
+    _compose_args as _compose_args,
+)
+from docker_app_launcher.docker.lifecycle import (
+    _health_payload as _health_payload,
+)
+from docker_app_launcher.docker.lifecycle import (
+    _health_probe as _health_probe,
+)
+from docker_app_launcher.docker.lifecycle import (
+    _stream_build_with_progress as _stream_build_with_progress,
+)
+from docker_app_launcher.docker.lifecycle import (
+    _stream_compose as _stream_compose,
+)
+from docker_app_launcher.docker.lifecycle import (
+    _uninstall_images as _uninstall_images,
+)
+from docker_app_launcher.docker.lifecycle import (
+    change_internal_port as change_internal_port,
+)
+from docker_app_launcher.docker.lifecycle import (
+    change_port as change_port,
+)
+from docker_app_launcher.docker.lifecycle import (
+    ensure_installed as ensure_installed,
+)
+from docker_app_launcher.docker.lifecycle import (
+    get_app_version as get_app_version,
+)
+from docker_app_launcher.docker.lifecycle import (
+    get_state as get_state,
+)
+from docker_app_launcher.docker.lifecycle import (
+    get_version as get_version,
+)
+from docker_app_launcher.docker.lifecycle import (
+    health_check as health_check,
+)
+from docker_app_launcher.docker.lifecycle import (
+    install as install,
+)
+from docker_app_launcher.docker.lifecycle import (
+    is_healthy as is_healthy,
+)
+from docker_app_launcher.docker.lifecycle import (
+    open_browser as open_browser,
+)
+from docker_app_launcher.docker.lifecycle import (
+    open_url as open_url,
+)
+from docker_app_launcher.docker.lifecycle import (
+    start as start,
+)
+from docker_app_launcher.docker.lifecycle import (
+    stop as stop,
+)
+from docker_app_launcher.docker.lifecycle import (
+    uninstall as uninstall,
+)
+from docker_app_launcher.install_manifest import (
+    _now as _now,
+)
+from docker_app_launcher.install_manifest import (
+    _record_manifest as _record_manifest,
+)
+from docker_app_launcher.install_manifest import (
+    _write_manifest as _write_manifest,
+)
+from docker_app_launcher.install_manifest import (
+    append_history as append_history,
+)
+from docker_app_launcher.install_manifest import (
+    collect_installed_artifacts as collect_installed_artifacts,
+)
+from docker_app_launcher.install_manifest import (
+    manifest_artifacts as manifest_artifacts,
+)
+from docker_app_launcher.install_manifest import (
+    mark_uninstalled as mark_uninstalled,
+)
+from docker_app_launcher.install_manifest import (
+    read_manifest as read_manifest,
+)
+from docker_app_launcher.install_manifest import (
+    write_manifest as write_manifest,
+)
+from docker_app_launcher.launcher_settings import (
+    _GEOMETRY_RE as _GEOMETRY_RE,
+)
+from docker_app_launcher.launcher_settings import (
+    MAX_PORT as MAX_PORT,
+)
+from docker_app_launcher.launcher_settings import (
+    MIN_INTERNAL_PORT as MIN_INTERNAL_PORT,
+)
+from docker_app_launcher.launcher_settings import (
+    MIN_PORT as MIN_PORT,
+)
+from docker_app_launcher.launcher_settings import (
+    _compose_cwd as _compose_cwd,
+)
+from docker_app_launcher.launcher_settings import (
+    _env_path as _env_path,
+)
+from docker_app_launcher.launcher_settings import (
+    _env_port_updates as _env_port_updates,
+)
+from docker_app_launcher.launcher_settings import (
+    _upsert_env_line as _upsert_env_line,
+)
+from docker_app_launcher.launcher_settings import (
+    _validate_internal_port as _validate_internal_port,
+)
+from docker_app_launcher.launcher_settings import (
+    _validate_port as _validate_port,
+)
+from docker_app_launcher.launcher_settings import (
+    _write_env as _write_env,
+)
+from docker_app_launcher.launcher_settings import (
+    _write_env_port as _write_env_port,
+)
+from docker_app_launcher.launcher_settings import (
+    _write_env_ports as _write_env_ports,
+)
+from docker_app_launcher.launcher_settings import (
+    check_port as check_port,
+)
+from docker_app_launcher.launcher_settings import (
+    find_free_port as find_free_port,
+)
+from docker_app_launcher.launcher_settings import (
+    load_config as load_config,
+)
+from docker_app_launcher.launcher_settings import (
+    resolve_internal_port as resolve_internal_port,
+)
+from docker_app_launcher.launcher_settings import (
+    resolve_locale as resolve_locale,
+)
+from docker_app_launcher.launcher_settings import (
+    resolve_port as resolve_port,
+)
+from docker_app_launcher.launcher_settings import (
+    resolve_window_geometry as resolve_window_geometry,
+)
+from docker_app_launcher.launcher_settings import (
+    save_config as save_config,
+)
+from docker_app_launcher.launcher_settings import (
+    set_internal_port as set_internal_port,
+)
+from docker_app_launcher.launcher_settings import (
+    set_locale as set_locale,
+)
+from docker_app_launcher.launcher_settings import (
+    set_port as set_port,
+)
+from docker_app_launcher.launcher_settings import (
+    set_window_geometry as set_window_geometry,
+)

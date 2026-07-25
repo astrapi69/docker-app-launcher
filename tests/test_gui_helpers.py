@@ -371,7 +371,7 @@ def _cleanup_app(monkeypatch: pytest.MonkeyPatch) -> tuple[gui.LauncherApp, dict
     app = gui.LauncherApp.__new__(gui.LauncherApp)
     app._cfg = LauncherConfig(app_name="X").resolve()
     calls: dict[str, Any] = {"logged": [], "offered": []}
-    monkeypatch.setattr("docker_app_launcher.gui.threading.Thread", _ImmediateThread)
+    monkeypatch.setattr("docker_app_launcher.frontends.tk_window.threading.Thread", _ImmediateThread)
     monkeypatch.setattr(app, "after", lambda ms, fn: fn())
     monkeypatch.setattr(app, "_log", lambda msg, **kw: calls["logged"].append(msg))
     monkeypatch.setattr(app, "_show_cleanup_offer", lambda stale: calls["offered"].append(stale))

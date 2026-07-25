@@ -18,7 +18,7 @@ import pytest
 
 from docker_app_launcher import actions, frontends
 from docker_app_launcher.config import LOCALE_LABELS, LauncherConfig
-from docker_app_launcher.frontends import qt as qt_frontend
+from docker_app_launcher.frontends import qt_window as qt_frontend
 from tests.test_gui_window import SCREENSHOT_DIR
 
 pytestmark = pytest.mark.skipif(not qt_frontend.HAS_QT, reason="PySide6 not installed (the 'qt' extra)")

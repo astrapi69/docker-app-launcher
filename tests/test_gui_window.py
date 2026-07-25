@@ -23,6 +23,7 @@ import pytest
 
 from docker_app_launcher import actions, gui, tray
 from docker_app_launcher.config import LauncherConfig
+from docker_app_launcher.frontends import tk_window
 
 
 def _display_available() -> bool:
@@ -381,7 +382,7 @@ def inline_threads(monkeypatch):
 
 class TestActionFlow:
     def test_action_success_logs_and_reenables(self, app, gui_state, inline_threads, monkeypatch) -> None:
-        monkeypatch.setattr(gui, "dispatch_action", lambda action_id, cfg, **k: (True, "install done"))
+        monkeypatch.setattr(tk_window, "dispatch_action", lambda action_id, cfg, **k: (True, "install done"))
         gui_state["value"] = "not_installed"
         app._buttons["install"].invoke()
         app.update()  # flush the after() callbacks (result + refresh)
@@ -395,7 +396,7 @@ class TestActionFlow:
             raise RuntimeError("hook exploded")
 
         app._cfg.on_error = broken_hook
-        monkeypatch.setattr(gui, "dispatch_action", lambda action_id, cfg, **k: (False, "install blew up"))
+        monkeypatch.setattr(tk_window, "dispatch_action", lambda action_id, cfg, **k: (False, "install blew up"))
         app._buttons["install"].invoke()
         app.update()
         assert "install blew up" in app._status.get("1.0", "end")
@@ -408,7 +409,7 @@ class TestActionFlow:
             return p
 
         monkeypatch.setattr(actions, "set_port", record_port)
-        monkeypatch.setattr(gui, "dispatch_action", lambda action_id, cfg, **k: (True, "ok"))
+        monkeypatch.setattr(tk_window, "dispatch_action", lambda action_id, cfg, **k: (True, "ok"))
         app._port_var.set("9999")
         app._on_action("install")
         app.update()
@@ -422,7 +423,7 @@ class TestActionFlow:
             return p
 
         monkeypatch.setattr(actions, "set_port", record_port)
-        monkeypatch.setattr(gui, "dispatch_action", lambda action_id, cfg, **k: (True, "ok"))
+        monkeypatch.setattr(tk_window, "dispatch_action", lambda action_id, cfg, **k: (True, "ok"))
         app._port_var.set("9999")
         app._on_action("stop")
         app.update()

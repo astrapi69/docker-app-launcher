@@ -21,7 +21,8 @@ from typing import Any
 
 from docker_app_launcher import actions, i18n, tray, update_check
 from docker_app_launcher.config import LOCALE_LABELS, LauncherConfig, locale_for_label
-from docker_app_launcher.gui import _set_window_icon, _Tooltip
+from docker_app_launcher.frontends.tk_window import _set_window_icon
+from docker_app_launcher.frontends.tooltip import Tooltip as _Tooltip
 from docker_app_launcher.ui_model import (
     _STATE_KEYS,
     BUTTON_LABELS,
@@ -41,7 +42,7 @@ from docker_app_launcher.ui_model import (
     window_title,
 )
 
-logger = logging.getLogger("docker_app_launcher.frontends.ctk")
+logger = logging.getLogger("docker_app_launcher.frontends.ctk_window")
 
 try:
     import customtkinter as ctk

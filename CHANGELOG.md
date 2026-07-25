@@ -8,6 +8,23 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Hybrid docker-py adoption (#44).** Inspection now goes through the
+  native Docker API (docker-py 7.2.0) with typed exceptions instead of
+  scraping the CLI's unversioned stderr text — the #27 root cause class:
+  - `check_docker`: `ping()` is authoritative for "running" and
+    "permission denied" (real errnos from the exception chain); the CLI
+    probe still owns not-installed detection and remains the full
+    fallback when docker-py is absent.
+  - The #25 context sweep probes endpoints through the API first.
+  - Container queries (`get_state` hot path) list via the API with the
+    same name-filter semantics; CLI fallback unchanged.
+  - New `actions.stream_app_logs()`: live follow of all project
+    container logs (per-container threads, name-prefixed lines) — the
+    backend for a future live GUI tail; the "App logs" button keeps its
+    one-shot tail. GUI follow-mode wiring is a follow-up.
+  - The compose lifecycle (`up --build`, `down`, …) deliberately stays
+    on the CLI: Compose v2 is a Go plugin docker-py cannot replace.
+
 - **"App logs" button (P2).** New secondary button (all three frontends)
   that fetches the tail of the app's container logs via
   `docker compose logs --tail` — enabled while running AND stopped, since a

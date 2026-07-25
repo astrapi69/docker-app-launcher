@@ -8,9 +8,11 @@ the in-place host/internal port changes.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 import subprocess
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -20,6 +22,7 @@ from typing import Any
 
 from docker_app_launcher import __version__
 from docker_app_launcher.config import LauncherConfig
+from docker_app_launcher.docker import py_client
 from docker_app_launcher.docker.command_runner import (
     DockerBuildProgress,
     OutputFn,
@@ -422,6 +425,85 @@ def app_logs(config: LauncherConfig, *, lines: int | None = None) -> tuple[bool,
     if not text:
         return True, _t(config, "app_logs_empty")
     return True, text
+
+
+def _get_api_client() -> Any | None:
+    """A native API client, or ``None`` when docker-py cannot deliver one.
+
+    Indirection point: the test suite pins this to ``None`` by default so no
+    test ever talks to the real daemon socket (#44).
+    """
+    if not py_client.available():
+        return None
+    try:
+        return py_client.get_client()
+    except Exception as exc:  # noqa: BLE001 - unavailable, not fatal
+        logger.debug("native API client unavailable: %s", exc)
+        return None
+
+
+def _pump_container_logs(container: Any, on_line: OutputFn, tail: int) -> None:
+    """Forward one container's followed log stream to ``on_line``.
+
+    Runs on its own thread; ends when the stream ends — closing the shared
+    client from the coordinating thread closes the socket, which ends the
+    generator and lets this thread exit.
+    """
+    prefix = getattr(container, "name", "") or ""
+    try:
+        for raw in container.logs(stream=True, follow=True, tail=tail):
+            line = raw.decode("utf-8", errors="replace").rstrip("\n")
+            with contextlib.suppress(Exception):
+                on_line(f"{prefix} | {line}" if prefix else line)
+    except Exception as exc:  # noqa: BLE001 - stream teardown must never propagate
+        logger.debug("log stream for %r ended: %s", prefix, exc)
+
+
+def stream_app_logs(
+    config: LauncherConfig,
+    *,
+    on_line: OutputFn,
+    should_stop: Callable[[], bool] | None = None,
+    lines: int | None = None,
+    poll_interval: float = 0.2,
+) -> tuple[bool, str]:
+    """Follow the app's container logs live, one ``on_line`` call per line (#44).
+
+    Native-API only (``docker-py``): each project container gets a follower
+    thread, lines are prefixed with the container name. Blocks until
+    ``should_stop()`` returns True or every stream ends; callers without
+    docker-py get ``(False, message)`` and should fall back to the one-shot
+    :func:`app_logs`.
+    """
+    client = _get_api_client()
+    if client is None:
+        return False, _t(config, "app_logs_failed", detail="docker-py unavailable")
+    stop = should_stop or (lambda: False)
+    tail = lines if lines is not None else config.log_tail_lines
+    try:
+        name_filters = list(config.name_filters())
+        containers = client.containers.list(all=True, filters={"name": name_filters} if name_filters else None)
+        if not containers:
+            return False, _t(config, "not_installed")
+        followers = []
+        for container in containers:
+            thread = threading.Thread(
+                target=_pump_container_logs, args=(container, on_line, tail), daemon=True, name="dal-log-follow"
+            )
+            thread.start()
+            followers.append(thread)
+        while any(thread.is_alive() for thread in followers):
+            if stop():
+                break
+            time.sleep(poll_interval)
+        return True, ""
+    except Exception as exc:  # noqa: BLE001 - a broken stream is a failed result, not a crash
+        return False, _t(config, "app_logs_failed", detail=str(exc))
+    finally:
+        # Closing the client tears down the log sockets, ending every
+        # follower generator - the daemon threads then exit on their own.
+        with contextlib.suppress(Exception):
+            client.close()
 
 
 def stop(config: LauncherConfig) -> tuple[bool, str]:

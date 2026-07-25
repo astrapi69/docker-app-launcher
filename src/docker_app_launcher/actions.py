@@ -211,6 +211,9 @@ from docker_app_launcher.docker.lifecycle import (
     stop as stop,
 )
 from docker_app_launcher.docker.lifecycle import (
+    stream_app_logs as stream_app_logs,
+)
+from docker_app_launcher.docker.lifecycle import (
     uninstall as uninstall,
 )
 from docker_app_launcher.install_manifest import (

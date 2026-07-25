@@ -239,7 +239,7 @@ class _FakeContainersApi:
     def __init__(self, containers, exc=None) -> None:
         self._containers = containers
         self._exc = exc
-        self.calls: list[dict] = []
+        self.calls: list[dict[str, object]] = []
 
     def list(self, *, all=False, filters=None):
         if self._exc is not None:
@@ -299,8 +299,9 @@ class TestNativeContainerListing:
     def test_api_error_falls_back_to_cli(self, config, monkeypatch) -> None:
         from docker_app_launcher.docker import py_client
 
+        broken = _FakeApiClient(_FakeContainersApi([], exc=RuntimeError("api died")))
         monkeypatch.setattr(py_client, "available", lambda: True)
-        monkeypatch.setattr(py_client, "get_client", lambda *a, **k: _FakeApiClient(_FakeContainersApi([], exc=RuntimeError("api died"))))
+        monkeypatch.setattr(py_client, "get_client", lambda *a, **k: broken)
         monkeypatch.setattr(inventory, "_api_containers", _real_api_containers)
         monkeypatch.setattr(inventory, "_run", lambda *a, **k: make_result(stdout="cli123\n"))
         assert inventory._project_container_ids(config, running_only=True) == ["cli123"]

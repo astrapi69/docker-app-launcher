@@ -608,3 +608,105 @@ class TestAppLogs:
         monkeypatch.setattr(lifecycle, "_run", boom)
         ok, msg = lifecycle.app_logs(config)
         assert ok is False and "timed out" in msg
+
+
+class _FakeStreamContainer:
+    def __init__(self, name: str, lines: list[bytes], seen_kwargs: list[dict[str, object]] | None = None) -> None:
+        self.name = name
+        self._lines = lines
+        self._seen = seen_kwargs
+
+    def logs(self, *, stream: bool, follow: bool, tail: int):
+        if self._seen is not None:
+            self._seen.append({"stream": stream, "follow": follow, "tail": tail})
+        yield from self._lines
+
+
+class _FakeStreamClient:
+    def __init__(self, containers: list[_FakeStreamContainer]) -> None:
+        self._containers = containers
+        self.containers = self
+        self.closed = False
+
+    def list(self, *, all: bool = False, filters=None):
+        return self._containers
+
+    def close(self) -> None:
+        self.closed = True
+
+
+class TestStreamAppLogs:
+    """#44: the live follow mode behind the future GUI tail."""
+
+    def test_unavailable_without_dockerpy(self, config) -> None:
+        # conftest pins _get_api_client to None by default.
+        ok, msg = lifecycle.stream_app_logs(config, on_line=lambda _l: None)
+        assert ok is False and msg
+
+    def test_streams_lines_with_container_prefix(self, config, monkeypatch) -> None:
+        client = _FakeStreamClient([_FakeStreamContainer("web-1", [b"boot\n", b"ready\n"])])
+        monkeypatch.setattr(lifecycle, "_get_api_client", lambda: client)
+        got: list[str] = []
+        ok, _ = lifecycle.stream_app_logs(config, on_line=got.append, poll_interval=0.01)
+        assert ok is True
+        assert got == ["web-1 | boot", "web-1 | ready"]
+        assert client.closed
+
+    def test_multiple_containers_both_streamed(self, config, monkeypatch) -> None:
+        client = _FakeStreamClient(
+            [
+                _FakeStreamContainer("web-1", [b"w\n"]),
+                _FakeStreamContainer("db-1", [b"d\n"]),
+            ]
+        )
+        monkeypatch.setattr(lifecycle, "_get_api_client", lambda: client)
+        got: list[str] = []
+        ok, _ = lifecycle.stream_app_logs(config, on_line=got.append, poll_interval=0.01)
+        assert ok is True
+        assert sorted(got) == ["db-1 | d", "web-1 | w"]
+
+    def test_tail_forwarded(self, config, monkeypatch) -> None:
+        seen: list[dict[str, object]] = []
+        client = _FakeStreamClient([_FakeStreamContainer("web-1", [], seen_kwargs=seen)])
+        monkeypatch.setattr(lifecycle, "_get_api_client", lambda: client)
+        lifecycle.stream_app_logs(config, on_line=lambda _l: None, lines=33, poll_interval=0.01)
+        assert seen == [{"stream": True, "follow": True, "tail": 33}]
+
+    def test_no_containers_is_failed_result(self, config, monkeypatch) -> None:
+        client = _FakeStreamClient([])
+        monkeypatch.setattr(lifecycle, "_get_api_client", lambda: client)
+        ok, _ = lifecycle.stream_app_logs(config, on_line=lambda _l: None)
+        assert ok is False
+        assert client.closed
+
+    def test_should_stop_ends_the_follow(self, config, monkeypatch) -> None:
+        import time as _time
+
+        client = _FakeStreamClient([])
+
+        class _EndlessContainer(_FakeStreamContainer):
+            def logs(self, *, stream: bool, follow: bool, tail: int):
+                # Mirrors the real socket: closing the client ends the stream.
+                while not client.closed:
+                    yield b"tick\n"
+                    _time.sleep(0.001)
+
+        client._containers = [_EndlessContainer("web-1", [])]
+        monkeypatch.setattr(lifecycle, "_get_api_client", lambda: client)
+        got: list[str] = []
+        ok, _ = lifecycle.stream_app_logs(
+            config, on_line=got.append, should_stop=lambda: len(got) > 3, poll_interval=0.01
+        )
+        assert ok is True
+        assert len(got) > 3
+        assert client.closed
+
+    def test_broken_on_line_never_kills_the_stream(self, config, monkeypatch) -> None:
+        client = _FakeStreamClient([_FakeStreamContainer("web-1", [b"a\n", b"b\n"])])
+        monkeypatch.setattr(lifecycle, "_get_api_client", lambda: client)
+
+        def bad(_line: str) -> None:
+            raise RuntimeError("UI died")
+
+        ok, _ = lifecycle.stream_app_logs(config, on_line=bad, poll_interval=0.01)
+        assert ok is True

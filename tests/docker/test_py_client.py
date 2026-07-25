@@ -38,7 +38,7 @@ class _FakeDockerModule:
             raise self._init_exc
         return self.client
 
-    def DockerClient(self, base_url: str, timeout: float = 10.0) -> _FakeClient:  # noqa: N802 - mirrors docker-py
+    def DockerClient(self, base_url: str, timeout: float = 10.0) -> _FakeClient:
         self.base_urls.append(base_url)
         if self._init_exc is not None:
             raise self._init_exc

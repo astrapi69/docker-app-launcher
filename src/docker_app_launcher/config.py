@@ -152,6 +152,8 @@ class LauncherConfig:
     log_level: str = "INFO"
     log_max_size: int = 5_000_000
     log_backup_count: int = 3
+    # How many container-log lines the "App logs" button fetches (P2).
+    log_tail_lines: int = 200
 
     # === Links ===
     repo_url: str = ""

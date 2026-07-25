@@ -16,9 +16,9 @@ from contextlib import contextmanager
 
 import pytest
 
+from docker_app_launcher import launcher_settings as settings
 from docker_app_launcher.config import LauncherConfig
 from docker_app_launcher.docker import inventory
-from docker_app_launcher import launcher_settings as settings
 from docker_app_launcher.docker import lifecycle as lifecycle
 from tests.conftest import make_result
 
@@ -518,3 +518,93 @@ class TestGetAppVersion:
             lifecycle, "read_manifest", lambda config: {"app_version": "0.3.0", "status": "uninstalled"}
         )
         assert lifecycle.get_app_version(cfg) == ("9.0.0", "expected")
+
+
+class TestAppLogs:
+    """P2: the container-log tail behind the "App logs" button."""
+
+    def _up(self, monkeypatch, state="running") -> None:
+        monkeypatch.setattr(lifecycle, "check_docker", lambda: (True, "ok"))
+        monkeypatch.setattr(lifecycle, "get_state", lambda c: state)
+
+    def test_returns_log_tail(self, config, monkeypatch) -> None:
+        self._up(monkeypatch)
+        captured: list[list[str]] = []
+
+        def fake_run(cmd, **k):
+            captured.append(cmd)
+            return make_result(stdout="web-1  | booting\nweb-1  | ready\n")
+
+        monkeypatch.setattr(lifecycle, "_run", fake_run)
+        ok, text = lifecycle.app_logs(config)
+        assert ok is True
+        assert "booting" in text and "ready" in text
+        assert "logs" in captured[0] and "--tail" in captured[0]
+
+    def test_tail_count_from_config(self, config, monkeypatch) -> None:
+        self._up(monkeypatch)
+        config.log_tail_lines = 42
+        captured: list[list[str]] = []
+
+        def fake_run(cmd, **k):
+            captured.append(cmd)
+            return make_result(stdout="x")
+
+        monkeypatch.setattr(lifecycle, "_run", fake_run)
+        lifecycle.app_logs(config)
+        assert captured[0][captured[0].index("--tail") + 1] == "42"
+
+    def test_explicit_lines_override(self, config, monkeypatch) -> None:
+        self._up(monkeypatch)
+        captured: list[list[str]] = []
+
+        def fake_run(cmd, **k):
+            captured.append(cmd)
+            return make_result(stdout="x")
+
+        monkeypatch.setattr(lifecycle, "_run", fake_run)
+        lifecycle.app_logs(config, lines=7)
+        assert captured[0][captured[0].index("--tail") + 1] == "7"
+
+    def test_docker_down(self, config, monkeypatch) -> None:
+        monkeypatch.setattr(lifecycle, "check_docker", lambda: (False, "down"))
+        ok, msg = lifecycle.app_logs(config)
+        assert ok is False and "Docker" in msg
+
+    def test_not_installed(self, config, monkeypatch) -> None:
+        self._up(monkeypatch, state="not_installed")
+        ok, _ = lifecycle.app_logs(config)
+        assert ok is False
+
+    def test_stopped_still_delivers_logs(self, config, monkeypatch) -> None:
+        # A crashed container's last words matter most.
+        self._up(monkeypatch, state="stopped")
+        monkeypatch.setattr(lifecycle, "_run", lambda cmd, **k: make_result(stdout="web-1  | panic: boom"))
+        ok, text = lifecycle.app_logs(config)
+        assert ok is True and "panic: boom" in text
+
+    def test_compose_failure_returns_first_stderr_line(self, config, monkeypatch) -> None:
+        self._up(monkeypatch)
+        monkeypatch.setattr(
+            lifecycle, "_run", lambda cmd, **k: make_result(returncode=1, stderr="no configuration file provided\n")
+        )
+        ok, msg = lifecycle.app_logs(config)
+        assert ok is False and "no configuration file provided" in msg
+
+    def test_empty_output_is_a_friendly_message(self, config, monkeypatch) -> None:
+        self._up(monkeypatch)
+        monkeypatch.setattr(lifecycle, "_run", lambda cmd, **k: make_result(stdout=""))
+        ok, msg = lifecycle.app_logs(config)
+        assert ok is True and msg  # localized "no output yet", never an empty string
+
+    def test_timeout_is_a_failed_result(self, config, monkeypatch) -> None:
+        import subprocess as _subprocess
+
+        self._up(monkeypatch)
+
+        def boom(*a, **k):
+            raise _subprocess.TimeoutExpired(cmd="docker", timeout=30)
+
+        monkeypatch.setattr(lifecycle, "_run", boom)
+        ok, msg = lifecycle.app_logs(config)
+        assert ok is False and "timed out" in msg

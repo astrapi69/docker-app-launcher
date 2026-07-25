@@ -26,6 +26,7 @@ from docker_app_launcher.docker.command_runner import (
     ProgressFn,
     ProgressPctFn,
     _docker_op,
+    _first_line,
     _notify,
     _progress,
     _run,
@@ -391,6 +392,36 @@ def start(
     _record_manifest(config, int(existing.get("port", resolve_port(config))), action="update")
     _call(config, config.on_after_start)
     return True, _t(config, "start_done")
+
+
+def app_logs(config: LauncherConfig, *, lines: int | None = None) -> tuple[bool, str]:
+    """Fetch the tail of the app's container logs (P2).
+
+    Returns ``(ok, text)``: the last ``lines`` (default
+    ``config.log_tail_lines``) lines of every project container via
+    ``docker compose logs``, or ``(False, <localized error>)``. Works for
+    running AND stopped containers — a crashed container's last words are
+    exactly what the user needs to see.
+    """
+    docker_ok, _ = check_docker()
+    if not docker_ok:
+        return False, _t(config, "docker_unavailable")
+    if get_state(config) == "not_installed":
+        return False, _t(config, "not_installed")
+    tail = lines if lines is not None else config.log_tail_lines
+    cmd = _compose_args(config, "logs", "--no-color", "--tail", str(tail))
+    try:
+        result = _run(cmd, timeout=30.0, cwd=_compose_cwd(config))
+    except FileNotFoundError:
+        return False, _t(config, "docker_unavailable")
+    except subprocess.TimeoutExpired:
+        return False, _t(config, "app_logs_failed", detail="timed out")
+    if result.returncode != 0:
+        return False, _t(config, "app_logs_failed", detail=_first_line(result.stderr) or "unknown error")
+    text = (result.stdout or "").strip()
+    if not text:
+        return True, _t(config, "app_logs_empty")
+    return True, text
 
 
 def stop(config: LauncherConfig) -> tuple[bool, str]:

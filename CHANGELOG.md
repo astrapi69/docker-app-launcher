@@ -8,6 +8,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Endpoint-aware Docker detection (#57, #62).** The "add yourself to the
+  `docker` group" self-repair is now offered ONLY on the classic root unix
+  socket, where group membership actually governs access. On rootless
+  (`$XDG_RUNTIME_DIR/docker.sock` or `/run/user/<uid>`), a remote
+  `DOCKER_HOST=tcp://`, or Docker Desktop's per-user socket it gave wrong
+  advice; those cases now get endpoint-appropriate guidance instead (#57).
+  The rootless socket is also probed as a detection fallback, so a rootless
+  user without a configured `DOCKER_HOST` is found instead of reported as
+  "not started" (#62). Part of the environment matrix (#56).
 - **Build capability gate: readiness now proves capability, not existence
   (#54).** The compose path had an unwritten version chain (engine -> CLI ->
   compose plugin -> buildx) and the old ladder only proved the plugin

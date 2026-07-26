@@ -145,3 +145,4 @@ app_requirement_missing: "Esta app requiere {component} {required} o posterior, 
 compose_unreadable: "Archivo compose encontrado pero no legible: {path} ({error})."
 dockerfile_unreadable: "Dockerfile encontrado pero no legible: {path} ({error})."
 build_context_not_found: "Directorio de contexto de construcción no encontrado: {path}. Revisa build_context en la configuración del launcher."
+docker_permission_non_root_socket: "Docker rechazó la conexión en este endpoint, que no es el socket root clásico, así que el grupo 'docker' no aplica aquí. Para Docker rootless define DOCKER_HOST como $XDG_RUNTIME_DIR/docker.sock; para un endpoint remoto revisa sus reglas de acceso; para Docker Desktop asegúrate de que esté en ejecución."

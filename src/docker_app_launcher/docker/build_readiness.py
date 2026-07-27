@@ -22,7 +22,9 @@ Two requirement sources, kept separate and attributed in the message:
 from __future__ import annotations
 
 import logging
+import shutil
 from dataclasses import dataclass
+from pathlib import Path
 
 from packaging.version import Version
 
@@ -154,6 +156,10 @@ def compose_blockers(config: LauncherConfig) -> list[str]:
     blockers.extend(
         _version_blocker(config, req) for req in _compose_requirements(config, tv, plugin_path=plugin_path) if req.unmet
     )
+    # 4. Enough disk for the build (advisory, G4).
+    disk = _disk_blocker(config, config.compose_path.parent)
+    if disk is not None:
+        blockers.append(disk)
     return blockers
 
 
@@ -190,7 +196,40 @@ def dockerfile_blockers(config: LauncherConfig) -> list[str]:
             req = _Requirement(component, declared, found, "app")
             if req.unmet:
                 blockers.append(_version_blocker(config, req))
+    disk = _disk_blocker(config, config.build_context_path)  # advisory (G4)
+    if disk is not None:
+        blockers.append(disk)
     return blockers
+
+
+def _human_bytes(n: int) -> str:
+    """A compact human size (``1.8 GB``) for the disk message."""
+    step = 1000.0
+    value = float(n)
+    for unit in ("B", "KB", "MB", "GB", "TB"):
+        if value < step:
+            return f"{value:.1f} {unit}" if unit != "B" else f"{int(value)} B"
+        value /= step
+    return f"{value:.1f} PB"
+
+
+def _disk_blocker(config: LauncherConfig, base: Path) -> str | None:
+    """An advisory blocker when free space on ``base`` is clearly insufficient
+    for a build (G4, #61). ``min_build_disk_bytes <= 0`` disables the check;
+    a base whose free space cannot be read is skipped (never a false block)."""
+    floor = config.min_build_disk_bytes
+    if floor <= 0:
+        return None
+    probe = base
+    while not probe.exists() and probe != probe.parent:  # base may not exist yet
+        probe = probe.parent
+    try:
+        free = shutil.disk_usage(probe).free
+    except OSError:
+        return None
+    if free < floor:
+        return _t(config, "disk_low", free=_human_bytes(free), needed=_human_bytes(floor), path=base)
+    return None
 
 
 def join_blockers(blockers: list[str]) -> str:

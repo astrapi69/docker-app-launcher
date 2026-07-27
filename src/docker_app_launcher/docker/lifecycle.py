@@ -54,6 +54,34 @@ from docker_app_launcher.launcher_settings import (
 
 logger = logging.getLogger("docker_app_launcher.docker.lifecycle")
 
+# Strong DNS/connectivity markers in build output: the first build pulls base
+# images, so no network reads as one of these (G5, #59).
+_NETWORK_FAILURE_MARKERS = (
+    "failed to resolve",
+    "no such host",
+    "temporary failure in name resolution",
+    "could not resolve",
+    "network is unreachable",
+    "connection refused",
+    "i/o timeout",
+    "tls handshake timeout",
+    "dial tcp",
+)
+
+
+def _looks_like_network_failure(text: str) -> bool:
+    """Whether a failed build's output points at a missing network / DNS (G5)."""
+    low = (text or "").lower()
+    return any(marker in low for marker in _NETWORK_FAILURE_MARKERS)
+
+
+def _build_failed(config: LauncherConfig, tail: str) -> tuple[bool, str]:
+    """A localized build-failure result, classified as a network failure when
+    the output points at it (the app is offline-first, but INSTALL needs the
+    network to pull base images) (G5, #59)."""
+    key = "build_failed_network" if _looks_like_network_failure(tail) else "build_failed"
+    return False, _t(config, key, detail=tail)
+
 
 def _stream_build_with_progress(
     config: LauncherConfig,
@@ -258,11 +286,12 @@ def _dockerfile_up(
     resolvable, app-declared engine/API floor) - collected before the build,
     not discovered during it (#54).
     """
+    _notify(on_step, _t(config, "install_needs_network"))  # first build pulls base images (G5)
     _notify(on_step, _t(config, "building"))
     _progress(on_progress, None, _t(config, "building"))
     rc, detail = dockerfile_backend.up(config, on_output=on_output, on_progress=on_progress)
     if rc != 0:
-        return False, _t(config, "build_failed", detail=detail)
+        return _build_failed(config, detail)
     _notify(on_step, _t(config, "container_started"))
     _progress(on_progress, 95, _t(config, "container_started"))
     return None
@@ -381,6 +410,7 @@ def install(
             return dockerfile_error
         return _verify_install(config, port, on_step=on_step, on_progress=on_progress)
 
+    _notify(on_step, _t(config, "install_needs_network"))  # first build pulls base images (G5)
     _notify(on_step, _t(config, "building"))
     _progress(on_progress, 5, _t(config, "building"))
     try:
@@ -398,7 +428,7 @@ def install(
     except subprocess.TimeoutExpired:
         return False, _t(config, "build_timeout")
     if build_rc != 0:
-        return False, _t(config, "build_failed", detail=build_tail)
+        return _build_failed(config, build_tail)
     _notify(on_step, _t(config, "image_built"))
     _progress(on_progress, 85, _t(config, "image_built"))
 

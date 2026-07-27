@@ -148,3 +148,6 @@ build_context_not_found: "ビルドコンテキストのディレクトリが見
 docker_permission_non_root_socket: "Docker はこのエンドポイントで接続を拒否しました。これは従来の root ソケットではないため、'docker' グループはここでは関係ありません。rootless Docker では DOCKER_HOST を $XDG_RUNTIME_DIR/docker.sock に設定してください。リモートのエンドポイントではそのアクセス規則を確認し、Docker Desktop では起動していることを確認してください。"
 compose_base_unresolved: "Compose ファイルが {path} に見つかりません。install_dir が設定されていないため、現在のディレクトリを基準に探索されました。これはランチャーがメニューショートカット、Snap、ファイルマネージャーから起動された場合に不確実です。ランチャー設定の install_dir を compose ファイルのあるディレクトリに設定してください。"
 dockerfile_base_unresolved: "Dockerfile が {path} に見つかりません。install_dir が設定されていないため、現在のディレクトリを基準に探索されました。これはランチャーがメニューショートカット、Snap、ファイルマネージャーから起動された場合に不確実です。ランチャー設定の install_dir をビルドディレクトリに設定してください。"
+disk_low: "ビルド用のディスク空き容量が不足しています: {path} に {free} しか空きがなく、ビルドに必要とみられる {needed} を下回っています。空き容量を確保するか、min_build_disk_bytes を 0 に設定してこのチェックを省略してください。"
+install_needs_network: "インストールにはベースイメージをダウンロードするためのインターネット接続が今必要です。アプリ自体はインストール後オフラインで動作します。"
+build_failed_network: "ビルドがイメージをダウンロードするためにネットワークへ到達できませんでした: {detail}。インターネット接続またはプロキシを確認して再試行してください。"

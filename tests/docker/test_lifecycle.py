@@ -834,3 +834,39 @@ class TestComposeDetectionGuard:
         assert args[:1] == ["docker-compose"]
         assert "-p" in args and "-f" in args and args[-2:] == ["up", "-d"]
         compose_runtime.reset_compose_cache()
+
+
+class TestNetworkPreflight:
+    """G5 (#59): install warns the network is needed and classifies a
+    network build failure distinctly."""
+
+    def test_network_failure_markers(self) -> None:
+        assert lifecycle._looks_like_network_failure("failed to resolve registry-1.docker.io")
+        assert lifecycle._looks_like_network_failure("dial tcp: i/o timeout")
+        assert not lifecycle._looks_like_network_failure("COPY failed: no such file")
+
+    def test_install_classifies_network_build_failure(self, config, monkeypatch) -> None:
+        _make_repo(config)
+        config.min_build_disk_bytes = 0  # keep the readiness gate deterministic
+        monkeypatch.setattr(lifecycle, "check_docker", lambda: (True, "ok"))
+        monkeypatch.setattr(lifecycle, "get_state", lambda c: "not_installed")
+        monkeypatch.setattr(lifecycle, "check_port", lambda p, **k: (True, "free"))
+        monkeypatch.setattr(
+            lifecycle, "_stream_compose", lambda c, *a, **k: (1, "failed to resolve host registry-1.docker.io")
+        )
+        ok, msg = lifecycle.install(config)
+        assert ok is False and "network" in msg.lower()
+
+    def test_install_warns_internet_is_needed(self, config, monkeypatch) -> None:
+        _make_repo(config)
+        config.min_build_disk_bytes = 0
+        states = iter(["not_installed", "running"])
+        monkeypatch.setattr(lifecycle, "check_docker", lambda: (True, "ok"))
+        monkeypatch.setattr(lifecycle, "get_state", lambda c: next(states))
+        monkeypatch.setattr(lifecycle, "check_port", lambda p, **k: (True, "free"))
+        monkeypatch.setattr(lifecycle, "_stream_compose", lambda c, *a, **k: (0, ""))
+        monkeypatch.setattr(lifecycle, "health_check", lambda c, port=None: (True, "ok"))
+        monkeypatch.setattr(lifecycle, "_run", lambda *a, **k: make_result(stdout=""))
+        steps: list[str] = []
+        lifecycle.install(config, on_step=steps.append)
+        assert any("internet" in s.lower() for s in steps)

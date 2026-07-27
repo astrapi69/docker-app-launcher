@@ -202,3 +202,31 @@ class TestBaseUnresolved:
         monkeypatch.setattr(build_readiness, "detect_tool_versions", lambda c: _tv())
         blockers = build_readiness.dockerfile_blockers(cfg)
         assert any("install_dir" in b for b in blockers), blockers
+
+
+class TestDiskPreflight:
+    """G4 (#61): an advisory disk-space check before the build."""
+
+    def _free(self, monkeypatch: pytest.MonkeyPatch, free: int) -> None:
+        import collections
+        import shutil
+
+        usage = collections.namedtuple("usage", "total used free")
+        monkeypatch.setattr(shutil, "disk_usage", lambda p: usage(0, 0, free))
+
+    def test_low_disk_is_flagged(self, cconfig: LauncherConfig, monkeypatch: pytest.MonkeyPatch) -> None:
+        _pin(monkeypatch, _tv())
+        self._free(monkeypatch, 100_000_000)  # 100 MB, below the 2 GB floor
+        blockers = build_readiness.compose_blockers(cconfig)
+        assert any("disk" in b.lower() for b in blockers), blockers
+
+    def test_ample_disk_is_not_flagged(self, cconfig: LauncherConfig, monkeypatch: pytest.MonkeyPatch) -> None:
+        _pin(monkeypatch, _tv())
+        self._free(monkeypatch, 50_000_000_000)  # 50 GB
+        assert build_readiness.compose_blockers(cconfig) == []
+
+    def test_disk_check_disabled_by_zero(self, cconfig: LauncherConfig, monkeypatch: pytest.MonkeyPatch) -> None:
+        cconfig.min_build_disk_bytes = 0
+        _pin(monkeypatch, _tv())
+        self._free(monkeypatch, 1)
+        assert build_readiness.compose_blockers(cconfig) == []

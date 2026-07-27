@@ -13,7 +13,7 @@ import logging
 import sys
 from collections.abc import Sequence
 
-from docker_app_launcher import __version__, actions, i18n, lockfile
+from docker_app_launcher import __version__, actions, i18n, lockfile, snap
 from docker_app_launcher.config import LauncherConfig
 from docker_app_launcher.logging_setup import setup_logging
 
@@ -151,6 +151,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.log_level:
         config.log_level = args.log_level
     setup_logging(config, debug=args.debug)
+    snap.log_confinement_warning()  # surface Snap sandbox path limits (G7, #63)
 
     if args.port is not None:
         ok, msg = actions.set_port(config, args.port)

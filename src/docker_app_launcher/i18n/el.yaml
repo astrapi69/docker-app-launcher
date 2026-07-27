@@ -85,6 +85,7 @@ build_failed: 'Η κατασκευή Docker απέτυχε:
 
   {detail}'
 build_timeout: Η κατασκευή Docker υπερέβη το χρονικό όριο.
+build_cancelled: Η κατασκευή ακυρώθηκε.
 start_failed: 'Η έναρξη απέτυχε:
 
   {detail}'

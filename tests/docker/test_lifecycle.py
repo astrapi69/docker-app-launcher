@@ -16,6 +16,7 @@ from contextlib import contextmanager
 
 import pytest
 
+from docker_app_launcher import i18n
 from docker_app_launcher import launcher_settings as settings
 from docker_app_launcher.config import LauncherConfig
 
@@ -24,6 +25,7 @@ from docker_app_launcher.config import LauncherConfig
 from docker_app_launcher.docker import compose_runtime as _compose_runtime
 from docker_app_launcher.docker import inventory
 from docker_app_launcher.docker import lifecycle as lifecycle
+from docker_app_launcher.docker.command_runner import BuildCancelled
 from tests.conftest import make_result
 
 _REAL_COMPOSE_PROBE = _compose_runtime._probe
@@ -312,6 +314,60 @@ class TestBuildCapabilityGate:
         ok, msg = lifecycle.start(config)
         assert ok is False and reached_build["v"] is False
         assert "buildx" in msg
+
+
+class TestBuildCancellation:
+    """A build cancelled from the UI (window closed mid-build, #60) is a clean
+    cancellation, not a failure: the lifecycle catches :class:`BuildCancelled`
+    and returns the localized ``build_cancelled`` message."""
+
+    def test_install_reports_cancelled(self, config, monkeypatch) -> None:
+        _make_repo(config)
+        monkeypatch.setattr(lifecycle, "check_docker", lambda: (True, "ok"))
+        monkeypatch.setattr(lifecycle, "get_state", lambda c: "not_installed")
+        monkeypatch.setattr(lifecycle, "check_port", lambda p, **k: (True, "free"))
+
+        def cancel(c, *a, **k):
+            raise BuildCancelled("docker compose build")
+
+        monkeypatch.setattr(lifecycle, "_stream_compose", cancel)
+        ok, msg = lifecycle.install(config, should_cancel=lambda: True)
+        assert ok is False
+        assert msg == i18n.t("build_cancelled", config)
+
+    def test_start_reports_cancelled(self, config, monkeypatch) -> None:
+        _make_repo(config)
+        monkeypatch.setattr(lifecycle, "check_docker", lambda: (True, "ok"))
+        monkeypatch.setattr(lifecycle, "get_state", lambda c: "stopped")
+
+        def cancel(c, *a, **k):
+            raise BuildCancelled("docker compose up --build")
+
+        monkeypatch.setattr(lifecycle, "_stream_compose", cancel)
+        ok, msg = lifecycle.start(config, should_cancel=lambda: True)
+        assert ok is False
+        assert msg == i18n.t("build_cancelled", config)
+
+    def test_should_cancel_threaded_to_the_stream(self, config, monkeypatch) -> None:
+        _make_repo(config)
+        states = iter(["not_installed", "running"])
+        monkeypatch.setattr(lifecycle, "check_docker", lambda: (True, "ok"))
+        monkeypatch.setattr(lifecycle, "get_state", lambda c: next(states))
+        monkeypatch.setattr(lifecycle, "check_port", lambda p, **k: (True, "free"))
+        monkeypatch.setattr(lifecycle, "health_check", lambda c, port=None: (True, "ok"))
+        monkeypatch.setattr(lifecycle, "_run", lambda *a, **k: make_result(stdout=""))
+        # install streams twice (build, then `up -d`); only the build carries the
+        # cancel callback, so collect every call and assert the sentinel appears.
+        seen: list[object] = []
+
+        def fake_stream(c, *a, should_cancel=None, **k):
+            seen.append(should_cancel)
+            return (0, "")
+
+        monkeypatch.setattr(lifecycle, "_stream_compose", fake_stream)
+        sentinel = object()
+        lifecycle.install(config, should_cancel=sentinel)  # type: ignore[arg-type]
+        assert sentinel in seen, "the cancel callback must reach the build stream"
 
 
 class TestStop:

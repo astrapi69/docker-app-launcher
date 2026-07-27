@@ -239,6 +239,42 @@ class TestStreamCommand:
             docker_cli._stream_command(["docker", "build"], timeout=0.05)
 
 
+class TestStreamCancel:
+    """Closing the window mid-build must terminate the ``docker build``
+    subprocess, not orphan it (#60): ``should_cancel`` is polled on its own
+    thread; when it fires the process is killed and :class:`BuildCancelled`
+    is raised - distinct from a timeout so the lifecycle reports a clean
+    cancellation rather than a failure."""
+
+    def test_cancel_kills_process_and_raises(self, monkeypatch) -> None:
+        fake = _FakePopen(["#1 building"], hang_after=True)
+        monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: fake)
+        with pytest.raises(docker_cli.BuildCancelled):
+            docker_cli._stream_command(["docker", "compose", "build"], timeout=30.0, should_cancel=lambda: True)
+        assert fake.returncode == -9, "the build subprocess must be killed on cancel"
+
+    def test_no_cancel_completes_normally(self, monkeypatch) -> None:
+        fake = _FakePopen(["one", "two"])
+        monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: fake)
+        code, tail = docker_cli._stream_command(
+            ["docker", "compose", "build"], timeout=5.0, should_cancel=lambda: False
+        )
+        assert code == 0 and tail == "one\ntwo"
+
+    def test_cancel_logs_at_info_not_warning(self, caplog, monkeypatch) -> None:
+        fake = _FakePopen(["#1 building"], hang_after=True)
+        monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: fake)
+        with (
+            caplog.at_level(logging.DEBUG, logger="docker_app_launcher.docker.command_runner"),
+            pytest.raises(docker_cli.BuildCancelled),
+        ):
+            docker_cli._stream_command(["docker", "compose", "build"], timeout=30.0, should_cancel=lambda: True)
+        cancel_lines = [r for r in caplog.records if "cancelled by request" in r.message]
+        assert cancel_lines and all(r.levelno == logging.INFO for r in cancel_lines)
+        # A cancel must not be reported as the watchdog timeout firing.
+        assert not any("stream timeout" in r.message for r in caplog.records), "a cancel is not a timeout"
+
+
 class TestCommandTransparency:
     """#49: every external command is announced BEFORE it runs (one
     shlex-quoted line) and its result carries the exit code - device

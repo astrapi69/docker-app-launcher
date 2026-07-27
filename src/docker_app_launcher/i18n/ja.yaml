@@ -85,6 +85,7 @@ build_failed: 'Docker ビルドに失敗しました:
 
   {detail}'
 build_timeout: Docker ビルドがタイムアウトしました。
+build_cancelled: ビルドがキャンセルされました。
 start_failed: '開始に失敗しました:
 
   {detail}'

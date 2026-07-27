@@ -130,6 +130,22 @@ class TestDispatchAction:
         monkeypatch.setattr(actions, "start", lambda c, **k: (True, "started"))
         assert gui.dispatch_action("start", cfg) == (True, "started")
 
+    def test_install_forwards_should_cancel(self, cfg, monkeypatch) -> None:
+        # The build-cancel signal (#60) must reach the actions layer for the
+        # build-capable ids (install/start), so closing the window can stop it.
+        seen: dict[str, object] = {}
+        monkeypatch.setattr(actions, "ensure_installed", lambda c, **k: seen.update(k) or (True, "done"))
+        flag = lambda: True  # noqa: E731 - a trivial stand-in callback
+        gui.dispatch_action("install", cfg, should_cancel=flag)
+        assert seen.get("should_cancel") is flag
+
+    def test_start_forwards_should_cancel(self, cfg, monkeypatch) -> None:
+        seen: dict[str, object] = {}
+        monkeypatch.setattr(actions, "start", lambda c, **k: seen.update(k) or (True, "started"))
+        flag = lambda: False  # noqa: E731 - a trivial stand-in callback
+        gui.dispatch_action("start", cfg, should_cancel=flag)
+        assert seen.get("should_cancel") is flag
+
     def test_stop_routes(self, cfg, monkeypatch) -> None:
         monkeypatch.setattr(actions, "stop", lambda c: (True, "stopped"))
         assert gui.dispatch_action("stop", cfg) == (True, "stopped")

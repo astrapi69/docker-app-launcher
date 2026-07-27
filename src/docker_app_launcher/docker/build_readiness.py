@@ -129,7 +129,13 @@ def compose_blockers(config: LauncherConfig) -> list[str]:
     blockers: list[str] = []
     # 1. The project itself: a compose file present and readable.
     if not config.compose_path.is_file():
-        blockers.append(_t(config, "compose_not_found", path=config.compose_path))
+        if config.base_is_cwd_fallback:
+            # No install_dir and no config-file dir to anchor to: the compose
+            # file was looked up against the (fragile) current directory. Say
+            # so loudly instead of silently building the wrong project (G3, #64).
+            blockers.append(_t(config, "compose_base_unresolved", path=config.compose_path))
+        else:
+            blockers.append(_t(config, "compose_not_found", path=config.compose_path))
     else:
         try:
             config.compose_path.read_text(encoding="utf-8")
@@ -163,7 +169,10 @@ def dockerfile_blockers(config: LauncherConfig) -> list[str]:
     if not py_client.available():
         blockers.append(_t(config, "dockerfile_mode_needs_dockerpy"))
     if not config.dockerfile_path.is_file():
-        blockers.append(_t(config, "dockerfile_not_found", path=config.dockerfile_path))
+        if config.base_is_cwd_fallback:
+            blockers.append(_t(config, "dockerfile_base_unresolved", path=config.dockerfile_path))
+        else:
+            blockers.append(_t(config, "dockerfile_not_found", path=config.dockerfile_path))
     else:
         try:
             config.dockerfile_path.read_text(encoding="utf-8")

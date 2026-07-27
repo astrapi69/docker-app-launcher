@@ -8,6 +8,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Robust build-base resolution (#64).** App-relative paths (the compose
+  file and the build context) no longer silently fall back to the current
+  working directory when `install_dir` is unset. A file-loaded config now
+  derives its base from the config file's own directory (`from_json`), and
+  when no base can be determined the readiness gate says so loudly and advises
+  setting `install_dir` (new `base_is_cwd_fallback`; new i18n keys, all 11
+  catalogs) instead of building against the wrong directory under a frozen
+  binary / Snap / desktop launch. Part of the environment matrix (#56).
+
 - **Endpoint-aware Docker detection (#57, #62).** The "add yourself to the
   `docker` group" self-repair is now offered ONLY on the classic root unix
   socket, where group membership actually governs access. On rootless

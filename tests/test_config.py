@@ -336,3 +336,30 @@ class TestMinVersionValidation:
         # A consumer may paste a raw 'docker version' string; the core parses.
         cfg = LauncherConfig(app_name="X", min_engine_version="20.10.21+dfsg1").resolve()
         assert cfg.min_engine_version == "20.10.21+dfsg1"
+
+
+class TestBuildBaseResolution:
+    """G3 (#64): app-relative paths resolve robustly, never silently via CWD."""
+
+    def test_explicit_install_dir_is_the_base(self, tmp_path: Path) -> None:
+        cfg = LauncherConfig(app_name="X", install_dir=str(tmp_path), compose_file="dc.yml").resolve()
+        assert cfg.base_is_cwd_fallback is False
+        assert cfg.compose_path == tmp_path / "dc.yml"
+
+    def test_unset_install_dir_is_the_cwd_fallback(self) -> None:
+        cfg = LauncherConfig(app_name="X").resolve()  # programmatic config, no install_dir
+        assert cfg.base_is_cwd_fallback is True
+
+    def test_from_json_derives_install_dir_from_config_dir(self, tmp_path: Path) -> None:
+        appdir = tmp_path / "app"
+        appdir.mkdir()
+        (appdir / "launcher.json").write_text('{"app_name": "X", "compose_file": "dc.yml"}', encoding="utf-8")
+        cfg = LauncherConfig.from_json(appdir / "launcher.json")
+        assert cfg.install_dir == str(appdir.resolve())
+        assert cfg.base_is_cwd_fallback is False
+        assert cfg.compose_path == appdir.resolve() / "dc.yml"
+
+    def test_from_json_keeps_explicit_install_dir(self, tmp_path: Path) -> None:
+        (tmp_path / "launcher.json").write_text('{"app_name": "X", "install_dir": "/opt/app"}', encoding="utf-8")
+        cfg = LauncherConfig.from_json(tmp_path / "launcher.json")
+        assert cfg.install_dir == "/opt/app"

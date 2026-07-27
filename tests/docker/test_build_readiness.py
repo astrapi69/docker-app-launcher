@@ -172,3 +172,33 @@ class TestDockerfileGate:
         monkeypatch.setattr(build_readiness, "detect_tool_versions", lambda c: _tv(engine="20.10.21"))
         blockers = build_readiness.dockerfile_blockers(dconfig)
         assert any("engine" in b and "25.0" in b for b in blockers)
+
+
+class TestBaseUnresolved:
+    """G3 (#64): a missing compose file / Dockerfile under the CWD fallback is
+    reported loudly with install_dir guidance, not a bare 'not found'."""
+
+    def test_compose_base_unresolved_advises_install_dir(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        cfg = LauncherConfig(app_name="X").resolve()  # no install_dir -> cwd fallback
+        assert cfg.base_is_cwd_fallback is True
+        _pin(monkeypatch, _tv())
+        blockers = build_readiness.compose_blockers(cfg)
+        assert any("install_dir" in b for b in blockers), blockers
+
+    def test_compose_not_found_stays_plain_with_install_dir(
+        self, cconfig: LauncherConfig, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # install_dir IS set (cconfig has it) but delete the compose file.
+        cconfig.compose_path.unlink()
+        _pin(monkeypatch, _tv())
+        blockers = build_readiness.compose_blockers(cconfig)
+        assert any("Compose file not found" in b for b in blockers)
+        assert not any("install_dir" in b for b in blockers)
+
+    def test_dockerfile_base_unresolved_advises_install_dir(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        cfg = LauncherConfig(app_name="X", deployment_mode="dockerfile").resolve()
+        assert cfg.base_is_cwd_fallback is True
+        monkeypatch.setattr(py_client, "available", lambda: True)
+        monkeypatch.setattr(build_readiness, "detect_tool_versions", lambda c: _tv())
+        blockers = build_readiness.dockerfile_blockers(cfg)
+        assert any("install_dir" in b for b in blockers), blockers

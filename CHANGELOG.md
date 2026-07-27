@@ -82,6 +82,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   "build cancelled" result rather than a failure. The Tk window arms the
   signal on close-during-build, so the X button no longer leaves an orphaned
   build behind.
+- **macOS/Windows install is now verified in CI (#58).** A new
+  `cross-platform-smoke` job installs the package and smoke-runs it (`import`,
+  `--version`, `--status`) on `macos-latest` and `windows-latest`. Until now
+  no macOS or Windows path was built or started by any automation - the
+  zero-cost PyPI/pipx distribution (which sidesteps both macOS Gatekeeper and
+  Windows SmartScreen) was never even confirmed to install and start on those
+  OSes. This is the decision-independent half of the distribution gap; the
+  signed downloadable-binary decision (Apple notarization / Windows code
+  signing) remains open in #58.
+
 
 ### Changed
 

@@ -85,6 +85,7 @@ build_failed: 'La construction Docker a échoué :
 
   {detail}'
 build_timeout: La construction Docker a dépassé le délai imparti.
+build_cancelled: La construction a été annulée.
 start_failed: 'Le démarrage a échoué :
 
   {detail}'

@@ -117,6 +117,10 @@ class LauncherApp(tk.Tk):
         self._cfg.locale = actions.resolve_locale(self._cfg)
         self._debug = debug
         self._tray: tray.TrayController | None = None
+        # Cancel signal for an in-progress build: set by closing the window
+        # mid-build so the build subprocess is terminated, not orphaned (#60).
+        self._cancel_build = threading.Event()
+        self._build_in_progress = False
         self._buttons: dict[str, tk.Button] = {}
         self._tooltips: dict[str, _Tooltip] = {}
 
@@ -707,6 +711,12 @@ class LauncherApp(tk.Tk):
         # mismatch this fix closes).
         if action_id in ("install", "start") and port is not None:
             actions.set_port(self._cfg, port)
+        # A build only happens on install/start; arm the cancel signal for those
+        # so closing the window mid-build terminates the subprocess (#60).
+        builds = action_id in ("install", "start")
+        if builds:
+            self._cancel_build.clear()
+            self._build_in_progress = True
         self._set_busy(True)
 
         def step(label: str) -> None:
@@ -719,7 +729,13 @@ class LauncherApp(tk.Tk):
             result = run_guarded(
                 action_id,
                 lambda: dispatch_action(
-                    action_id, self._cfg, port=port, on_step=step, on_output=output, on_progress=self._on_progress
+                    action_id,
+                    self._cfg,
+                    port=port,
+                    on_step=step,
+                    on_output=output,
+                    on_progress=self._on_progress,
+                    should_cancel=self._cancel_build.is_set if builds else None,
                 ),
             )
             self.after(0, lambda: self._on_result(action_id, result))
@@ -727,6 +743,7 @@ class LauncherApp(tk.Tk):
         threading.Thread(target=worker, daemon=True).start()
 
     def _on_result(self, action_id: str, result: tuple[bool, str] | None) -> None:
+        self._build_in_progress = False
         self._set_busy(False)
         if result is not None:
             ok, msg = result
@@ -798,7 +815,12 @@ class LauncherApp(tk.Tk):
 
         Running + opted-in -> background (tray, or taskbar when the tray is
         unavailable, with a hint). Not running, or opted out -> close.
+
+        A build running in the worker thread is signalled to stop first, so the
+        ``docker build`` subprocess is terminated rather than orphaned (#60).
         """
+        if self._build_in_progress:
+            self._cancel_build.set()
         keep_alive = should_keep_alive_on_close(
             actions.get_state(self._cfg),
             minimize_enabled=self._cfg.tray_enabled and self._cfg.tray_minimize_on_close,

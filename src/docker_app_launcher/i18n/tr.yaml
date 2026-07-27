@@ -85,6 +85,7 @@ build_failed: 'Docker derlemesi başarısız oldu:
 
   {detail}'
 build_timeout: Docker derlemesi zaman aşımına uğradı.
+build_cancelled: Derleme iptal edildi.
 start_failed: 'Başlatma başarısız oldu:
 
   {detail}'

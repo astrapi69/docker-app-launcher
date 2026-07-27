@@ -85,6 +85,7 @@ build_failed: 'Pembangunan Docker gagal:
 
   {detail}'
 build_timeout: Pembangunan Docker melebihi batas waktu.
+build_cancelled: Pembangunan dibatalkan.
 start_failed: 'Gagal memulai:
 
   {detail}'

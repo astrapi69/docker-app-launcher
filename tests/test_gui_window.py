@@ -686,6 +686,23 @@ class TestBackgroundAndClose:
         app._on_close()
         assert called == [True]
 
+    def test_close_during_build_signals_cancel(self, app, gui_state, monkeypatch) -> None:
+        # Closing the window while a build runs must set the cancel signal so
+        # the ``docker build`` subprocess is terminated, not orphaned (#60).
+        gui_state["value"] = "not_installed"
+        app._build_in_progress = True
+        monkeypatch.setattr(app, "_quit", lambda: None)
+        assert not app._cancel_build.is_set()
+        app._on_close()
+        assert app._cancel_build.is_set()
+
+    def test_close_without_build_leaves_cancel_unset(self, app, gui_state, monkeypatch) -> None:
+        gui_state["value"] = "not_installed"
+        app._build_in_progress = False
+        monkeypatch.setattr(app, "_quit", lambda: None)
+        app._on_close()
+        assert not app._cancel_build.is_set()
+
     def test_restore_window_stops_tray_and_reshows(self, app) -> None:
         class _FakeTray:
             stopped = False

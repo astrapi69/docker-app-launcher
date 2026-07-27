@@ -24,6 +24,7 @@ from docker_app_launcher import __version__
 from docker_app_launcher.config import LauncherConfig
 from docker_app_launcher.docker import build_readiness, dockerfile_backend, py_client
 from docker_app_launcher.docker.command_runner import (
+    BuildCancelled,
     DockerBuildProgress,
     OutputFn,
     ProgressFn,
@@ -53,6 +54,9 @@ from docker_app_launcher.launcher_settings import (
 )
 
 logger = logging.getLogger("docker_app_launcher.docker.lifecycle")
+
+# Predicate polled during a build; True asks the build to stop (#60).
+CancelFn = Callable[[], bool]
 
 # Strong DNS/connectivity markers in build output: the first build pulls base
 # images, so no network reads as one of these (G5, #59).
@@ -91,6 +95,7 @@ def _stream_build_with_progress(
     lo: int,
     hi: int,
     timeout: float,
+    should_cancel: CancelFn | None = None,
 ) -> tuple[int, str]:
     """Run a ``build`` / ``up --build`` stream, mapping parsed build steps into
     the ``lo..hi`` percentage band while still forwarding raw lines to ``on_output``."""
@@ -104,7 +109,7 @@ def _stream_build_with_progress(
             on_output(line)
         parser.parse_line(line)
 
-    return _stream_compose(config, *args, on_output=out, timeout=timeout)
+    return _stream_compose(config, *args, on_output=out, timeout=timeout, should_cancel=should_cancel)
 
 
 def get_state(config: LauncherConfig) -> str:
@@ -341,13 +346,18 @@ def _ensure_dockerfile_ready(config: LauncherConfig) -> tuple[bool, str] | None:
 
 
 def _stream_compose(
-    config: LauncherConfig, *args: str, on_output: OutputFn | None = None, timeout: float
+    config: LauncherConfig,
+    *args: str,
+    on_output: OutputFn | None = None,
+    timeout: float,
+    should_cancel: CancelFn | None = None,
 ) -> tuple[int, str]:
     return _stream_command(
         _compose_args(config, *args),
         on_output=on_output,
         timeout=timeout,
         cwd=_compose_cwd(config),
+        should_cancel=should_cancel,
     )
 
 
@@ -367,6 +377,7 @@ def install(
     on_step: ProgressFn | None = None,
     on_output: OutputFn | None = None,
     on_progress: ProgressPctFn | None = None,
+    should_cancel: CancelFn | None = None,
 ) -> tuple[bool, str]:
     """Build + start the stack, then VERIFY it is running and healthy.
 
@@ -422,11 +433,14 @@ def install(
             lo=5,
             hi=85,
             timeout=float(config.build_timeout),
+            should_cancel=should_cancel,
         )
     except FileNotFoundError:
         return False, _t(config, "docker_unavailable")
     except subprocess.TimeoutExpired:
         return False, _t(config, "build_timeout")
+    except BuildCancelled:
+        return False, _t(config, "build_cancelled")
     if build_rc != 0:
         return _build_failed(config, build_tail)
     _notify(on_step, _t(config, "image_built"))
@@ -475,6 +489,7 @@ def ensure_installed(
     on_step: ProgressFn | None = None,
     on_output: OutputFn | None = None,
     on_progress: ProgressPctFn | None = None,
+    should_cancel: CancelFn | None = None,
 ) -> tuple[bool, str]:
     """Single install entry point for the persistent window.
 
@@ -482,7 +497,7 @@ def ensure_installed(
     :func:`install`. It exists as a stable seam: an app that ships frozen
     binaries can wire a download step via ``config.on_before_install``.
     """
-    return install(config, on_step=on_step, on_output=on_output, on_progress=on_progress)
+    return install(config, on_step=on_step, on_output=on_output, on_progress=on_progress, should_cancel=should_cancel)
 
 
 def start(
@@ -491,6 +506,7 @@ def start(
     on_step: ProgressFn | None = None,
     on_output: OutputFn | None = None,
     on_progress: ProgressPctFn | None = None,
+    should_cancel: CancelFn | None = None,
 ) -> tuple[bool, str]:
     """Start the stack via ``compose up --build -d``, then VERIFY it runs.
 
@@ -534,11 +550,14 @@ def start(
                 lo=5,
                 hi=95,
                 timeout=float(config.build_timeout),
+                should_cancel=should_cancel,
             )
         except FileNotFoundError:
             return False, _t(config, "docker_unavailable")
         except subprocess.TimeoutExpired:
             return False, _t(config, "start_timeout")
+        except BuildCancelled:
+            return False, _t(config, "build_cancelled")
         if rc != 0:
             return False, _t(config, "start_failed", detail=tail)
     if get_state(config) != "running":

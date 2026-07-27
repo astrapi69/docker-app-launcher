@@ -8,6 +8,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Snap-confinement detection (#63).** When the launcher runs inside a Snap
+  sandbox (`SNAP` / `SNAP_NAME` set), it logs a clear, documented warning at
+  startup that paths outside the snap-writable area (a compose file or build
+  context under the real home, `/mnt`, `/media`) can fail to read and that
+  bind mounts to them can silently do nothing, instead of failing silently.
+  New `docker_app_launcher.snap` module. Part of the environment matrix (#56).
+
 - **Pre-build environment pre-flight (#61, #59).** Two checks now happen
   before a multi-minute build instead of failing deep inside it. A **disk
   pre-check** (`min_build_disk_bytes`, ~2 GB advisory default, 0 disables)

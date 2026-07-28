@@ -63,3 +63,6 @@ build/
 coverage.xml
 htmlcov/
 test-screenshots/
+
+# Local per-developer launcher configs (absolute paths, own ports) - see README 'Manual launcher testing'
+local-*.json

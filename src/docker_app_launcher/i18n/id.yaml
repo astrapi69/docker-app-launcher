@@ -80,7 +80,7 @@ docker_not_installed: Docker belum terpasang (docker tidak ada di PATH).
 docker_no_response: Docker tidak merespons.
 docker_running: Docker berjalan.
 docker_stopped: Docker belum dijalankan.
-compose_not_found: 'File Compose tidak ditemukan: {path}'
+compose_not_found: 'Berkas compose tidak ditemukan: {path}'
 build_failed: 'Pembangunan Docker gagal:
 
   {detail}'
@@ -152,3 +152,5 @@ dockerfile_base_unresolved: "Dockerfile tidak ditemukan di {path}. install_dir t
 disk_low: "Ruang disk untuk build sedikit: hanya {free} bebas di {path}, di bawah {needed} yang kemungkinan dibutuhkan sebuah build. Kosongkan ruang, atau setel min_build_disk_bytes ke 0 untuk melewati pemeriksaan ini."
 install_needs_network: "Pemasangan membutuhkan koneksi internet sekarang untuk mengunduh image dasar. Aplikasinya sendiri berjalan luring setelah terpasang."
 build_failed_network: "Build tidak dapat menjangkau jaringan untuk mengunduh image: {detail}. Periksa koneksi internet atau proxy Anda, lalu coba lagi."
+port_mismatch_rendered: "Launcher mengharapkan port {expected}, tetapi berkas compose akan memublikasikan {published}. Periksa env_port_key ({port_key}) terhadap variabel port compose dan nilai .env."
+repo_url_not_cloned: 'Catatan: repo_url ({url}) hanya untuk tautan/pemeriksaan pembaruan - launcher tidak meng-clone-nya. install_dir harus menunjuk ke checkout lokal.'

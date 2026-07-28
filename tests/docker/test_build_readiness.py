@@ -16,6 +16,7 @@ from packaging.version import Version
 from docker_app_launcher.config import LauncherConfig
 from docker_app_launcher.docker import build_readiness, py_client
 from docker_app_launcher.docker.tool_versions import ToolVersions
+from tests.conftest import make_result
 
 
 def _tv(*, engine: str = "27.5.1", api: str = "1.47", compose: str = "2.40.2", buildx: str = "0.20.0") -> ToolVersions:
@@ -230,3 +231,68 @@ class TestDiskPreflight:
         _pin(monkeypatch, _tv())
         self._free(monkeypatch, 1)
         assert build_readiness.compose_blockers(cconfig) == []
+
+
+class TestRenderedPortBlocker:
+    """The rendered compose truth vs the launcher port (field finding
+    2026-07-28: launcher expected 8501, compose published 9000 via a
+    mismatched env_port_key / stray .env override)."""
+
+    def _render(self, monkeypatch, payload, rc: int = 0):
+        import json as _json
+
+        def fake_run(cmd, **k):
+            assert "config" in cmd and "--format" in cmd
+            return make_result(returncode=rc, stdout=_json.dumps(payload) if payload is not None else "")
+
+        monkeypatch.setattr(build_readiness, "_run", fake_run)
+
+    def test_mismatch_is_a_blocker(self, config, monkeypatch) -> None:
+        self._render(monkeypatch, {"services": {"app": {"ports": [{"published": "9000", "target": 8000}]}}})
+        blocker = build_readiness._published_port_blocker(config)
+        assert blocker is not None
+        assert "9000" in blocker and str(config.default_port) in blocker and "APP_PORT" in blocker
+
+    def test_match_is_clean(self, config, monkeypatch) -> None:
+        self._render(monkeypatch, {"services": {"app": {"ports": [{"published": config.default_port}]}}})
+        assert build_readiness._published_port_blocker(config) is None
+
+    def test_int_and_string_published_both_parse(self, config, monkeypatch) -> None:
+        self._render(
+            monkeypatch,
+            {"services": {"a": {"ports": [{"published": 9000}]}, "b": {"ports": [{"published": "9001"}]}}},
+        )
+        blocker = build_readiness._published_port_blocker(config)
+        assert blocker is not None and "9000, 9001" in blocker
+
+    def test_no_published_ports_skips(self, config, monkeypatch) -> None:
+        self._render(monkeypatch, {"services": {"app": {"expose": ["8000"]}}})
+        assert build_readiness._published_port_blocker(config) is None
+
+    def test_render_failure_skips_best_effort(self, config, monkeypatch) -> None:
+        # Old frontends without --format json must not block a working build.
+        self._render(monkeypatch, None, rc=1)
+        assert build_readiness._published_port_blocker(config) is None
+
+    def test_unparsable_json_skips(self, config, monkeypatch) -> None:
+        def fake_run(cmd, **k):
+            return make_result(stdout="not json")
+
+        monkeypatch.setattr(build_readiness, "_run", fake_run)
+        assert build_readiness._published_port_blocker(config) is None
+
+
+class TestRepoUrlHint:
+    def test_missing_compose_with_repo_url_names_the_misread(self, cconfig, monkeypatch) -> None:
+        cconfig.compose_path.unlink()
+        cconfig.repo_url = "https://github.com/owner/app"
+        _pin(monkeypatch, _tv())
+        blockers = build_readiness.compose_blockers(cconfig)
+        joined = " ".join(blockers)
+        assert "does not clone" in joined and "https://github.com/owner/app" in joined
+
+    def test_no_repo_url_no_hint(self, cconfig, monkeypatch) -> None:
+        cconfig.compose_path.unlink()
+        cconfig.repo_url = ""
+        _pin(monkeypatch, _tv())
+        assert not any("clone" in b for b in build_readiness.compose_blockers(cconfig))

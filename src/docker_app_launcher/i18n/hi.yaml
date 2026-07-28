@@ -152,3 +152,5 @@ dockerfile_base_unresolved: "Dockerfile {path} पर नहीं मिली�
 disk_low: "बिल्ड के लिए कम डिस्क स्थान: {path} पर केवल {free} खाली है, जो {needed} से कम है जिसकी बिल्ड को संभवतः आवश्यकता होगी। स्थान खाली करें, या इस जाँच को छोड़ने के लिए min_build_disk_bytes को 0 पर सेट करें।"
 install_needs_network: "इंस्टॉलेशन को बेस इमेज डाउनलोड करने के लिए अभी इंटरनेट कनेक्शन चाहिए। इंस्टॉल होने के बाद ऐप स्वयं ऑफ़लाइन चलता है।"
 build_failed_network: "बिल्ड इमेज डाउनलोड करने के लिए नेटवर्क तक नहीं पहुँच सका: {detail}. अपना इंटरनेट कनेक्शन या प्रॉक्सी जाँचें, फिर दोबारा कोशिश करें।"
+port_mismatch_rendered: "Launcher को पोर्ट {expected} अपेक्षित है, लेकिन compose फ़ाइल {published} प्रकाशित करेगी। env_port_key ({port_key}) को compose की पोर्ट वेरिएबल और .env मानों से जाँचें।"
+repo_url_not_cloned: 'नोट: repo_url ({url}) केवल लिंक/अपडेट जाँच के लिए है - launcher इसे clone नहीं करता। install_dir को स्थानीय checkout पर इंगित करना होगा।'

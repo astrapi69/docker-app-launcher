@@ -21,8 +21,10 @@ Two requirement sources, kept separate and attributed in the message:
 
 from __future__ import annotations
 
+import json
 import logging
 import shutil
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -30,8 +32,8 @@ from packaging.version import Version
 
 from docker_app_launcher.config import LauncherConfig
 from docker_app_launcher.docker import py_client
-from docker_app_launcher.docker.command_runner import _t
-from docker_app_launcher.docker.compose_runtime import compose_available
+from docker_app_launcher.docker.command_runner import _run, _t
+from docker_app_launcher.docker.compose_runtime import compose_available, compose_base_args
 from docker_app_launcher.docker.tool_versions import (
     ToolVersions,
     detect_tool_versions,
@@ -138,6 +140,10 @@ def compose_blockers(config: LauncherConfig) -> list[str]:
             blockers.append(_t(config, "compose_base_unresolved", path=config.compose_path))
         else:
             blockers.append(_t(config, "compose_not_found", path=config.compose_path))
+            if config.repo_url:
+                # The classic misread (#74): a visible repo_url suggests the
+                # launcher fetches the app. Say explicitly that it does not.
+                blockers.append(_t(config, "repo_url_not_cloned", url=config.repo_url))
     else:
         try:
             config.compose_path.read_text(encoding="utf-8")
@@ -160,7 +166,79 @@ def compose_blockers(config: LauncherConfig) -> list[str]:
     disk = _disk_blocker(config, config.compose_path.parent)
     if disk is not None:
         blockers.append(disk)
+    # 5. The RENDERED published port must match the launcher's port. Only
+    # meaningful when the file itself is usable and a frontend exists.
+    if usable and not blockers:
+        port = _published_port_blocker(config)
+        if port is not None:
+            blockers.append(port)
     return blockers
+
+
+def _rendered_published_ports(config: LauncherConfig) -> list[int] | None:
+    """The host ports the compose file will ACTUALLY publish, or ``None``.
+
+    ``compose config --format json`` renders the file with all variable /
+    ``.env`` interpolation applied - the compose truth, not a static guess.
+    Best-effort: an old frontend without ``--format json`` (or any render
+    failure) returns ``None`` and skips the check rather than blocking a
+    build that might work.
+    """
+    cmd = [
+        *compose_base_args(config),
+        "-p",
+        config.compose_project,
+        "-f",
+        str(config.compose_path),
+        "config",
+        "--format",
+        "json",
+    ]
+    try:
+        result = _run(cmd, timeout=30.0, cwd=config.compose_path.parent, probe=True)
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode != 0:
+        return None
+    try:
+        rendered = json.loads(result.stdout or "{}")
+    except json.JSONDecodeError:
+        return None
+    ports: list[int] = []
+    for service in (rendered.get("services") or {}).values():
+        for entry in service.get("ports") or []:
+            published = entry.get("published") if isinstance(entry, dict) else None
+            if published is None:
+                continue
+            try:
+                ports.append(int(published))
+            except (TypeError, ValueError):
+                continue
+    return ports
+
+
+def _published_port_blocker(config: LauncherConfig) -> str | None:
+    """Blocker when compose will publish a DIFFERENT host port than the
+    launcher expects - the wiring error class where ``env_port_key`` does
+    not match the compose file's variable (or a stray ``.env`` override
+    wins): every later health check would probe the wrong port. Field
+    finding 2026-07-28: launcher expected 8501, compose published 9000.
+    """
+    from docker_app_launcher.launcher_settings import resolve_port
+
+    published = _rendered_published_ports(config)
+    if not published:
+        return None  # render unavailable or nothing published: nothing to compare
+    expected = resolve_port(config)
+    if expected in published:
+        return None
+    return _t(
+        config,
+        "port_mismatch_rendered",
+        expected=expected,
+        published=", ".join(str(p) for p in sorted(set(published))),
+        port_key=config.env_port_key,
+    )
 
 
 def dockerfile_blockers(config: LauncherConfig) -> list[str]:

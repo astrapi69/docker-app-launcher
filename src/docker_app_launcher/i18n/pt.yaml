@@ -80,7 +80,7 @@ docker_not_installed: O Docker não está instalado (docker não está no PATH).
 docker_no_response: O Docker não está respondendo.
 docker_running: O Docker está em execução.
 docker_stopped: O Docker não está iniciado.
-compose_not_found: 'Arquivo Compose não encontrado: {path}'
+compose_not_found: 'Arquivo compose não encontrado: {path}'
 build_failed: 'Falha na construção do Docker:
 
   {detail}'
@@ -152,3 +152,5 @@ dockerfile_base_unresolved: "Dockerfile não encontrado em {path}. install_dir n
 disk_low: "Pouco espaço em disco para o build: apenas {free} livres em {path}, abaixo dos {needed} que um build provavelmente vai precisar. Libere espaço, ou defina min_build_disk_bytes como 0 para pular esta verificação."
 install_needs_network: "A instalação precisa agora de conexão à internet para baixar as imagens base. O app em si funciona offline depois de instalado."
 build_failed_network: "O build não conseguiu acessar a rede para baixar as imagens: {detail}. Verifique sua conexão à internet ou o proxy e tente novamente."
+port_mismatch_rendered: "O launcher espera a porta {expected}, mas o arquivo compose publicará {published}. Verifique env_port_key ({port_key}) contra a variável de porta do compose e os valores do .env."
+repo_url_not_cloned: 'Nota: repo_url ({url}) é usado apenas para links/verificações de atualização - o launcher não o clona. install_dir deve apontar para um checkout local.'

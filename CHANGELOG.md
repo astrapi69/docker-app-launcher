@@ -6,6 +6,23 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Rendered-port preflight (field finding 2026-07-28).** The compose
+  capability gate now renders the file (`compose config --format json`,
+  with `.env` interpolation applied) and compares the ACTUALLY published
+  host ports with the launcher's port. A mismatch — the wiring class
+  where `env_port_key` does not match the compose file's port variable,
+  or a stray `.env` override wins — is a collected blocker naming both
+  ports and the key, instead of a green install whose health check later
+  probes the wrong port. Best-effort: frontends without `--format json`
+  skip the check. The `.env` write moved before the gate so the render
+  sees the build's real inputs.
+- **`repo_url` misread named at the source (#74).** When the compose file
+  is missing AND `repo_url` is set, the collected report now states that
+  the launcher does not clone it and that `install_dir` must point at a
+  local checkout.
+
 ## [0.21.1] - 2026-07-28
 
 ### Fixed

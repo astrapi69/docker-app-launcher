@@ -399,6 +399,10 @@ def install(
         return False, _t(config, "docker_unavailable")
     if get_state(config) == "running":
         return True, _t(config, "already_installed")
+    # .env FIRST, then the gate: the rendered-port check inside the gate
+    # must see the .env the build will actually use (env write is a cheap,
+    # idempotent file update - harmless even when the gate then refuses).
+    _write_env_ports(config)
     # ONE capability gate per mode, BEFORE the build: collect every
     # missing/too-old link so the whole chain surfaces in a single run (#54).
     if config.effective_deployment_mode == "compose":
@@ -412,7 +416,6 @@ def install(
     port_free, _ = check_port(port)
     if not port_free:
         return False, _t(config, "port_occupied", port=port)
-    _write_env_ports(config)
     _notify(on_step, _t(config, "docker_ok"))
 
     if config.effective_deployment_mode == "dockerfile":

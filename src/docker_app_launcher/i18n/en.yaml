@@ -152,3 +152,5 @@ dockerfile_base_unresolved: "Dockerfile not found at {path}. install_dir is not 
 disk_low: "Low disk space for the build: only {free} free on {path}, below the {needed} a build is likely to need. Free up space, or set min_build_disk_bytes to 0 to skip this check."
 install_needs_network: "Installation needs an internet connection now to download the base images. The app itself runs offline once installed."
 build_failed_network: "The build could not reach the network to download images: {detail}. Check your internet connection or proxy, then try again."
+port_mismatch_rendered: "The launcher expects port {expected}, but the compose file will publish {published}. Check env_port_key ({port_key}) against the compose file's port variable and the .env values."
+repo_url_not_cloned: 'Note: repo_url ({url}) is only used for links/update checks - the launcher does not clone it. install_dir must point at a local checkout.'

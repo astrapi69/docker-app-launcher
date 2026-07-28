@@ -152,3 +152,5 @@ dockerfile_base_unresolved: "Dockerfile을 {path}에서 찾을 수 없습니다.
 disk_low: "빌드를 위한 디스크 공간이 부족합니다: {path}에 {free}만 남아 있어 빌드에 필요할 것으로 보이는 {needed}보다 적습니다. 공간을 확보하거나 min_build_disk_bytes를 0으로 설정해 이 검사를 건너뛰세요."
 install_needs_network: "설치하려면 지금 베이스 이미지를 내려받기 위한 인터넷 연결이 필요합니다. 앱 자체는 설치 후 오프라인으로 실행됩니다."
 build_failed_network: "빌드가 이미지를 내려받기 위해 네트워크에 연결하지 못했습니다: {detail}. 인터넷 연결 또는 프록시를 확인한 뒤 다시 시도하세요."
+port_mismatch_rendered: "런처는 포트 {expected}를 기대하지만 compose 파일은 {published}를 게시합니다. env_port_key({port_key})를 compose의 포트 변수와 .env 값과 대조하세요."
+repo_url_not_cloned: '참고: repo_url({url})은 링크/업데이트 확인에만 사용되며 런처는 클론하지 않습니다. install_dir이 로컬 체크아웃을 가리켜야 합니다.'

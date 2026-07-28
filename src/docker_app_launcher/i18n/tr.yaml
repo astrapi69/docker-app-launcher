@@ -152,3 +152,5 @@ dockerfile_base_unresolved: "Dockerfile {path} konumunda bulunamadı. install_di
 disk_low: "Derleme için disk alanı az: {path} üzerinde yalnızca {free} boş, bir derlemenin muhtemelen ihtiyaç duyacağı {needed} altında. Yer açın veya bu kontrolü atlamak için min_build_disk_bytes değerini 0 yapın."
 install_needs_network: "Kurulum, temel imgeleri indirmek için şimdi internet bağlantısına ihtiyaç duyuyor. Uygulamanın kendisi kurulduktan sonra çevrimdışı çalışır."
 build_failed_network: "Derleme, imgeleri indirmek için ağa erişemedi: {detail}. İnternet bağlantınızı veya proxy'yi kontrol edip yeniden deneyin."
+port_mismatch_rendered: "Launcher {expected} portunu bekliyor, ancak compose dosyası {published} yayınlayacak. env_port_key ({port_key}) değerini compose dosyasının port değişkeni ve .env değerleriyle karşılaştırın."
+repo_url_not_cloned: 'Not: repo_url ({url}) yalnızca bağlantılar/güncelleme denetimleri içindir - launcher onu klonlamaz. install_dir yerel bir checkout''u göstermelidir.'

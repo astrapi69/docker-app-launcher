@@ -152,3 +152,5 @@ dockerfile_base_unresolved: "Dockerfile introuvable à {path}. install_dir n'est
 disk_low: "Peu d'espace disque pour le build : seulement {free} libres sur {path}, en dessous des {needed} qu'un build va probablement nécessiter. Libérez de l'espace, ou mettez min_build_disk_bytes à 0 pour ignorer cette vérification."
 install_needs_network: "L'installation a besoin maintenant d'une connexion internet pour télécharger les images de base. L'app elle-même fonctionne hors ligne une fois installée."
 build_failed_network: "Le build n'a pas pu atteindre le réseau pour télécharger les images : {detail}. Vérifiez votre connexion internet ou votre proxy, puis réessayez."
+port_mismatch_rendered: "Le launcher attend le port {expected}, mais le fichier compose publiera {published}. Vérifiez env_port_key ({port_key}) par rapport à la variable de port du compose et aux valeurs .env."
+repo_url_not_cloned: 'Note : repo_url ({url}) ne sert qu''aux liens/vérifications de mise à jour - le launcher ne le clone pas. install_dir doit pointer vers un checkout local.'

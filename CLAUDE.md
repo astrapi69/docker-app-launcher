@@ -104,6 +104,15 @@ Recorded error classes (a fix is not done until it is measured against these):
   message that names every missing/too-old link at once. A minutes-long build
   must never fail on a precondition that was knowable up front, and a user
   must never have to fail, fix, and retry N times to discover N gaps.
+- **A declared follow-up is not tracking.** An intent written as "follow-up"
+  in release notes, or "remains open" inside an issue that can be closed,
+  dies with its carrier - both happened: the `stream_app_logs()` GUI wiring
+  (declared in the 0.17.0 notes, no issue until #72) and the signing
+  decision (marked "remains open" in #58, which was then closed; carrier is
+  now #73). Every open intent gets its OWN issue at the moment it is
+  deferred, never a note in prose. Corollary: an empty backlog proves only
+  that nothing KNOWN is open - completeness claims need a sweep (release
+  notes, closed-issue texts, "follow-up" grep), not a backlog glance.
 
 Concretely: the build paths go through one capability gate per mode
 (`docker/build_readiness.py`) that collects all blockers before the build

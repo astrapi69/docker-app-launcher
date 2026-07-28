@@ -425,6 +425,15 @@ class LauncherConfig:
             # app it describes, so its directory is the robust default.
             if not cfg.install_dir:
                 cfg.install_dir = str(p.resolve().parent)
+            else:
+                install = Path(cfg.install_dir).expanduser()
+                if not install.is_absolute():
+                    # A RELATIVE install_dir in a file-loaded config is
+                    # relative to the config file, not to the accidental
+                    # CWD - same rationale as the base rule above (#64).
+                    # This is what makes checked-in example configs
+                    # (test-configs/) portable across checkouts.
+                    cfg.install_dir = str((p.resolve().parent / install).resolve())
         elif require:
             raise FileNotFoundError(f"config file not found: {p} (explicitly passed via --config)")
         else:

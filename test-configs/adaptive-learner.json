@@ -7,14 +7,21 @@
   "repo_url": "https://github.com/astrapi69/adaptive-learner",
   "icon_path": "",
   "locale": "auto",
-  "legacy_names": ["adaptive_learner"],
+  "legacy_names": [
+    "adaptive_learner"
+  ],
   "cleanup_configs": [
     "~/.config/adaptive_learner",
     "~/.local/share/adaptive_learner"
   ],
   "show_advanced_ports": true,
-  "internal_ports": {"backend": 8000, "nginx": 80},
+  "internal_ports": {
+    "backend": 8000,
+    "nginx": 80
+  },
   "tray_enabled": true,
   "update_check_enabled": true,
-  "single_instance": true
+  "single_instance": true,
+  "install_dir": "../../adaptive-learner",
+  "compose_file": "docker-compose.prod.yml"
 }

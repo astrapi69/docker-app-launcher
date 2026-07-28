@@ -363,3 +363,40 @@ class TestBuildBaseResolution:
         (tmp_path / "launcher.json").write_text('{"app_name": "X", "install_dir": "/opt/app"}', encoding="utf-8")
         cfg = LauncherConfig.from_json(tmp_path / "launcher.json")
         assert cfg.install_dir == "/opt/app"
+
+
+class TestRelativeInstallDir:
+    """A relative install_dir in a FILE-loaded config resolves against the
+    config file's directory (#64 rationale) - this keeps checked-in example
+    configs (test-configs/) portable across checkouts."""
+
+    def test_relative_resolves_against_the_config_file(self, tmp_path) -> None:
+        import json
+
+        app_dir = tmp_path / "apps" / "solo"
+        app_dir.mkdir(parents=True)
+        cfg_dir = tmp_path / "configs"
+        cfg_dir.mkdir()
+        path = cfg_dir / "launcher.json"
+        path.write_text(json.dumps({"app_name": "X", "install_dir": "../apps/solo"}), encoding="utf-8")
+        cfg = LauncherConfig.from_json(path)
+        assert cfg.install_dir == str(app_dir.resolve())
+
+    def test_absolute_install_dir_is_untouched(self, tmp_path) -> None:
+        import json
+
+        path = tmp_path / "launcher.json"
+        path.write_text(json.dumps({"app_name": "X", "install_dir": str(tmp_path / "abs")}), encoding="utf-8")
+        assert LauncherConfig.from_json(path).install_dir == str(tmp_path / "abs")
+
+    def test_empty_install_dir_still_defaults_to_config_dir(self, tmp_path) -> None:
+        import json
+
+        path = tmp_path / "launcher.json"
+        path.write_text(json.dumps({"app_name": "X"}), encoding="utf-8")
+        assert LauncherConfig.from_json(path).install_dir == str(tmp_path.resolve())
+
+    def test_kwargs_config_is_unaffected(self) -> None:
+        # No config file, no file-relative rule: a programmatic relative
+        # install_dir keeps its meaning (resolved against the CWD at use).
+        assert LauncherConfig(app_name="X", install_dir="rel/path").resolve().install_dir == "rel/path"

@@ -427,7 +427,11 @@ make fix          # auto-fix lint + format
 ### Manual launcher testing
 
 Sample configs under `test-configs/` let you drive the launcher against a
-real app config without writing one. The `launcher-*` targets read
+real app config without writing one. Their `install_dir` is RELATIVE and
+resolves against the config file itself (`"../../adaptive-learner"` expects
+the app repo checked out next to this one); `repo_url` is only used for
+links/update checks — the launcher does not clone it (#74 tracks that
+feature decision). The `launcher-*` targets read
 `TEST_CONFIG` (default `test-configs/adaptive-learner.json`):
 
 ```bash

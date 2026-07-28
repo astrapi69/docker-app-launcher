@@ -6,6 +6,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Example configs work with `--install` again (#74 context).** A relative
+  `install_dir` in a file-loaded config now resolves against the config
+  file's directory (same rationale as the #64 base rule), and the
+  `test-configs/` examples point at the neighbor app checkouts. Previously
+  the #64 base rule made them base on `test-configs/` itself, so the
+  compose file was "not found" right next to a `repo_url` that names it —
+  and `repo_url` is informational only (the launcher does not clone; #74
+  carries that feature decision).
+
 ## [0.21.0] - 2026-07-25
 
 ### Added

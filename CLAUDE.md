@@ -42,6 +42,7 @@ base works for any Docker app.
     window per file: `tk_window.py`, `ctk_window.py`, `qt_window.py`,
     `tooltip.py`
   - `tray.py` — optional system tray (pystray + Pillow; the `tray` extra)
+  - `snap.py` — Snap-confinement detection + startup warning (#63)
   - `i18n/` — string catalogs as one YAML per language (11 languages)
   - `__main__.py` — CLI entry point + GUI router
 - `tests/` — pytest suite (no Docker, no display)

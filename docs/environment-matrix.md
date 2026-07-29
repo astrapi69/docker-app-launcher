@@ -83,8 +83,13 @@ tools that wrote it:
   `docker-credential-gcloud` leftover after a gcloud uninstall - the CLI
   tolerates it, docker-py hard-fails the build with `StoreError`, #77).
 - Per-registry `credHelpers` entries, present and dangling.
-- `proxies` - docker-py injects them into builds as build args; the
-  launcher keeps that default but LOGS it (never silent inheritance).
+- `proxies` - docker-py injects them into builds as build args
+  (`use_config_proxy=True` default); the launcher keeps that default but
+  LOGS the variable NAMES (never values). A credentialed proxy URL
+  (`http://user:pass@proxy`) triggers a masked WARNING: with the classic
+  builder, build args land in the image history. Masking before the build
+  would break authenticated proxies - pass-through + warning is the
+  deliberate, tested choice (password proven absent from every log line).
 - Plugin references (`cliPluginsExtraDirs`) and a non-default active
   context (covered by the access-path axis, listed here for completeness).
 

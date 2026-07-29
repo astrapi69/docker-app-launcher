@@ -14,8 +14,9 @@ class _FakeApi:
     def __init__(self, chunks: list[dict[str, Any]]) -> None:
         self._chunks = chunks
         self.build_kwargs: dict[str, Any] = {}
-        # mirrors docker-py's private attr the #77 neutralization replaces
+        # mirror docker-py's private attrs the #77 code touches
         self._auth_configs: Any = None
+        self._proxy_configs: Any = None
 
     def build(self, **kwargs: Any):
         self.build_kwargs = kwargs
@@ -297,3 +298,49 @@ class TestRegistryAuthNeutralized:
         monkeypatch.setattr(py_client, "get_client", lambda *a, **k: (_ for _ in ()).throw(StoreError("gcloud gone")))
         rc, detail = dockerfile_backend.up(dcfg)
         assert rc == 1 and "use_registry_credentials" in detail and "repair" in detail
+
+
+class _FakeProxyConfig:
+    def __init__(self, env: dict[str, str]) -> None:
+        self._env = env
+        self.asked = False
+
+    def get_environment(self) -> dict[str, str]:
+        self.asked = True
+        return dict(self._env)
+
+
+class _ProxyApiClient(_FakeClient):
+    def __init__(self, chunks: list[dict[str, Any]], proxies: dict[str, str]) -> None:
+        super().__init__(chunks)
+        self.api._proxy_configs = _FakeProxyConfig(proxies)
+
+
+class TestProxyLogging:
+    """#77 part 2: proxies pass through (masking would break auth proxies),
+    but credentials must NEVER appear in any log line."""
+
+    def test_credentialed_proxy_warns_masked_and_never_leaks(self, dcfg, monkeypatch, caplog) -> None:
+        import logging as _logging
+
+        client = _ProxyApiClient([{"stream": "ok\n"}], {"HTTPS_PROXY": "http://alice:s3cr3tpw@proxy.corp:3128"})
+        _wire(monkeypatch, client)
+        with caplog.at_level(_logging.INFO, logger="docker_app_launcher.docker.dockerfile_backend"):
+            rc, _ = dockerfile_backend.up(dcfg)
+        assert rc == 0
+        assert client.api._proxy_configs.asked, "test contract: the proxy config was actually consulted"
+        rendered = [r.getMessage() for r in caplog.records]
+        assert any("HTTPS_PROXY" in m for m in rendered), "the variable NAME must be announced"
+        assert any("alice:***@proxy.corp:3128" in m for m in rendered), "warning must show the masked form"
+        assert not any("s3cr3tpw" in m for m in rendered), "the password must never reach the log"
+
+    def test_plain_proxy_gets_info_only(self, dcfg, monkeypatch, caplog) -> None:
+        import logging as _logging
+
+        client = _ProxyApiClient([{"stream": "ok\n"}], {"HTTP_PROXY": "http://proxy.corp:3128"})
+        _wire(monkeypatch, client)
+        with caplog.at_level(_logging.INFO, logger="docker_app_launcher.docker.dockerfile_backend"):
+            dockerfile_backend.up(dcfg)
+        rendered = [r.getMessage() for r in caplog.records]
+        assert any("HTTP_PROXY" in m and "apply to this build" in m for m in rendered)
+        assert not any(r.levelname == "WARNING" and "credentials" in r.getMessage() for r in caplog.records)

@@ -55,15 +55,46 @@ def _disable_registry_auth(client: Any) -> None:
         logger.debug("could not neutralize registry auth: %s", exc)
 
 
+def _mask_url_credentials(url: str) -> str:
+    """``http://user:pass@host`` -> ``http://user:***@host`` (log-safe)."""
+    from urllib.parse import urlsplit
+
+    try:
+        parts = urlsplit(url)
+        if parts.password is None:
+            return url
+        netloc = f"{parts.username}:***@{parts.hostname}"
+        if parts.port:
+            netloc += f":{parts.port}"
+        return parts._replace(netloc=netloc).geturl()
+    except (ValueError, AttributeError):
+        return "<unparsable proxy url>"
+
+
 def _log_proxy_settings(client: Any) -> None:
     """User-config proxies DO flow into the build (docker-py injects them as
-    build args) - keep that default, but say so in the log (#77): silently
-    inheriting a foreign proxy is a surprise source.
+    build args, ``use_config_proxy=True`` default) - keep that default, but
+    say so in the log (#77): silently inheriting a foreign proxy is a
+    surprise source. Values are NEVER logged; a credentialed proxy URL
+    additionally gets a masked warning, because with the classic builder
+    build args (and thus the credentials) end up in the image history.
+    Masking the URL before the build would break authenticated proxies, so
+    pass-through + warning is the deliberate choice.
     """
     try:
         proxies = client.api._proxy_configs.get_environment()
-        if proxies:
-            logger.info("proxy settings from the docker client config apply to this build: %s", ", ".join(proxies))
+        if not proxies:
+            return
+        logger.info("proxy settings from the docker client config apply to this build: %s", ", ".join(proxies))
+        for name, value in proxies.items():
+            masked = _mask_url_credentials(str(value))
+            if masked != str(value):
+                logger.warning(
+                    "proxy variable %s contains credentials (%s). With the classic builder, build "
+                    "args end up in the image history - prefer a credential-free proxy URL.",
+                    name,
+                    masked,
+                )
     except Exception as exc:  # noqa: BLE001 - log-only helper
         logger.debug("proxy config not readable: %s", exc)
 

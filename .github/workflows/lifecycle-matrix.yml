@@ -1,0 +1,37 @@
+# Lifecycle matrix (#79): the full operation set per deployment mode against
+# a real engine - install, install-again, logs, stop, restart of the stopped
+# stack, uninstall, nothing-runs transitions - for image, dockerfile AND
+# compose mode. Runtime split (documented in docs/environment-matrix.md):
+# the per-push ci.yml runs the mocked suite plus the fast old-engine cell;
+# this full matrix runs nightly and on demand, so nobody mistakes a green
+# push for full-matrix coverage.
+name: Lifecycle matrix
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lifecycle-matrix:
+    name: Full operation set per mode (real engine)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Install package
+        run: poetry install --with dev
+
+      - name: Run the lifecycle matrix (image, dockerfile, compose)
+        run: tests/integration/run_lifecycle_matrix_integration.sh --no-cov

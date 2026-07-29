@@ -484,6 +484,30 @@ make screenshots  # dark-mode screenshots of all three frontends -> test-screens
 make fix          # auto-fix lint + format
 ```
 
+### Integration runs against a real engine
+
+The mocked suite cannot catch cross-layer breaks by nature — two opt-in
+runners prove the real thing (both need a running local Docker daemon):
+
+```bash
+# The image mode's old-engine promise, MEASURED (#84): starts a PINNED
+# docker:20.10.24 daemon, PROVES it has no compose plugin and no buildx,
+# then pulls AND archive-loads a prebuilt image, starts it, checks HTTP.
+tests/integration/run_image_mode_old_engine_integration.sh
+
+# The full lifecycle matrix (#79): install, install-again, logs, stop,
+# restart of the stopped stack, uninstall, nothing-runs transitions —
+# for image, dockerfile AND compose mode (compose needs the v2 plugin).
+tests/integration/run_lifecycle_matrix_integration.sh
+# narrow to one mode:
+DAL_LIFECYCLE_MATRIX_MODE=image tests/integration/run_lifecycle_matrix_integration.sh
+```
+
+CI split: every push runs the mocked suite plus the old-engine cell; the
+full lifecycle matrix runs nightly (`lifecycle-matrix.yml`) and on
+demand via the Actions tab — a green push alone does not imply
+full-matrix coverage.
+
 ### Manual launcher testing
 
 Sample configs under `test-configs/` let you drive the launcher against a

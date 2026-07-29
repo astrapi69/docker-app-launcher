@@ -358,6 +358,22 @@ Seed cells shipped now:
   argument; a future failure here is a finding about the documented
   minimum engine generation, never a reason to bend the test.
 
+- LIFECYCLE MATRIX (#79): the full operation set per deployment mode -
+  install, install-when-installed, logs, stop, restart of the STOPPED
+  stack, uninstall, stop-when-nothing-runs - against a real engine, for
+  image, dockerfile and compose mode
+  (`tests/integration/test_lifecycle_matrix_real.py`, runner
+  `run_lifecycle_matrix_integration.sh`). The checked operation set is
+  enumerated in the test and asserted complete per mode. **Runtime
+  split:** the per-push `ci.yml` runs the mocked suite plus the fast
+  old-engine cell (#84); the FULL lifecycle matrix runs nightly and on
+  demand (`lifecycle-matrix.yml`) - a green push does NOT imply
+  full-matrix coverage. First full run 2026-07-29: 3/3 modes green
+  (~60 s local). Why mocked coverage is not enough here, twice proven:
+  the #77 sentinel was correct for the build path and broke the pull
+  path; the #78 dispatch fell from a successful image acquire into the
+  compose build.
+
 Cells enumerated for follow-up (need the corresponding gap fix or heavier
 provisioning, tracked by their gap issue):
 

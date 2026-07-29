@@ -8,6 +8,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Per-mode lifecycle matrix against a real engine (#79).** For image,
+  dockerfile and compose mode, the FULL operation set — install,
+  install-when-installed, logs, stop, restart of the stopped stack,
+  uninstall, and the nothing-runs transitions — now runs against a real
+  daemon (`run_lifecycle_matrix_integration.sh`), with the checked
+  operation set enumerated and asserted complete per mode. Runtime
+  split, documented: every push runs the mocked suite plus the fast
+  old-engine cell; the full matrix runs nightly and on demand
+  (`lifecycle-matrix.yml`). First full run 2026-07-29: 3/3 modes green.
+- **Coverage check for path-bearing config fields (#85).** Every
+  path-suggestive `LauncherConfig` field must be classified by its
+  anchoring; base_dir-classified fields get their resolution proven for
+  explicit `install_dir`, file-loaded configs, and the flagged cwd
+  fallback. A new path field that skips classification fails the suite
+  (rule in CLAUDE.md, precedent #83).
 - **The image mode's old-engine promise is now MEASURED, not argued
   (#84).** A new CI job (`image-mode-old-engine`) runs both acquisition
   sources — registry pull and local archive load, each followed by a

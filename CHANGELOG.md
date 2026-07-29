@@ -6,6 +6,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **The image mode's old-engine promise is now MEASURED, not argued
+  (#84).** A new CI job (`image-mode-old-engine`) runs both acquisition
+  sources — registry pull and local archive load, each followed by a
+  container start and an HTTP check — against a PINNED
+  `docker:20.10.24-dind` engine (API 1.41) that the runner first proves
+  free of any compose plugin, legacy docker-compose, and buildx (the dind
+  convenience image bundles the client plugins; the cell strips them to
+  model the real `docker.io` distro profile). First measurement
+  2026-07-29: green. This resolves the "Known limitation" stated in the
+  0.23.0 notes and unblocks consumers switching their distribution to the
+  image mode.
+
 ## [0.23.0] - 2026-07-29
 
 ### Added

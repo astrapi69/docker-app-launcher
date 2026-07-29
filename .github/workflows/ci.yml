@@ -117,6 +117,32 @@ jobs:
               exit 1
             }
 
+  image-mode-old-engine:
+    # The image mode's central promise MEASURED (#84): a PINNED 20.10-class
+    # engine (docker:20.10.24-dind), provisioned to the distro profile (no
+    # compose plugin, no buildx - the runner script PROVES the absence and
+    # fails otherwise), must pull AND archive-load a prebuilt image through
+    # image_backend.up and answer HTTP. A failure here is a finding about the
+    # documented minimum engine generation, never a reason to bend the test.
+    name: Image mode on old engine (20.10)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Install package
+        run: poetry install --with dev
+
+      - name: Run the old-engine cell (pinned dind, proven plugin-free)
+        run: tests/integration/run_image_mode_old_engine_integration.sh
+
   cross-platform-smoke:
     # G9 (#58): no macOS or Windows automation existed - the PyPI/pipx install
     # path (the zero-cost distribution that sidesteps BOTH macOS Gatekeeper and

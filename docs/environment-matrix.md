@@ -344,18 +344,19 @@ Seed cells shipped now:
 | `no_docker` | no docker binary | `check_docker` reports not-installed with an install command |
 | `no_group` | `docker.io`, daemon up, user NOT in the docker group | the ONE cell where `usermod -aG docker` is correct advice (a local root unix socket) |
 
-- NEW cell (#78): image mode on an old-generation engine - a `docker.io`
-  daemon with NO compose plugin and NO buildx must pull (or
-  `images.load`) and start a prebuilt image through `image_backend.up`.
-  The engine-API path is exactly why the mode exists; this cell proves it
-  where the build modes are blocked. Deterministic unit coverage lives in
-  `tests/docker/test_image_backend.py`; a real-daemon proof ran against a
-  CURRENT engine (registry pull + archive load + run + HTTP check,
-  documented in the #78 report). **The old-engine cell itself is NOT yet
-  automated** - until it runs (#79), the mode's old-generation promise
-  rests on the API-surface argument (only `/images/create` + the
-  containers API, both ancient), not on a measured run. #79 is a
-  prerequisite for consumers switching their distribution to this mode.
+- MEASURED cell (#78, #84): image mode on an old-generation engine. A
+  PINNED `docker:20.10.24-dind` (API 1.41) daemon, provisioned to the
+  distro profile - the runner PROVES no compose plugin, no legacy
+  docker-compose, no buildx before any test, and fails otherwise (the
+  dind convenience image bundles the client plugins; the cell removes
+  them because the modeled `docker.io` profile has none) - pulls AND
+  archive-loads a prebuilt image through `image_backend.up`, starts it,
+  and answers HTTP. Runs in CI on every push (`image-mode-old-engine`
+  job); local: `tests/integration/run_image_mode_old_engine_integration.sh`.
+  First measured 2026-07-29: 3/3 green on 20.10.24. This closes the
+  old-generation promise with a measurement instead of the API-surface
+  argument; a future failure here is a finding about the documented
+  minimum engine generation, never a reason to bend the test.
 
 Cells enumerated for follow-up (need the corresponding gap fix or heavier
 provisioning, tracked by their gap issue):

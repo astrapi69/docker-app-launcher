@@ -8,6 +8,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Two-audience documentation (#91).** New `docs/quickstart-end-user.md`
+  walks a non-developer from installing Docker through "Check system",
+  install, and open-in-browser, with a troubleshooting section organized
+  by the eight problem classes the launcher reports (`ERROR_CHECK_IDS`),
+  reusing the launcher's own explanation texts. New
+  `docs/consumer-integration.md` shows app authors how to integrate:
+  `launcher.json` per mode (image is the end-user recommendation), the
+  health endpoint contract (`health_check_key` empty means any HTTP 200
+  is healthy), ports/volumes/env, tag vs digest pinning, release
+  artifacts (GHCR publish plus an optional `docker save` archive), and
+  the update path. Both are linked from the README; the README's
+  duplicated image-mode prose was trimmed to point at the guide.
 - **Per-mode lifecycle matrix against a real engine (#79).** For image,
   dockerfile and compose mode, the FULL operation set — install,
   install-when-installed, logs, stop, restart of the stopped stack,

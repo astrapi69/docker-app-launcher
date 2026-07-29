@@ -12,6 +12,19 @@ Pip-installable, no Electron, Linux/macOS/Windows, 11-language UI.
 
 > 🇩🇪 [Deutsche Version](https://github.com/astrapi69/docker-app-launcher/blob/main/README-de.md)
 
+## Documentation
+
+Two focused guides live in [`docs/`](docs/); this README is the full reference.
+
+- **[End-user quickstart](docs/quickstart-end-user.md)** — for people who just
+  want to run an app: install Docker, start the launcher, "Check system",
+  install, open in the browser, plus troubleshooting organized by the eight
+  problem classes the launcher reports.
+- **[Consumer integration guide](docs/consumer-integration.md)** — for authors
+  shipping their own app: `launcher.json` per mode, the health endpoint
+  contract, ports/volumes/env, tag vs digest pinning, release artifacts (GHCR
+  publish plus an optional `docker save` archive), and the update path.
+
 ## Quick Start
 
 ```bash
@@ -197,12 +210,11 @@ fields:
 - Ports, volumes, env, and `restart_policy` behave exactly as in
   dockerfile mode.
 - The image is fetched on **install and explicit start only** — never
-  silently in the background. Measured behavior: Start on an already
-  RUNNING stack is a no-op (`already running`), so an update is
-  **Stop, then Start** — the start of a stopped stack re-pulls the
-  reference and replaces the container; named volumes survive, and the
-  previous image version remains on disk until a `--cleanup` /
-  `docker image prune`. Pinned digests never change.
+  silently in the background. Pinned digests never change.
+- **Updating** is a single step: the **Update** button, or
+  `--update`, runs stop → re-pull → start → health, with named volumes
+  preserved and the previous image kept for rollback. (Equivalent to the
+  older **Stop, then Start**, which still works.)
 - **Offline:** if the registry is unreachable but the image is already
   local, the start proceeds on the local image. If it is missing locally,
   the launcher names the network requirement up front instead of failing
@@ -212,6 +224,10 @@ fields:
 - Multi-arch images are resolved to the machine's platform by the engine
   itself; if the publisher shipped no variant for this platform, the
   launcher reports exactly that instead of a raw library error.
+
+See the **[consumer integration guide](docs/consumer-integration.md)** for
+publishing images, the health endpoint contract, pinning, and release
+artifacts in one place.
 
 ## Features
 

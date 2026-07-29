@@ -19,9 +19,9 @@ import threading
 import tkinter as tk
 from typing import Any
 
-from docker_app_launcher import actions, i18n, lockfile, tray, update_check
+from docker_app_launcher import actions, i18n, lockfile, tray, ui_model, update_check
 from docker_app_launcher.config import LOCALE_LABELS, LauncherConfig, locale_for_label
-from docker_app_launcher.frontends.tk_window import _set_window_icon
+from docker_app_launcher.frontends.tk_window import ASSISTANT_WIDGET_BUILDERS, _set_window_icon
 from docker_app_launcher.frontends.tooltip import Tooltip as _Tooltip
 from docker_app_launcher.ui_model import (
     _STATE_KEYS,
@@ -155,6 +155,13 @@ if HAS_CTK:
             for name in SECONDARY_BUTTONS:
                 self._make_button(self._secondary_frame, name, handlers[name]).pack(side="left", padx=4)
 
+            # Installation assistant (#81): identical element set as tk/qt,
+            # enforced by tests/test_frontend_parity.py.
+            self._assistant_labels = ui_model.assistant_labels(config)
+            self._assistant: dict[str, Any] = {}
+            for element, builder in ASSISTANT_WIDGET_BUILDERS.items():
+                self._assistant[element] = getattr(self, builder)()
+
             self._log(f"{about_lines(config)[0]} · {config.gui_backend} · {_platform.system()}")
             self._refresh()
             if config.cleanup_on_start:
@@ -244,6 +251,146 @@ if HAS_CTK:
             self._tooltips[name] = _Tooltip(btn)
             return btn
 
+        # --- installation assistant (#81) ---
+
+        def _build_status_headline(self) -> Any:
+            return self._state_label
+
+        def _apply_status_headline(self, state: str, *, health_ok: bool | None = None) -> None:
+            severity, text = ui_model.status_headline(self._cfg, state, health_ok=health_ok)
+            colors = {"ok": "#188038", "error": "#c5221f", "info": None}
+            color = colors[severity]
+            self._state_label.configure(text_color=color if color else ("gray10", "gray90"))
+            self._headline_symbol = text.split(" ", 1)[0]
+
+        def _build_doctor_checklist(self) -> Any:
+            btn = ctk.CTkButton(
+                self._secondary_frame,
+                text=self._assistant_labels["system_check"],
+                command=self._on_system_check,
+                width=120,
+            )
+            btn.pack(side="left", padx=4)
+            self._system_check_btn = btn
+            return btn
+
+        def _on_system_check(self) -> None:
+            from docker_app_launcher.doctor import collect_doctor_report
+
+            self._system_check_btn.configure(state="disabled")
+
+            def _run() -> None:
+                report = collect_doctor_report(self._cfg)
+                self.after(0, lambda: self._render_doctor(report))
+
+            threading.Thread(target=_run, daemon=True, name="dal-gui-doctor").start()
+
+        def _render_doctor(self, report: Any) -> bool:
+            self._system_check_btn.configure(state="normal")
+            self._set_log_collapsed(False)
+            for status, line in ui_model.doctor_checklist_rows(report):
+                self._log(line, tag={"ok": "ok", "error": "err"}.get(status, "info"))
+            card = ui_model.primary_problem(self._cfg, report)
+            if card is None:
+                self._log(self._assistant_labels["no_problems_found"], tag="ok")
+                self._hide_problem_card()
+            else:
+                self._show_problem_card(card)
+            return True
+
+        def _build_problem_card(self) -> Any:
+            frame = ctk.CTkFrame(self, border_width=1)
+            wrap = max(200, self._cfg.window_width - 60)
+            font_bold = ctk.CTkFont(weight="bold")
+            self._problem_title = ctk.CTkLabel(frame, font=font_bold, anchor="w", wraplength=wrap)
+            self._problem_title.pack(fill="x", padx=8, pady=(6, 0))
+            self._problem_message = ctk.CTkLabel(frame, anchor="w", justify="left", wraplength=wrap)
+            self._problem_message.pack(fill="x", padx=8)
+            self._problem_meaning_label = ctk.CTkLabel(
+                frame, text=self._assistant_labels["what_it_means"], font=font_bold, anchor="w"
+            )
+            self._problem_meaning_label.pack(fill="x", padx=8)
+            self._problem_meaning = ctk.CTkLabel(frame, anchor="w", justify="left", wraplength=wrap)
+            self._problem_meaning.pack(fill="x", padx=8)
+            self._problem_fix_label = ctk.CTkLabel(
+                frame, text=self._assistant_labels["what_to_do"], font=font_bold, anchor="w"
+            )
+            self._problem_fix_label.pack(fill="x", padx=8)
+            self._problem_fix = ctk.CTkLabel(frame, anchor="w", justify="left", wraplength=wrap)
+            self._problem_fix.pack(fill="x", padx=8, pady=(0, 6))
+            self._problem_frame = frame
+            return frame
+
+        def _show_problem_card(self, card: dict[str, str]) -> None:
+            self._problem_title.configure(text=f"✗ {card['title']}: {card['id']}")
+            self._problem_message.configure(text=card["message"])
+            self._problem_meaning.configure(text=card["meaning"])
+            self._problem_fix.configure(text=card["fix"])
+            self._problem_frame.pack(fill="x", padx=12, pady=(4, 0), before=self._divider)
+
+        def _hide_problem_card(self) -> None:
+            self._problem_frame.pack_forget()
+
+        def _build_copy_diagnosis_button(self) -> Any:
+            btn = ctk.CTkButton(
+                self._secondary_frame,
+                text=self._assistant_labels["copy_diagnosis"],
+                command=lambda: self._copy_with_feedback("copy_diagnosis", ui_model.diagnosis_clipboard_text),
+                width=130,
+            )
+            btn.pack(side="left", padx=4)
+            self._copy_buttons = getattr(self, "_copy_buttons", {})
+            self._copy_buttons["copy_diagnosis"] = btn
+            return btn
+
+        def _build_copy_support_bundle_button(self) -> Any:
+            btn = ctk.CTkButton(
+                self._secondary_frame,
+                text=self._assistant_labels["copy_support_bundle"],
+                command=lambda: self._copy_with_feedback("copy_support_bundle", ui_model.support_bundle_clipboard_text),
+                width=150,
+            )
+            btn.pack(side="left", padx=4)
+            self._copy_buttons["copy_support_bundle"] = btn
+            return btn
+
+        def _copy_with_feedback(self, label_key: str, text_fn: Any) -> None:
+            button = self._copy_buttons[label_key]
+            button.configure(state="disabled")
+
+            def _run() -> None:
+                text = text_fn(self._cfg)
+
+                def done() -> None:
+                    self.clipboard_clear()
+                    self.clipboard_append(text)
+                    button.configure(text=self._assistant_labels["copied_to_clipboard"], state="normal")
+                    self.after(2000, lambda: button.configure(text=self._assistant_labels[label_key]))
+
+                self.after(0, done)
+
+            threading.Thread(target=_run, daemon=True, name=f"dal-gui-{label_key}").start()
+
+        def _build_log_toggle(self) -> Any:
+            btn = ctk.CTkButton(self._secondary_frame, command=self._toggle_log, width=110)
+            btn.pack(side="left", padx=4)
+            self._log_toggle_btn = btn
+            self._log_collapsed = False
+            self._set_log_collapsed(True)
+            return btn
+
+        def _toggle_log(self) -> None:
+            self._set_log_collapsed(not self._log_collapsed)
+
+        def _set_log_collapsed(self, collapsed: bool) -> None:
+            self._log_collapsed = collapsed
+            if collapsed:
+                self._status.pack_forget()
+                self._log_toggle_btn.configure(text=self._assistant_labels["show_details"])
+            else:
+                self._status.pack(fill="both", expand=True, padx=12, pady=(8, 8), before=self._divider)
+                self._log_toggle_btn.configure(text=self._assistant_labels["hide_details"])
+
         def _t(self, key: str, **kwargs: object) -> str:
             return i18n.t(key, self._cfg, **kwargs)
 
@@ -256,6 +403,8 @@ if HAS_CTK:
 
         def _log(self, line: str, *, tag: str = "info") -> None:
             log_panel_line(line, tag)
+            if tag == "err" and getattr(self, "_log_collapsed", False):
+                self._set_log_collapsed(False)  # errors must never hide behind the toggle
             self._status.configure(state="normal")
             self._status.insert("end", line + "\n")
             self._status.see("end")
@@ -290,7 +439,8 @@ if HAS_CTK:
                 self._render_docker_help()
             else:
                 heading = self._t(_STATE_KEYS.get(state, "no_docker"), port=actions.resolve_port(self._cfg))
-                self._state_label.configure(text=heading)
+                self._apply_status_headline(state)
+                self._state_label.configure(text=f"{self._headline_symbol} {heading}")
                 self._hide_docker_help()
             self._port_entry.configure(state="normal" if port_editable(state) else "disabled")
             self._validate_port()

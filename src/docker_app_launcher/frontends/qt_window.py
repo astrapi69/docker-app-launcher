@@ -22,8 +22,9 @@ import sys
 import threading
 from typing import Any
 
-from docker_app_launcher import actions, i18n, lockfile, tray, update_check
+from docker_app_launcher import actions, i18n, lockfile, tray, ui_model, update_check
 from docker_app_launcher.config import LOCALE_LABELS, LauncherConfig, locale_for_label
+from docker_app_launcher.frontends.tk_window import ASSISTANT_WIDGET_BUILDERS
 from docker_app_launcher.ui_model import (
     _STATE_KEYS,
     BUTTON_LABELS,
@@ -192,6 +193,19 @@ if HAS_QT:
                 secondary_row.addWidget(self._make_button(name, handlers[name]))
             root.addWidget(secondary, alignment=Qt.AlignmentFlag.AlignHCenter)
 
+            # Installation assistant (#81): identical element set as tk/ctk,
+            # enforced by tests/test_frontend_parity.py. The assistant row
+            # sits under the secondary actions; the problem card inserts
+            # itself above the (collapsible) log.
+            self._assistant_labels = ui_model.assistant_labels(config)
+            self._root_layout = root
+            assistant = QWidget()
+            self._assistant_row = QHBoxLayout(assistant)
+            self._assistant: dict[str, Any] = {}
+            for element, builder in ASSISTANT_WIDGET_BUILDERS.items():
+                self._assistant[element] = getattr(self, builder)()
+            root.addWidget(assistant, alignment=Qt.AlignmentFlag.AlignHCenter)
+
             self._log(f"{about_lines(config)[0]} · {config.gui_backend} · {_platform.system()}")
             self._refresh()
             if config.cleanup_on_start:
@@ -294,12 +308,150 @@ if HAS_QT:
             self._buttons[name] = btn
             return btn
 
+        # --- installation assistant (#81) ---
+
+        def _build_status_headline(self) -> Any:
+            return self._state_label
+
+        def _apply_status_headline(self, state: str, *, health_ok: bool | None = None) -> None:
+            severity, text = ui_model.status_headline(self._cfg, state, health_ok=health_ok)
+            colors = {"ok": "#188038", "error": "#c5221f", "info": ""}
+            color = f" color: {colors[severity]};" if colors[severity] else ""
+            self._state_label.setStyleSheet(f"font-size: 15px; font-weight: bold;{color}")
+            self._headline_symbol = text.split(" ", 1)[0]
+
+        def _build_doctor_checklist(self) -> Any:
+            btn = QPushButton(self._assistant_labels["system_check"])
+            btn.clicked.connect(self._on_system_check)
+            self._assistant_row.addWidget(btn)
+            self._system_check_btn = btn
+            return btn
+
+        def _on_system_check(self) -> None:
+            from docker_app_launcher.doctor import collect_doctor_report
+
+            self._system_check_btn.setEnabled(False)
+
+            def _run() -> None:
+                report = collect_doctor_report(self._cfg)
+                self._post(functools.partial(self._render_doctor, report))
+
+            threading.Thread(target=_run, daemon=True, name="dal-gui-doctor").start()
+
+        def _render_doctor(self, report: Any) -> bool:
+            self._system_check_btn.setEnabled(True)
+            self._set_log_collapsed(False)
+            for status, line in ui_model.doctor_checklist_rows(report):
+                self._log(line, tag={"ok": "ok", "error": "err"}.get(status, "info"))
+            card = ui_model.primary_problem(self._cfg, report)
+            if card is None:
+                self._log(self._assistant_labels["no_problems_found"], tag="ok")
+                self._hide_problem_card()
+            else:
+                self._show_problem_card(card)
+            return True
+
+        def _build_problem_card(self) -> Any:
+            frame = QFrame()
+            frame.setFrameShape(QFrame.Shape.StyledPanel)
+            card_layout = QVBoxLayout(frame)
+            self._problem_title = QLabel()
+            self._problem_title.setStyleSheet("font-weight: bold;")
+            self._problem_title.setWordWrap(True)
+            card_layout.addWidget(self._problem_title)
+            self._problem_message = QLabel()
+            self._problem_message.setWordWrap(True)
+            card_layout.addWidget(self._problem_message)
+            self._problem_meaning_label = QLabel(self._assistant_labels["what_it_means"])
+            self._problem_meaning_label.setStyleSheet("font-weight: bold;")
+            card_layout.addWidget(self._problem_meaning_label)
+            self._problem_meaning = QLabel()
+            self._problem_meaning.setWordWrap(True)
+            card_layout.addWidget(self._problem_meaning)
+            self._problem_fix_label = QLabel(self._assistant_labels["what_to_do"])
+            self._problem_fix_label.setStyleSheet("font-weight: bold;")
+            card_layout.addWidget(self._problem_fix_label)
+            self._problem_fix = QLabel()
+            self._problem_fix.setWordWrap(True)
+            card_layout.addWidget(self._problem_fix)
+            frame.hide()
+            self._problem_frame = frame
+            self._root_layout.insertWidget(self._root_layout.indexOf(self._status), frame)
+            return frame
+
+        def _show_problem_card(self, card: dict[str, str]) -> None:
+            self._problem_title.setText(f"✗ {card['title']}: {card['id']}")
+            self._problem_message.setText(card["message"])
+            self._problem_meaning.setText(card["meaning"])
+            self._problem_fix.setText(card["fix"])
+            self._problem_frame.show()
+
+        def _hide_problem_card(self) -> None:
+            self._problem_frame.hide()
+
+        def _build_copy_diagnosis_button(self) -> Any:
+            btn = QPushButton(self._assistant_labels["copy_diagnosis"])
+            btn.clicked.connect(lambda: self._copy_with_feedback("copy_diagnosis", ui_model.diagnosis_clipboard_text))
+            self._assistant_row.addWidget(btn)
+            self._copy_buttons = getattr(self, "_copy_buttons", {})
+            self._copy_buttons["copy_diagnosis"] = btn
+            return btn
+
+        def _build_copy_support_bundle_button(self) -> Any:
+            btn = QPushButton(self._assistant_labels["copy_support_bundle"])
+            btn.clicked.connect(
+                lambda: self._copy_with_feedback("copy_support_bundle", ui_model.support_bundle_clipboard_text)
+            )
+            self._assistant_row.addWidget(btn)
+            self._copy_buttons["copy_support_bundle"] = btn
+            return btn
+
+        def _copy_with_feedback(self, label_key: str, text_fn: Any) -> None:
+            button = self._copy_buttons[label_key]
+            button.setEnabled(False)
+
+            def _run() -> None:
+                text = text_fn(self._cfg)
+
+                def done() -> None:
+                    QGuiApplication.clipboard().setText(text)
+                    button.setText(self._assistant_labels["copied_to_clipboard"])
+                    button.setEnabled(True)
+                    QTimer.singleShot(2000, lambda: button.setText(self._assistant_labels[label_key]))
+
+                self._post(done)
+
+            threading.Thread(target=_run, daemon=True, name=f"dal-gui-{label_key}").start()
+
+        def _build_log_toggle(self) -> Any:
+            btn = QPushButton()
+            btn.clicked.connect(self._toggle_log)
+            self._assistant_row.addWidget(btn)
+            self._log_toggle_btn = btn
+            self._log_collapsed = False
+            self._set_log_collapsed(True)
+            return btn
+
+        def _toggle_log(self) -> None:
+            self._set_log_collapsed(not self._log_collapsed)
+
+        def _set_log_collapsed(self, collapsed: bool) -> None:
+            self._log_collapsed = collapsed
+            if collapsed:
+                self._status.hide()
+                self._log_toggle_btn.setText(self._assistant_labels["show_details"])
+            else:
+                self._status.show()
+                self._log_toggle_btn.setText(self._assistant_labels["hide_details"])
+
         def _t(self, key: str, **kwargs: object) -> str:
             return i18n.t(key, self._cfg, **kwargs)
 
         # --- log ---
 
         def _log(self, line: str, *, tag: str = "info") -> None:
+            if tag == "err" and getattr(self, "_log_collapsed", False):
+                self._set_log_collapsed(False)  # errors must never hide behind the toggle
             log_panel_line(line, tag)
             self._status.appendPlainText(line)
 
@@ -322,7 +474,8 @@ if HAS_QT:
                 self._render_docker_help()
             else:
                 heading = self._t(_STATE_KEYS.get(state, "no_docker"), port=actions.resolve_port(self._cfg))
-                self._state_label.setText(heading)
+                self._apply_status_headline(state)
+                self._state_label.setText(f"{self._headline_symbol} {heading}")
                 self._docker_help.hide()
             self._port_entry.setEnabled(port_editable(state))
             self._validate_port()

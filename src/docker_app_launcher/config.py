@@ -130,6 +130,13 @@ class LauncherConfig:
     container_volumes: dict[str, str] = field(default_factory=dict)
     container_env: dict[str, str] = field(default_factory=dict)
     restart_policy: str = "unless-stopped"
+    # Registry credential resolution for dockerfile-mode builds (#77).
+    # Default False: the launcher builds from local Dockerfiles with PUBLIC
+    # base images and must not touch the user's credential helpers - a stale
+    # credsStore (e.g. leftover docker-credential-gcloud) would hard-fail
+    # docker-py where the CLI shrugs. Consumers that pull PRIVATE images
+    # declare it explicitly; only then is a broken helper a hard error.
+    use_registry_credentials: bool = False
     compose_file: str = "docker-compose.prod.yml"
     build_timeout: int = 600
     start_timeout: int = 120

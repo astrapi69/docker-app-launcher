@@ -104,6 +104,15 @@ Recorded error classes (a fix is not done until it is measured against these):
   message that names every missing/too-old link at once. A minutes-long build
   must never fail on a precondition that was knowable up front, and a user
   must never have to fail, fix, and retry N times to discover N gaps.
+- **Switching from CLI to SDK inherits different configuration behavior.**
+  What the CLI treats leniently, the library may throw as a hard error.
+  Precedent (#77): a stale ``credsStore: gcloud`` in ``~/.docker/config.json``
+  is shrugged off by ``docker build`` but hard-fails docker-py's build with
+  ``StoreError``, because the SDK eagerly resolves credentials for ALL
+  configured registries. On every CLI->SDK migration, audit which user
+  configuration the library reads ON ITS OWN and how it reacts to
+  incompleteness - and default to NOT triggering resolution the launcher
+  does not need (``use_registry_credentials`` opt-in).
 - **A declared follow-up is not tracking.** An intent written as "follow-up"
   in release notes, or "remains open" inside an issue that can be closed,
   dies with its carrier - both happened: the `stream_app_logs()` GUI wiring

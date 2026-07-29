@@ -73,6 +73,26 @@ but no buildx-version awareness.
   rootless context, etc.).
 - Windows named pipe `npipe://`.
 
+#### Client-configuration state (`~/.docker/config.json` on used machines)
+
+A real axis on second-hand/developer machines - the config outlives the
+tools that wrote it:
+
+- `credsStore` set to a helper that IS installed (desktop, pass, secretservice).
+- `credsStore` set to a helper that is GONE (verified field case:
+  `docker-credential-gcloud` leftover after a gcloud uninstall - the CLI
+  tolerates it, docker-py hard-fails the build with `StoreError`, #77).
+- Per-registry `credHelpers` entries, present and dangling.
+- `proxies` - docker-py injects them into builds as build args; the
+  launcher keeps that default but LOGS it (never silent inheritance).
+- Plugin references (`cliPluginsExtraDirs`) and a non-default active
+  context (covered by the access-path axis, listed here for completeness).
+
+Launcher stance (#77): dockerfile-mode builds do NOT resolve registry
+credentials by default (public base images need none); a consumer that
+pulls private images declares `use_registry_credentials: true` - only
+then is a broken helper a hard, named error.
+
 ### 1.2 Launcher assumptions checked against the matrix
 
 Findings from a full audit of `main` (each cited). "OK" means the code is
@@ -290,6 +310,13 @@ cells this audit flagged as previously mock-only. Each test is gated by
 and by `DAL_ENV_MATRIX_SCENARIO=<cell>` (one container per cell). Like the
 existing integration scripts, this is a manual/opt-in runner, not part of the
 standard `make ci` job (it needs a real daemon and `--privileged`).
+
+- NEW cell (#77): a `DOCKER_CONFIG` pointing at a broken `credsStore` -
+  the dockerfile-mode build must succeed WITHOUT touching the helper
+  (default) and must hard-fail with the named-helper message when
+  `use_registry_credentials` is set. Deterministic unit coverage lives in
+  `tests/docker/test_dockerfile_backend.py::TestRegistryAuthNeutralized`;
+  the real-daemon proof is the same scenario with an actual build.
 
 Seed cells shipped now:
 

@@ -14,6 +14,8 @@ class _FakeApi:
     def __init__(self, chunks: list[dict[str, Any]]) -> None:
         self._chunks = chunks
         self.build_kwargs: dict[str, Any] = {}
+        # mirrors docker-py's private attr the #77 neutralization replaces
+        self._auth_configs: Any = None
 
     def build(self, **kwargs: Any):
         self.build_kwargs = kwargs
@@ -229,3 +231,69 @@ class TestDeploymentModeSchema:
         ).resolve()
         assert cfg.build_context_path == tmp_path / "src"
         assert cfg.dockerfile_path == tmp_path / "src" / "deploy" / "Dockerfile.prod"
+
+
+class _CredsSentinel:
+    """Stands in for docker-py's filesystem-loaded AuthConfig: resolving it
+    (get_all_credentials) is exactly what explodes on a broken credsStore."""
+
+    is_empty = False
+
+    def get_all_credentials(self):
+        raise AssertionError("credential resolution must never be triggered for a local build (#77)")
+
+
+class TestRegistryAuthNeutralized:
+    """#77: a stale credsStore (docker-credential-gcloud leftover) hard-fails
+    docker-py builds the CLI would run. Local builds of public base images
+    need no registry login - the resolution must not even START."""
+
+    def test_build_runs_with_auth_neutralized(self, dcfg, monkeypatch) -> None:
+        client = _FakeClient([{"stream": "ok\n"}])
+        client.api._auth_configs = _CredsSentinel()
+        _wire(monkeypatch, client)
+        rc, detail = dockerfile_backend.up(dcfg)
+        assert rc == 0, f"build must succeed without touching the credential store: {detail}"
+        replaced = client.api._auth_configs
+        assert not isinstance(replaced, _CredsSentinel), "auth config must be replaced before the build"
+        assert replaced.get_all_credentials() == {}
+        assert replaced.is_empty is False, "an 'empty' config would make docker-py RELOAD the broken file"
+
+    def test_store_error_is_classified_actionably(self, dcfg, monkeypatch) -> None:
+        class StoreError(Exception):
+            pass
+
+        def boom(*a, **k):
+            raise StoreError("docker-credential-gcloud not installed or not available in PATH")
+
+        monkeypatch.setattr(py_client, "get_client", boom)
+        rc, detail = dockerfile_backend.up(dcfg)
+        assert rc == 1
+        assert "credsStore" in detail or "credential helper" in detail
+        assert "config.json" in detail, "must point at the file to fix, not just echo the library error"
+
+    def test_opt_in_keeps_resolution_active(self, dcfg, monkeypatch) -> None:
+        # A consumer that declares private registries gets the REAL resolution
+        # (and thus real errors) - the launcher only neutralizes by default.
+        dcfg.use_registry_credentials = True
+        client = _FakeClient([{"stream": "ok\n"}])
+        sentinel = _CredsSentinel()
+        client.api._auth_configs = sentinel
+
+        def quiet_build(**kwargs):
+            yield {"stream": "ok\n"}  # bypass the sentinel's get_all_credentials
+
+        client.api.build = quiet_build  # type: ignore[method-assign]
+        _wire(monkeypatch, client)
+        dockerfile_backend.up(dcfg)
+        assert client.api._auth_configs is sentinel, "opt-in must NOT replace the auth config"
+
+    def test_opt_in_store_error_message_demands_repair(self, dcfg, monkeypatch) -> None:
+        dcfg.use_registry_credentials = True
+
+        class StoreError(Exception):
+            pass
+
+        monkeypatch.setattr(py_client, "get_client", lambda *a, **k: (_ for _ in ()).throw(StoreError("gcloud gone")))
+        rc, detail = dockerfile_backend.up(dcfg)
+        assert rc == 1 and "use_registry_credentials" in detail and "repair" in detail

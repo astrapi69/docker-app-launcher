@@ -936,9 +936,11 @@ class TestStartEnvBeforeGate:
         monkeypatch.setattr(lifecycle, "check_docker", lambda: (True, "ok"))
         monkeypatch.setattr(lifecycle, "get_state", lambda c: "stopped")
         monkeypatch.setattr(lifecycle, "_write_env_ports", lambda c: order.append("env"))
+
         def gate(c):
             order.append("gate")
             return False, "blocked"
+
         monkeypatch.setattr(lifecycle, "_ensure_build_ready", gate)
         ok, _ = lifecycle.start(config)
         assert ok is False

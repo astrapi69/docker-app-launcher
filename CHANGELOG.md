@@ -6,6 +6,23 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **A stale credential helper no longer breaks dockerfile-mode builds
+  (#77).** Device forensics: `credsStore: gcloud` left over in
+  `~/.docker/config.json` after a gcloud uninstall hard-failed the build
+  with `StoreError('docker-credential-gcloud not installed…')` — docker-py
+  eagerly resolves credentials for ALL configured registries, where the
+  docker CLI is tolerant (recorded error class: switching from CLI to SDK
+  inherits different configuration behavior). The launcher builds local
+  Dockerfiles from public base images and needs no registry login, so by
+  default the resolution is not even started. Consumers that pull private
+  images declare `use_registry_credentials: true` — only then do helpers
+  run, and a broken one is a hard error naming the repair. Proxy settings
+  from the user config still apply to builds (docker-py default) but are
+  now announced in the log. User-config state (credsStore/credHelpers/
+  proxies) is a new axis in `docs/environment-matrix.md`.
+
 ### Added
 
 - **Rendered-port preflight (field finding 2026-07-28).** The compose

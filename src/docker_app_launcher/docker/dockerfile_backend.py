@@ -23,6 +23,51 @@ from docker_app_launcher.launcher_settings import resolve_port
 logger = logging.getLogger("docker_app_launcher.docker.dockerfile_backend")
 
 
+class _NoRegistryAuth:
+    """Credential-free stand-in for docker-py's AuthConfig (#77).
+
+    ``get_all_credentials`` is where a stale ``credsStore`` (e.g. a leftover
+    ``docker-credential-gcloud``) hard-fails with StoreError - the CLI is
+    tolerant here, the SDK is not (recorded error class: switching from CLI
+    to SDK inherits different config behavior). Local builds of public base
+    images need no registry login, so the resolution must not even start.
+    Deliberately NOT empty: docker-py reloads ``~/.docker/config.json`` when
+    ``_auth_configs`` is falsy or ``is_empty`` - which would re-arm the
+    broken store.
+    """
+
+    is_empty = False
+
+    def get_all_credentials(self) -> dict[str, Any]:
+        return {}
+
+
+def _disable_registry_auth(client: Any) -> None:
+    """Replace the client's filesystem auth config for OUR build call only.
+
+    Duck-typed against docker-py's private ``_auth_configs``; if the
+    attribute shape ever changes, the StoreError classification in
+    :func:`_classified_detail` still yields an actionable message.
+    """
+    try:
+        client.api._auth_configs = _NoRegistryAuth()
+    except Exception as exc:  # noqa: BLE001 - best-effort, fallback classification covers us
+        logger.debug("could not neutralize registry auth: %s", exc)
+
+
+def _log_proxy_settings(client: Any) -> None:
+    """User-config proxies DO flow into the build (docker-py injects them as
+    build args) - keep that default, but say so in the log (#77): silently
+    inheriting a foreign proxy is a surprise source.
+    """
+    try:
+        proxies = client.api._proxy_configs.get_environment()
+        if proxies:
+            logger.info("proxy settings from the docker client config apply to this build: %s", ", ".join(proxies))
+    except Exception as exc:  # noqa: BLE001 - log-only helper
+        logger.debug("proxy config not readable: %s", exc)
+
+
 def up(
     config: LauncherConfig,
     *,
@@ -39,14 +84,21 @@ def up(
     try:
         client = py_client.get_client()
     except Exception as exc:  # noqa: BLE001 - classified below, never a raw traceback
-        return 1, _classified_detail(exc)
+        return 1, _classified_detail(exc, config)
+    if config.use_registry_credentials:
+        # Consumer explicitly declared private registries (#77): resolution
+        # runs, and a broken helper is then a HARD error (classified below).
+        logger.info("registry credential resolution ENABLED by config (use_registry_credentials)")
+    else:
+        _disable_registry_auth(client)
+    _log_proxy_settings(client)
     try:
         rc, detail = _build(client, config, on_output=on_output, on_progress=on_progress)
         if rc != 0:
             return rc, detail
         return _run_container(client, config)
     except Exception as exc:  # noqa: BLE001 - classified below, never a raw traceback
-        return 1, _classified_detail(exc)
+        return 1, _classified_detail(exc, config)
     finally:
         _close(client)
 
@@ -125,8 +177,21 @@ def _remove_existing(client: Any, name: str) -> None:
     stale.remove(force=True)
 
 
-def _classified_detail(exc: Exception) -> str:
+def _classified_detail(exc: Exception, config: LauncherConfig | None = None) -> str:
     """Human detail via the #44 exception classification - never duplicated."""
+    if type(exc).__name__ == "StoreError":
+        # A broken credsStore/credHelpers entry in ~/.docker/config.json (#77):
+        # name the fix, never just echo the library error.
+        if config is not None and config.use_registry_credentials:
+            return (
+                f"registry credential helper is broken: {exc}. This launcher config declares "
+                "use_registry_credentials, so working helpers are required - repair the helper "
+                "or the credsStore/credHelpers entry in ~/.docker/config.json."
+            )
+        return (
+            f"registry credential helper is broken: {exc}. The launcher build needs no registry "
+            "login - remove the stale credsStore/credHelpers entry from ~/.docker/config.json."
+        )
     verdict = py_client._classify_exception(exc)
     if verdict == "permission":
         return "permission denied on the docker socket (not in the 'docker' group)"
@@ -145,12 +210,12 @@ def tail_logs(config: LauncherConfig, *, lines: int) -> tuple[bool, str]:
     try:
         client = py_client.get_client()
     except Exception as exc:  # noqa: BLE001
-        return False, _classified_detail(exc)
+        return False, _classified_detail(exc, config)
     try:
         container = client.containers.get(config.container_name)
         raw = container.logs(tail=lines)
         return True, raw.decode("utf-8", errors="replace").strip()
     except Exception as exc:  # noqa: BLE001
-        return False, _classified_detail(exc)
+        return False, _classified_detail(exc, config)
     finally:
         _close(client)

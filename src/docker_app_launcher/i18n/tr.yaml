@@ -154,3 +154,4 @@ install_needs_network: "Kurulum, temel imgeleri indirmek için şimdi internet b
 build_failed_network: "Derleme, imgeleri indirmek için ağa erişemedi: {detail}. İnternet bağlantınızı veya proxy'yi kontrol edip yeniden deneyin."
 port_mismatch_rendered: "Launcher {expected} portunu bekliyor, ancak compose dosyası {published} yayınlayacak. env_port_key ({port_key}) değerini compose dosyasının port değişkeni ve .env değerleriyle karşılaştırın."
 repo_url_not_cloned: 'Not: repo_url ({url}) yalnızca bağlantılar/güncelleme denetimleri içindir - launcher onu klonlamaz. install_dir yerel bir checkout''u göstermelidir.'
+app_logs_follow_stop: Günlükleri durdur

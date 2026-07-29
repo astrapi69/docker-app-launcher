@@ -154,3 +154,4 @@ install_needs_network: "설치하려면 지금 베이스 이미지를 내려받�
 build_failed_network: "빌드가 이미지를 내려받기 위해 네트워크에 연결하지 못했습니다: {detail}. 인터넷 연결 또는 프록시를 확인한 뒤 다시 시도하세요."
 port_mismatch_rendered: "런처는 포트 {expected}를 기대하지만 compose 파일은 {published}를 게시합니다. env_port_key({port_key})를 compose의 포트 변수와 .env 값과 대조하세요."
 repo_url_not_cloned: '참고: repo_url({url})은 링크/업데이트 확인에만 사용되며 런처는 클론하지 않습니다. install_dir이 로컬 체크아웃을 가리켜야 합니다.'
+app_logs_follow_stop: 로그 중지

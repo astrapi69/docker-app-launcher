@@ -154,3 +154,4 @@ install_needs_network: "Pemasangan membutuhkan koneksi internet sekarang untuk m
 build_failed_network: "Build tidak dapat menjangkau jaringan untuk mengunduh image: {detail}. Periksa koneksi internet atau proxy Anda, lalu coba lagi."
 port_mismatch_rendered: "Launcher mengharapkan port {expected}, tetapi berkas compose akan memublikasikan {published}. Periksa env_port_key ({port_key}) terhadap variabel port compose dan nilai .env."
 repo_url_not_cloned: 'Catatan: repo_url ({url}) hanya untuk tautan/pemeriksaan pembaruan - launcher tidak meng-clone-nya. install_dir harus menunjuk ke checkout lokal.'
+app_logs_follow_stop: Hentikan log

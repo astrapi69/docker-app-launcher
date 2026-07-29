@@ -122,6 +122,7 @@ class LauncherApp(tk.Tk):
         self._cancel_build = threading.Event()
         self._build_in_progress = False
         self._buttons: dict[str, tk.Button] = {}
+        self._log_follow_stop: threading.Event | None = None
         self._tooltips: dict[str, _Tooltip] = {}
 
         self.title(window_title(config))
@@ -255,7 +256,7 @@ class LauncherApp(tk.Tk):
             "uninstall": self._confirm_uninstall,
             "copy_log": self._copy_log,
             "cleanup": self._run_manual_cleanup,
-            "app_logs": functools.partial(self._on_action, "app_logs"),
+            "app_logs": self._on_app_logs,
             "background": self._go_background,
             "apply_port": functools.partial(self._on_action, "change_port"),
             "info": self._show_about,
@@ -284,6 +285,49 @@ class LauncherApp(tk.Tk):
 
     def _t(self, key: str, **kwargs: object) -> str:
         return i18n.t(key, self._cfg, **kwargs)
+
+    def _on_app_logs(self) -> None:
+        """App-logs button (#72): one-shot tail normally; while RUNNING it
+        toggles a live follow (stream_app_logs) instead - no busy state, the
+        window stays fully usable while lines arrive."""
+        if self._log_follow_stop is not None:
+            self._log_follow_stop.set()
+            return
+        if getattr(self, "_focused_state", None) == "running":
+            self._start_log_follow()
+        else:
+            self._on_action("app_logs")
+
+    def _start_log_follow(self) -> None:
+        stop = threading.Event()
+        self._log_follow_stop = stop
+        self._buttons["app_logs"].configure(text=self._t("app_logs_follow_stop"))
+
+        def marshal_line(line: str) -> None:
+            self.after(0, functools.partial(self._log, line))
+
+        def worker() -> None:
+            result = run_guarded(
+                "app_logs_follow",
+                lambda: actions.stream_app_logs(
+                    self._cfg,
+                    on_line=marshal_line,
+                    should_stop=stop.is_set,
+                ),
+            )
+            self.after(0, functools.partial(self._end_log_follow, result))
+
+        threading.Thread(target=worker, daemon=True, name="dal-gui-log-follow").start()
+
+    def _end_log_follow(self, result: tuple[bool, str] | None) -> None:
+        self._log_follow_stop = None
+        self._buttons["app_logs"].configure(text=self._t(BUTTON_LABELS["app_logs"]))
+        if result is not None and not result[0]:
+            self._log(result[1], tag="err")
+
+    def _stop_log_follow_if_running(self) -> None:
+        if self._log_follow_stop is not None:
+            self._log_follow_stop.set()
 
     def _poll_focus_request(self) -> None:
         """Bring the window up when a second launch asked for focus (#31)."""
@@ -356,6 +400,8 @@ class LauncherApp(tk.Tk):
             reason = disabled_reason_key(name, state)
             self._tooltips[name].set_text(self._t(reason) if reason else "")
         self._apply_initial_focus(state)
+        if state != "running":
+            self._stop_log_follow_if_running()
 
     def _apply_initial_focus(self, state: str) -> None:
         """Keyboard focus lands on the state's primary action (#31) - only on
@@ -811,6 +857,7 @@ class LauncherApp(tk.Tk):
     # --- close / system tray ---
 
     def _on_close(self) -> None:
+        self._stop_log_follow_if_running()
         """X button: keep a running app alive (tray/taskbar), else quit.
 
         Running + opted-in -> background (tray, or taskbar when the tray is

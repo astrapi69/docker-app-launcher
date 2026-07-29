@@ -90,6 +90,7 @@ if HAS_QT:
             self._debug = debug
             self._tray: tray.TrayController | None = None
             self._buttons: dict[str, QPushButton] = {}
+            self._log_follow_stop: threading.Event | None = None
             self._invoke.connect(lambda fn: fn())
 
             self.setWindowTitle(window_title(config))
@@ -203,6 +204,48 @@ if HAS_QT:
                 self._focus_timer.timeout.connect(self._poll_focus_request)
                 self._focus_timer.start(1000)
 
+        def _on_app_logs(self) -> None:
+            """App-logs button (#72): one-shot tail normally; while RUNNING it
+            toggles a live follow - no busy state."""
+            if self._log_follow_stop is not None:
+                self._log_follow_stop.set()
+                return
+            if getattr(self, "_focused_state", None) == "running":
+                self._start_log_follow()
+            else:
+                self._on_action("app_logs")
+
+        def _start_log_follow(self) -> None:
+            stop = threading.Event()
+            self._log_follow_stop = stop
+            self._buttons["app_logs"].setText(self._t("app_logs_follow_stop"))
+
+            def marshal_line(line: str) -> None:
+                self._post(functools.partial(self._log, line))
+
+            def worker() -> None:
+                result = run_guarded(
+                    "app_logs_follow",
+                    lambda: actions.stream_app_logs(
+                        self._cfg,
+                        on_line=marshal_line,
+                        should_stop=stop.is_set,
+                    ),
+                )
+                self._post(functools.partial(self._end_log_follow, result))
+
+            threading.Thread(target=worker, daemon=True, name="dal-gui-log-follow").start()
+
+        def _end_log_follow(self, result: tuple[bool, str] | None) -> None:
+            self._log_follow_stop = None
+            self._buttons["app_logs"].setText(self._t(BUTTON_LABELS["app_logs"]))
+            if result is not None and not result[0]:
+                self._log(result[1], tag="err")
+
+        def _stop_log_follow_if_running(self) -> None:
+            if self._log_follow_stop is not None:
+                self._log_follow_stop.set()
+
         def _poll_focus_request(self) -> None:
             """Bring the window up when a second launch asked for focus (#31)."""
             if lockfile.consume_focus_request(self._cfg.lock_path):
@@ -238,7 +281,7 @@ if HAS_QT:
                 "uninstall": self._confirm_uninstall,
                 "copy_log": self._copy_log,
                 "cleanup": self._run_manual_cleanup,
-                "app_logs": functools.partial(self._on_action, "app_logs"),
+                "app_logs": self._on_app_logs,
                 "background": self._go_background,
                 "apply_port": functools.partial(self._on_action, "change_port"),
                 "info": self._show_about,
@@ -292,6 +335,8 @@ if HAS_QT:
                 reason = disabled_reason_key(name, state)
                 btn.setToolTip(self._t(reason) if reason else "")
             self._apply_initial_focus(state)
+            if state != "running":
+                self._stop_log_follow_if_running()
 
         def _apply_initial_focus(self, state: str) -> None:
             """Keyboard focus lands on the state's primary action (#31) - only
@@ -630,7 +675,11 @@ if HAS_QT:
 
         # --- close / tray ---
 
+        def _dal_close_hook(self) -> None:
+            self._stop_log_follow_if_running()
+
         def closeEvent(self, event: QCloseEvent) -> None:
+            self._dal_close_hook()
             keep_alive = should_keep_alive_on_close(
                 actions.get_state(self._cfg),
                 minimize_enabled=self._cfg.tray_enabled and self._cfg.tray_minimize_on_close,

@@ -154,3 +154,4 @@ install_needs_network: "Η εγκατάσταση χρειάζεται τώρα 
 build_failed_network: "Το build δεν μπόρεσε να προσεγγίσει το δίκτυο για να κατεβάσει εικόνες: {detail}. Ελέγξτε τη σύνδεσή σας στο διαδίκτυο ή τον proxy και δοκιμάστε ξανά."
 port_mismatch_rendered: "Ο launcher αναμένει τη θύρα {expected}, αλλά το αρχείο compose θα δημοσιεύσει {published}. Ελέγξτε το env_port_key ({port_key}) σε σχέση με τη μεταβλητή θύρας του compose και τις τιμές .env."
 repo_url_not_cloned: 'Σημείωση: το repo_url ({url}) χρησιμοποιείται μόνο για συνδέσμους/ελέγχους ενημερώσεων - ο launcher δεν το κλωνοποιεί. Το install_dir πρέπει να δείχνει σε τοπικό checkout.'
+app_logs_follow_stop: Διακοπή καταγραφών

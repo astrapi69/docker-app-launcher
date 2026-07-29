@@ -154,3 +154,4 @@ install_needs_network: "Die Installation braucht jetzt eine Internetverbindung, 
 build_failed_network: "Der Build konnte das Netzwerk nicht erreichen, um Images herunterzuladen: {detail}. Internetverbindung oder Proxy prüfen und erneut versuchen."
 port_mismatch_rendered: "Der Launcher erwartet Port {expected}, aber die Compose-Datei veröffentlicht {published}. env_port_key ({port_key}) gegen die Port-Variable der Compose-Datei und die .env-Werte prüfen."
 repo_url_not_cloned: 'Hinweis: repo_url ({url}) dient nur für Links/Update-Checks - der Launcher klont es nicht. install_dir muss auf einen lokalen Checkout zeigen.'
+app_logs_follow_stop: Logs stoppen

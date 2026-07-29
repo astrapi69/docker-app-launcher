@@ -154,3 +154,4 @@ install_needs_network: "インストールにはベースイメージをダウ�
 build_failed_network: "ビルドがイメージをダウンロードするためにネットワークへ到達できませんでした: {detail}。インターネット接続またはプロキシを確認して再試行してください。"
 port_mismatch_rendered: "ランチャーはポート {expected} を想定していますが、compose ファイルは {published} を公開します。env_port_key（{port_key}）を compose のポート変数と .env の値に対して確認してください。"
 repo_url_not_cloned: '注: repo_url（{url}）はリンク/更新チェック専用で、ランチャーはクローンしません。install_dir はローカルのチェックアウトを指す必要があります。'
+app_logs_follow_stop: ログを停止

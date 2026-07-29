@@ -964,3 +964,68 @@ class TestNoDuplicateButtonLabels:
         labels = [str(b["text"]) for b in app._iter_buttons()]
         assert app._t("cleanup_now") in labels  # the offer acts on FOUND artifacts
         assert labels.count(app._t("cleanup")) == 1  # the fixed scan button keeps its label
+
+
+class TestLogFollow:
+    """#72: the App-logs button toggles a live follow while RUNNING."""
+
+    def _to_running(self, app, gui_state) -> None:
+        gui_state["value"] = "running"
+        app._focused_state = None
+        app._refresh()
+        app.update()
+
+    def test_running_click_starts_follow_and_streams(self, app, gui_state, inline_threads, monkeypatch) -> None:
+        self._to_running(app, gui_state)
+        seen: dict[str, object] = {}
+
+        def fake_stream(config, *, on_line, should_stop):
+            seen["stop_callable"] = callable(should_stop)
+            on_line("web-1 | live line")
+            return True, ""
+
+        monkeypatch.setattr(actions, "stream_app_logs", fake_stream)
+        app._buttons["app_logs"].invoke()
+        app.update()
+        assert seen["stop_callable"] is True
+        assert "web-1 | live line" in app._status.get("1.0", "end")
+        # inline thread -> the follow already ended; label restored
+        assert app._log_follow_stop is None
+
+    def test_second_click_sets_the_stop_event(self, app, gui_state) -> None:
+        import threading as _t
+
+        stop = _t.Event()
+        app._log_follow_stop = stop
+        app._on_app_logs()
+        assert stop.is_set()
+
+    def test_non_running_click_keeps_the_one_shot_tail(self, app, gui_state, inline_threads, monkeypatch) -> None:
+        gui_state["value"] = "stopped"
+        app._focused_state = None
+        app._refresh()
+        app.update()
+        followed: list[bool] = []
+        monkeypatch.setattr(actions, "stream_app_logs", lambda *a, **k: followed.append(True))
+        monkeypatch.setattr(tk_window, "dispatch_action", lambda action_id, cfg, **k: (True, "tail text"))
+        app._buttons["app_logs"].invoke()
+        app.update()
+        assert followed == [] and "tail text" in app._status.get("1.0", "end")
+
+    def test_state_change_away_from_running_stops_follow(self, app, gui_state) -> None:
+        import threading as _t
+
+        self._to_running(app, gui_state)
+        stop = _t.Event()
+        app._log_follow_stop = stop
+        gui_state["value"] = "stopped"
+        app._refresh()
+        app.update()
+        assert stop.is_set()
+
+    def test_follow_failure_lands_in_the_panel(self, app, gui_state, inline_threads, monkeypatch) -> None:
+        self._to_running(app, gui_state)
+        monkeypatch.setattr(actions, "stream_app_logs", lambda *a, **k: (False, "stream broke"))
+        app._buttons["app_logs"].invoke()
+        app.update()
+        assert "stream broke" in app._status.get("1.0", "end")

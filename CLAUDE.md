@@ -154,6 +154,18 @@ This rule applies to every FUTURE mode as well; adding a mode without all
 seven items is an incomplete change, not a smaller one. Gaps found in
 EXISTING modes get their own issues at the moment they are found.
 
+### Path-field base rule (#83, #85)
+
+Consumer-app-relative path fields resolve through ONE base rule
+(`config._base_dir()`: install_dir, anchored to the config file's
+directory for file-loaded configs, flagged cwd fallback) — never an
+inline rule per field. Precedent: `image_archive` gave itself an inline
+base and recreated the #64/#2120 frozen-binary trap (#83). Enforced by
+`tests/test_config_path_field_coverage.py`: every path-suggestive field
+must be classified there, and every base_dir-classified field gets its
+resolution proven for all three anchorings. A new path field that skips
+the classification fails the suite.
+
 ### Docker requirement sources (intrinsic vs app-declared)
 
 Two sources, kept separate and attributed in every message:

@@ -301,6 +301,16 @@ launch(LauncherConfig(
 
 The launcher automatically maintains an install manifest at `{config_dir}/install-manifest.json`. This file tracks every artifact created during installation, enabling precise cleanup without guesswork.
 
+In **image mode** the manifest additionally records which exact image the
+install runs and where it came from — the support-diagnosis source of
+truth: `image_reference` (the configured tag/digest), `image_id` (the
+resolved engine image ID), `image_digests` (repo digests, when the
+registry provided them), and `image_source` (`registry` or `archive`,
+by the same rule the acquisition uses; a start that fell back to a local
+image while the registry was unreachable still records `registry`).
+Identity fields are omitted rather than guessed when the engine is
+unreachable; older manifests without these keys stay valid.
+
 ```json
 {
   "installed_at": "2026-06-24T14:30:00Z",

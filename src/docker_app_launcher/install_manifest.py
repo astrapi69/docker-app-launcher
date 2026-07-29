@@ -62,6 +62,13 @@ def collect_installed_artifacts(config: LauncherConfig) -> dict[str, list[Any]]:
     }
 
 
+def _image_mode_identity(config: LauncherConfig) -> dict[str, Any]:
+    """Lazy wrapper (#80): keep the lifecycle->manifest dependency direction."""
+    from docker_app_launcher.docker.image_backend import image_identity
+
+    return image_identity(config)
+
+
 def write_manifest(config: LauncherConfig, version: str) -> None:
     """Write/refresh the install manifest after a successful install/rebuild.
 
@@ -88,6 +95,11 @@ def write_manifest(config: LauncherConfig, version: str) -> None:
             "images": arts["images"],
             "volumes": arts["volumes"],
             "config_files": [str(config.launcher_config_file)],
+            # Image-mode identity (#80): which exact image this install runs
+            # and where it came from - empty for the build modes. Readers
+            # must treat every image_* key as optional (older manifests and
+            # build-mode manifests do not have them).
+            **(_image_mode_identity(config) if config.effective_deployment_mode == "image" else {}),
             "install_history": list(existing.get("install_history", [])),
         }
         _write_manifest(config, data)

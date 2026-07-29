@@ -23,6 +23,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   explicit `install_dir`, file-loaded configs, and the flagged cwd
   fallback. A new path field that skips classification fails the suite
   (rule in CLAUDE.md, precedent #83).
+- **The install manifest records the image identity (#80).** In image
+  mode the manifest now carries `image_reference`, the resolved
+  `image_id`, `image_digests`, and `image_source` (`registry`/`archive`)
+  — cut as the data source for the upcoming support bundle (#86), so
+  "which exact image is this install running" is answerable from a file.
+  Identity is omitted, never guessed, when the engine is unreachable;
+  build-mode and older manifests are unchanged.
 - **Update path measured per mode, with the volume-preservation proof
   (#88).** The lifecycle matrix now walks the path every user takes on an
   app update: installed with reference A, marker written into the named

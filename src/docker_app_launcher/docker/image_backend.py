@@ -54,6 +54,48 @@ def image_present(config: LauncherConfig) -> bool:
         _close(client)
 
 
+def acquisition_source(config: LauncherConfig) -> str:
+    """``"archive"`` or ``"registry"`` - the source :func:`up` would use NOW.
+
+    The same rule as ``_acquire_image``: a configured AND present archive
+    wins. Note for the manifest (#80): a start that fell back to a local
+    image because the registry was unreachable still records ``registry`` -
+    the CONFIGURED source; the recorded image id/digest always reflect the
+    image actually present in the engine.
+    """
+    archive = config.image_archive_path
+    return "archive" if (archive is not None and archive.is_file()) else "registry"
+
+
+def image_identity(config: LauncherConfig) -> dict[str, Any]:
+    """Best-effort identity of the configured image for the manifest (#80).
+
+    Returns ``image_reference`` / ``image_id`` / ``image_digests`` /
+    ``image_source``; identity fields are omitted (never guessed) when the
+    engine or the image is unavailable - the manifest write must stay
+    fail-open.
+    """
+    if not config.image_reference:
+        return {}
+    identity: dict[str, Any] = {
+        "image_reference": config.image_reference,
+        "image_source": acquisition_source(config),
+    }
+    try:
+        client = py_client.get_client()
+    except Exception:  # noqa: BLE001 - identity probe only
+        return identity
+    try:
+        image = client.images.get(config.image_reference)
+        identity["image_id"] = str(getattr(image, "id", "") or "")
+        identity["image_digests"] = list(image.attrs.get("RepoDigests", []) or [])
+    except Exception:  # noqa: BLE001 - image absent: reference+source still recorded
+        pass
+    finally:
+        _close(client)
+    return identity
+
+
 def up(
     config: LauncherConfig,
     *,

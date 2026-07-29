@@ -19,12 +19,17 @@ the address where published ports are reachable.
 
 from __future__ import annotations
 
+import contextlib
 import os
 import time
 import urllib.request
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 import pytest
+
+if TYPE_CHECKING:
+    from docker_app_launcher.config import LauncherConfig
 
 pytestmark = [
     pytest.mark.integration,
@@ -40,7 +45,7 @@ _PORT = 18124
 _HTTP_HOST = os.environ.get("DAL_OLD_ENGINE_HTTP_HOST", "127.0.0.1")
 
 
-def _config(tmp_path: Path, archive: str = ""):
+def _config(tmp_path: Path, archive: str = "") -> LauncherConfig:
     from docker_app_launcher.config import LauncherConfig
 
     return LauncherConfig(
@@ -67,21 +72,17 @@ def _http_ok() -> bool:
     return False
 
 
-def _client():
+def _client() -> Any:
     from docker_app_launcher.docker import py_client
 
     return py_client.get_client()
 
 
-def _cleanup(client) -> None:
-    for fn in (
-        lambda: client.containers.get("dal-old-engine-cell").remove(force=True),
-        lambda: client.images.remove(_REF, force=True),
-    ):
-        try:
-            fn()
-        except Exception:  # noqa: BLE001 - absent is fine
-            pass
+def _cleanup(client: Any) -> None:
+    with contextlib.suppress(Exception):  # absent is fine
+        client.containers.get("dal-old-engine-cell").remove(force=True)
+    with contextlib.suppress(Exception):
+        client.images.remove(_REF, force=True)
 
 
 class TestOldEngineEnvironment:
@@ -98,7 +99,7 @@ class TestOldEngineEnvironment:
 
 
 class TestRegistrySource:
-    def test_pull_run_and_http(self, tmp_path) -> None:
+    def test_pull_run_and_http(self, tmp_path: Path) -> None:
         from docker_app_launcher.docker import image_backend
 
         client = _client()
@@ -114,7 +115,7 @@ class TestRegistrySource:
 
 
 class TestArchiveSource:
-    def test_load_run_and_http(self, tmp_path) -> None:
+    def test_load_run_and_http(self, tmp_path: Path) -> None:
         from docker_app_launcher.docker import image_backend
 
         client = _client()

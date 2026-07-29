@@ -23,6 +23,25 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   explicit `install_dir`, file-loaded configs, and the flagged cwd
   fallback. A new path field that skips classification fails the suite
   (rule in CLAUDE.md, precedent #83).
+- **Update path measured per mode, with the volume-preservation proof
+  (#88).** The lifecycle matrix now walks the path every user takes on an
+  app update: installed with reference A, marker written into the named
+  volume, updated to reference B (and backward to A) - proving the old
+  container is replaced (never duplicated), the volume survives both
+  directions, and the previous image stays on disk until cleanup.
+  Measured along the way: Start on a running stack is a no-op by design,
+  so the update action is Stop-then-Start (README documents it; a
+  single-action update is tracked separately).
+
+### Fixed
+
+- **False "Port occupied" for up to a minute after a stop (#90).** The
+  bind probe now sets SO_REUSEADDR on POSIX - TIME_WAIT remnants of a
+  just-stopped app no longer read as occupied, matching how docker-proxy
+  itself publishes ports. Found live by the #88 matrix run.
+
+### Added
+
 - **GHCR measured on the old engine + registry-refusal classification
   (#87).** The old-engine cell now also pulls a public GHCR image
   (anonymous token flow differs from Docker Hub's) credential-free, and

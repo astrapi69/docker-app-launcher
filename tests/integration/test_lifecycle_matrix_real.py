@@ -211,16 +211,19 @@ class TestComposeModeLifecycle:
 _UPDATE_STEPS_IMAGE = [
     "install_ref_a",
     "marker_written",
+    "stopped_for_update",
     "updated_to_ref_b",
     "single_container_on_ref_b",
     "volume_preserved",
     "old_image_still_present",
+    "stopped_for_backward",
     "backward_to_ref_a",
     "volume_preserved_backward",
 ]
 _UPDATE_STEPS_BUILD = [
     "install_state_one",
     "marker_written",
+    "stopped_for_update",
     "rebuilt_state_two",
     "state_two_served",
     "volume_preserved",
@@ -314,8 +317,17 @@ class TestUpdatePathImageMode:
                 client.close()
             steps.append("marker_written")
 
+            # MEASURED behavior: start() on a RUNNING stack returns
+            # already_running and touches nothing - there is no one-action
+            # update from the running state. The real update path is
+            # stop -> (new reference) -> start; a single-action update is
+            # tracked as its own issue.
+            ok, msg = lifecycle.stop(config)
+            assert ok, f"stop before update failed: {msg}"
+            steps.append("stopped_for_update")
+
             config.image_reference = self.REF_B
-            ok, msg = lifecycle.start(config)  # start IS the documented update action
+            ok, msg = lifecycle.start(config)
             assert ok, f"update to ref B failed: {msg}"
             steps.append("updated_to_ref_b")
 
@@ -340,6 +352,9 @@ class TestUpdatePathImageMode:
 
             # Backward: an OLDER reference. No claim about app functionality,
             # but no data loss and a comprehensible message.
+            ok, msg = lifecycle.stop(config)
+            assert ok, f"stop before backward update failed: {msg}"
+            steps.append("stopped_for_backward")
             config.image_reference = self.REF_A
             ok, msg = lifecycle.start(config)
             assert ok and msg, f"backward update must report comprehensibly: {msg!r}"
@@ -389,6 +404,11 @@ class _UpdateViaRebuild:
             finally:
                 client.close()
             steps.append("marker_written")
+
+            # Same measured behavior as image mode: update = stop -> start.
+            ok, msg = lifecycle.stop(config)
+            assert ok, f"[{self.mode}] stop before update failed: {msg}"
+            steps.append("stopped_for_update")
 
             (install_dir / "index.html").write_text("state-two\n", encoding="utf-8")
             ok, msg = lifecycle.start(config)

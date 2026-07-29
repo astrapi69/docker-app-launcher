@@ -170,8 +170,12 @@ fields:
 - Ports, volumes, env, and `restart_policy` behave exactly as in
   dockerfile mode.
 - The image is fetched on **install and explicit start only** — never
-  silently in the background. A new tag is picked up by pressing Start
-  (the launcher re-pulls the reference); pinned digests never change.
+  silently in the background. Measured behavior: Start on an already
+  RUNNING stack is a no-op (`already running`), so an update is
+  **Stop, then Start** — the start of a stopped stack re-pulls the
+  reference and replaces the container; named volumes survive, and the
+  previous image version remains on disk until a `--cleanup` /
+  `docker image prune`. Pinned digests never change.
 - **Offline:** if the registry is unreachable but the image is already
   local, the start proceeds on the local image. If it is missing locally,
   the launcher names the network requirement up front instead of failing

@@ -155,9 +155,9 @@ build_failed_network: "बिल्ड इमेज डाउनलोड कर
 port_mismatch_rendered: "Launcher को पोर्ट {expected} अपेक्षित है, लेकिन compose फ़ाइल {published} प्रकाशित करेगी। env_port_key ({port_key}) को compose की पोर्ट वेरिएबल और .env मानों से जाँचें।"
 repo_url_not_cloned: 'नोट: repo_url ({url}) केवल लिंक/अपडेट जाँच के लिए है - launcher इसे clone नहीं करता। install_dir को स्थानीय checkout पर इंगित करना होगा।'
 app_logs_follow_stop: लॉग रोकें
-pulling: ऐप इमेज डाउनलोड हो रही है (पहली बार कुछ मिनट लग सकते हैं)...
-pull_failed: 'ऐप इमेज डाउनलोड विफल: {detail}'
-pull_needs_network: ऐप इमेज अभी इस मशीन पर नहीं है - डाउनलोड के लिए इंटरनेट कनेक्शन चाहिए। उसके बाद ऐप ऑफ़लाइन चलती है।
-pull_mode_needs_image: 'Pull मोड को इमेज स्रोत चाहिए: कॉन्फ़िग में image_reference (टैग या digest) या image_archive सेट करें।'
-pull_archive_unreadable: 'कॉन्फ़िगर किया गया इमेज आर्काइव पढ़ा नहीं जा सकता: {path}'
-pull_mode_needs_dockerpy: Pull मोड को Python पैकेज docker (docker-py) चाहिए, जो इस इंस्टॉलेशन में उपलब्ध नहीं है।
+image_acquiring: ऐप इमेज डाउनलोड हो रही है (पहली बार कुछ मिनट लग सकते हैं)...
+image_acquire_failed: 'ऐप इमेज डाउनलोड विफल: {detail}'
+image_needs_network: ऐप इमेज अभी इस मशीन पर नहीं है - डाउनलोड के लिए इंटरनेट कनेक्शन चाहिए। उसके बाद ऐप ऑफ़लाइन चलती है।
+image_mode_needs_reference: 'Image मोड को इमेज स्रोत चाहिए: कॉन्फ़िग में image_reference (टैग या digest) या image_archive सेट करें।'
+image_archive_unreadable: 'कॉन्फ़िगर किया गया इमेज आर्काइव पढ़ा नहीं जा सकता: {path}'
+image_mode_needs_dockerpy: Image मोड को Python पैकेज docker (docker-py) चाहिए, जो इस इंस्टॉलेशन में उपलब्ध नहीं है।

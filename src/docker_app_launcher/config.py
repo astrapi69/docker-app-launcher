@@ -116,7 +116,7 @@ class LauncherConfig:
     # Deployment mode (#51, #78): "compose" (default for existing configs -
     # a configured compose file keeps working unchanged), "dockerfile"
     # (single-service build/run directly through the docker-py API, zero
-    # compose dependency) or "pull" (run a PREBUILT image - pull via the
+    # compose dependency) or "image" (run a PREBUILT image - pull via the
     # engine API or load a local archive; zero build toolchain on the user
     # machine, works on Docker generations without compose/buildx). ""
     # resolves to "compose". Any other value is a hard error at resolve()
@@ -139,7 +139,7 @@ class LauncherConfig:
     # docker-py where the CLI shrugs. Consumers that pull PRIVATE images
     # declare it explicitly; only then is a broken helper a hard error.
     use_registry_credentials: bool = False
-    # --- pull-mode block (#78; ports/volumes/env/restart above are shared
+    # --- image-mode block (#78; ports/volumes/env/restart above are shared
     # with dockerfile mode) ---
     # Image to run: tag ("ghcr.io/owner/app:1.2.3") or digest pin
     # ("ghcr.io/owner/app@sha256:..." - immutability guarantee).
@@ -283,16 +283,16 @@ class LauncherConfig:
             self.releases_url = f"{self.repo_url.rstrip('/')}/releases/latest"
         if self.locale == "auto":
             self.locale = detect_system_locale()
-        if self.deployment_mode not in ("", "compose", "dockerfile", "pull"):
+        if self.deployment_mode not in ("", "compose", "dockerfile", "image"):
             raise ValueError(
-                f"deployment_mode must be 'compose', 'dockerfile' or 'pull', got {self.deployment_mode!r} "
+                f"deployment_mode must be 'compose', 'dockerfile' or 'image', got {self.deployment_mode!r} "
                 "(#51/#78 - the mode is explicit, never guessed)"
             )
-        if self.deployment_mode == "pull" and not self.image_reference:
+        if self.deployment_mode == "image" and not self.image_reference:
             # Even the archive path needs the reference: the loaded image is
             # started BY that name, so an unset reference can never work (#78).
             raise ValueError(
-                "deployment_mode 'pull' requires image_reference (tag or digest); "
+                "deployment_mode 'image' requires image_reference (tag or digest); "
                 "an optional image_archive is loaded INTO that reference, not instead of it (#78)"
             )
         self._validate_min_versions()
@@ -317,7 +317,7 @@ class LauncherConfig:
 
     @property
     def effective_deployment_mode(self) -> str:
-        """``"compose"``, ``"dockerfile"`` or ``"pull"`` - the default rule
+        """``"compose"``, ``"dockerfile"`` or ``"image"`` - the default rule
         for existing configs is compose, so no consumer breaks (#51, #78)."""
         return self.deployment_mode or "compose"
 
@@ -331,7 +331,7 @@ class LauncherConfig:
 
     @property
     def image_archive_path(self) -> Path | None:
-        """Absolute path of the optional pull-mode image archive, or None."""
+        """Absolute path of the optional image-mode archive, or None."""
         if not self.image_archive:
             return None
         archive = Path(self.image_archive).expanduser()

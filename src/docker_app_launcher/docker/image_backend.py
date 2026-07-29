@@ -1,4 +1,4 @@
-"""Pull deployment mode: run a PREBUILT image via the engine API (#78).
+"""Image deployment mode: run a PREBUILT image via the engine API (#78).
 
 The consumer publishes a finished (multi-arch) image; the user machine
 needs neither compose nor buildx — pull + run work on old Docker
@@ -36,7 +36,7 @@ from docker_app_launcher.docker.dockerfile_backend import (
 )
 from docker_app_launcher.launcher_settings import resolve_port
 
-logger = logging.getLogger("docker_app_launcher.docker.pull_backend")
+logger = logging.getLogger("docker_app_launcher.docker.image_backend")
 
 
 def image_present(config: LauncherConfig) -> bool:
@@ -154,7 +154,7 @@ def _run_pulled_container(client: Any, config: LauncherConfig) -> tuple[int, str
     host_port = resolve_port(config)
     container_port = config.container_port or host_port
     logger.info(
-        "pull-mode run: name=%s image=%s ports={%s:%s} restart=%s",
+        "image-mode run: name=%s image=%s ports={%s:%s} restart=%s",
         config.container_name,
         config.image_reference,
         host_port,

@@ -155,9 +155,9 @@ build_failed_network: "O build não conseguiu acessar a rede para baixar as imag
 port_mismatch_rendered: "O launcher espera a porta {expected}, mas o arquivo compose publicará {published}. Verifique env_port_key ({port_key}) contra a variável de porta do compose e os valores do .env."
 repo_url_not_cloned: 'Nota: repo_url ({url}) é usado apenas para links/verificações de atualização - o launcher não o clona. install_dir deve apontar para um checkout local.'
 app_logs_follow_stop: Parar logs
-pulling: Baixando a imagem do app (pode levar alguns minutos na primeira vez)...
-pull_failed: 'O download da imagem do app falhou: {detail}'
-pull_needs_network: A imagem do app ainda não está nesta máquina - o download exige conexão com a internet. Depois, o app funciona offline.
-pull_mode_needs_image: 'O modo pull precisa de uma fonte de imagem: defina image_reference (tag ou digest) ou image_archive na configuração.'
-pull_archive_unreadable: 'O arquivo de imagem configurado não pode ser lido: {path}'
-pull_mode_needs_dockerpy: O modo pull precisa do pacote Python docker (docker-py), que não está disponível nesta instalação.
+image_acquiring: Baixando a imagem do app (pode levar alguns minutos na primeira vez)...
+image_acquire_failed: 'O download da imagem do app falhou: {detail}'
+image_needs_network: A imagem do app ainda não está nesta máquina - o download exige conexão com a internet. Depois, o app funciona offline.
+image_mode_needs_reference: 'O modo image precisa de uma fonte de imagem: defina image_reference (tag ou digest) ou image_archive na configuração.'
+image_archive_unreadable: 'O arquivo de imagem configurado não pode ser lido: {path}'
+image_mode_needs_dockerpy: O modo image precisa do pacote Python docker (docker-py), que não está disponível nesta instalação.

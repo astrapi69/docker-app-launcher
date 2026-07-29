@@ -85,11 +85,11 @@ Which one you need, at a glance:
 
 | Mode | Who it is for | Toolchain on the user machine |
 |------|---------------|-------------------------------|
-| `pull` | **End users** — the consumer publishes a prebuilt image; nothing is built locally | Docker engine only (no compose, no buildx — works on old Docker generations) |
+| `image` | **End users** — the consumer publishes a prebuilt image; nothing is built locally | Docker engine only (no compose, no buildx — works on old Docker generations) |
 | `dockerfile` | Installs **from the source tree** — developers and everyone who wants to build locally | Docker engine + a Dockerfile in the checkout |
 | `compose` | Consumers with real **multi-service stacks** (separate containers, compose networking) | Docker engine + a usable Compose frontend |
 
-Registry pull and a local image archive are two *sources within* `pull`
+Registry pull and a local image archive are two *sources within* `image`
 mode, not separate modes.
 
 **`"compose"`** (the default — existing configs keep working unchanged):
@@ -132,7 +132,7 @@ all. Mode-specific fields:
 Multi-service stacks (separate frontend/backend containers, compose
 networking, `depends_on` ordering) need `"compose"` mode.
 
-**`"pull"`** — prebuilt images, zero build toolchain (#78): the image is
+**`"image"`** — prebuilt images, zero build toolchain (#78): the image is
 pulled (or loaded from a local archive) and run directly through the
 Docker API. Nothing is built on the user machine, so neither compose nor
 buildx is needed — this is the end-user distribution mode. Mode-specific
@@ -141,7 +141,7 @@ fields:
 ```json
 {
   "app_name": "My App",
-  "deployment_mode": "pull",
+  "deployment_mode": "image",
   "image_reference": "ghcr.io/owner/my-app:1.2.3",
   "image_archive": "images/my-app.tar",
   "default_port": 8080,

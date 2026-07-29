@@ -8,11 +8,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- **Third deployment mode `pull` (#78).** For consumers that publish a
+- **Third deployment mode `image` (#78).** For consumers that publish a
   PREBUILT image: the launcher pulls (or loads) and starts it via the
   engine API — nothing is built on the user machine, so neither compose
   nor buildx is needed and old Docker generations are supported cells.
-  New config fields: `image_reference` (tag or digest, required in pull
+  New config fields: `image_reference` (tag or digest, required in image
   mode — hard error at config load when missing) and optional
   `image_archive` (a `docker save` file; when present it wins and the
   registry is never contacted). Pull progress streams layer-by-layer into
@@ -24,14 +24,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   message instead of a raw library error. Registry credentials stay
   untouched by default (#77; `use_registry_credentials` opts in). An
   archive that does not contain `image_reference` is a hard, named error.
-  Readiness gate (`pull_blockers`), `--doctor`, and all 11 i18n catalogs
+  Readiness gate (`image_blockers`), `--doctor`, and all 11 i18n catalogs
   extended; README documents which audience needs which of the three
   modes.
 - **Mode completeness rule (CLAUDE.md).** A deployment mode counts as
   supported only when it appears in readiness gate, `--doctor`,
   integration tests, the full test contract, config validation, README,
   and the environment matrix — gaps in existing modes are tracked as #79
-  (per-mode lifecycle integration matrix) and #80 (pull manifest detail).
+  (per-mode lifecycle integration matrix) and #80 (image-mode manifest detail).
 
 ### Fixed
 

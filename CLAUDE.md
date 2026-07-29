@@ -18,7 +18,7 @@ base works for any Docker app.
     - `detection.py` — is Docker usable here (checks, context sweep, errno
       socket probe, daemon/Desktop start, group self-repair)
     - `lifecycle.py` — install/start/stop/uninstall/health/get_state;
-      dispatches per `deployment_mode` (compose | dockerfile | pull, #51/#78)
+      dispatches per `deployment_mode` (compose | dockerfile | image, #51/#78)
     - `compose_runtime.py` — which Compose frontend is usable (plugin /
       legacy v1 / none), cached per process (#48)
     - `tool_versions.py` — engine/CLI/compose/buildx versions (parsed via
@@ -29,7 +29,7 @@ base works for any Docker app.
       minimums, source-attributed (#54)
     - `dockerfile_backend.py` — single-service build/run via docker-py,
       zero compose dependency (#51)
-    - `pull_backend.py` — prebuilt-image pull/load + run via the engine
+    - `image_backend.py` — prebuilt-image pull/load + run via the engine
       API, zero build toolchain (#78); archive source wins over registry
     - `py_client.py` — native Docker API access, typed exception
       classification (#44)
@@ -127,7 +127,7 @@ Recorded error classes (a fix is not done until it is measured against these):
 
 Concretely: the build paths go through one capability gate per mode
 (`docker/build_readiness.py`) that collects all blockers before the build
-(`compose_blockers` / `dockerfile_blockers` / `pull_blockers`), never a
+(`compose_blockers` / `dockerfile_blockers` / `image_blockers`), never a
 chain of independent green checkmarks.
 
 ### Mode completeness rule (#78)
@@ -146,7 +146,7 @@ the state the error classes above are directed against:
 4. The full test contract (RED-first, mocked unit suite, proof of the
    checked set, message-visibility tests).
 5. Config validation with a hard error at `resolve()` on an inconsistent
-   mode config (e.g. `pull` without `image_reference`).
+   mode config (e.g. `image` without `image_reference`).
 6. A README section with a working example config.
 7. An entry in `docs/environment-matrix.md` (supported cells + test cell).
 

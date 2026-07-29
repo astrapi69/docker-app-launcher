@@ -39,8 +39,8 @@ def run_doctor(config: LauncherConfig) -> tuple[bool, str]:
 
     # 1. Config identity and files.
     lines.append(f"{_INFO} app: {config.app_name} | mode: {config.effective_deployment_mode}")
-    if config.effective_deployment_mode == "pull":
-        # Pull mode needs no build context on disk - install_dir is informational.
+    if config.effective_deployment_mode == "image":
+        # Image mode needs no build context on disk - install_dir is informational.
         install_ok = True
         lines.append(f"{_INFO} install_dir: {config.install_dir or '(unset)'}")
     else:
@@ -51,7 +51,7 @@ def run_doctor(config: LauncherConfig) -> tuple[bool, str]:
     if config.effective_deployment_mode == "compose":
         file_ok = config.compose_path.is_file()
         lines.append(f"{_OK if file_ok else _FAIL} compose file: {config.compose_path}")
-    elif config.effective_deployment_mode == "pull":
+    elif config.effective_deployment_mode == "image":
         archive = config.image_archive_path
         file_ok = bool(config.image_reference) or (archive is not None and archive.is_file())
         source = config.image_reference or (str(archive) if archive else "(none)")
@@ -82,8 +82,8 @@ def run_doctor(config: LauncherConfig) -> tuple[bool, str]:
     # 4. Build readiness (collected blockers, incl. the rendered-port check).
     if config.effective_deployment_mode == "compose":
         blockers = build_readiness.compose_blockers(config)
-    elif config.effective_deployment_mode == "pull":
-        blockers = build_readiness.pull_blockers(config)
+    elif config.effective_deployment_mode == "image":
+        blockers = build_readiness.image_blockers(config)
     else:
         blockers = build_readiness.dockerfile_blockers(config)
     if blockers:

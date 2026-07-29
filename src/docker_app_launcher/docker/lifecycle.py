@@ -22,7 +22,7 @@ from typing import Any
 
 from docker_app_launcher import __version__
 from docker_app_launcher.config import LauncherConfig
-from docker_app_launcher.docker import build_readiness, dockerfile_backend, pull_backend, py_client
+from docker_app_launcher.docker import build_readiness, dockerfile_backend, image_backend, py_client
 from docker_app_launcher.docker.command_runner import (
     BuildCancelled,
     DockerBuildProgress,
@@ -302,28 +302,28 @@ def _dockerfile_up(
     return None
 
 
-def _pull_up(
+def _image_up(
     config: LauncherConfig,
     *,
     on_step: ProgressFn | None,
     on_output: OutputFn | None,
     on_progress: ProgressPctFn | None,
 ) -> tuple[bool, str] | None:
-    """Pull-mode acquire+run (#78): ``None`` on success, else the result.
+    """Image-mode acquire+run (#78): ``None`` on success, else the result.
 
     The network pre-warning fires only when it is TRUE: image absent
     locally and no archive configured. A locally present image (or an
     archive) starts without net.
     """
     archive = config.image_archive_path
-    needs_net = (archive is None or not archive.is_file()) and not pull_backend.image_present(config)
+    needs_net = (archive is None or not archive.is_file()) and not image_backend.image_present(config)
     if needs_net:
-        _notify(on_step, _t(config, "pull_needs_network"))
-    _notify(on_step, _t(config, "pulling"))
-    _progress(on_progress, None, _t(config, "pulling"))
-    rc, detail = pull_backend.up(config, on_output=on_output, on_progress=on_progress)
+        _notify(on_step, _t(config, "image_needs_network"))
+    _notify(on_step, _t(config, "image_acquiring"))
+    _progress(on_progress, None, _t(config, "image_acquiring"))
+    rc, detail = image_backend.up(config, on_output=on_output, on_progress=on_progress)
     if rc != 0:
-        return False, _t(config, "pull_failed", detail=detail)
+        return False, _t(config, "image_acquire_failed", detail=detail)
     _notify(on_step, _t(config, "container_started"))
     _progress(on_progress, 95, _t(config, "container_started"))
     return None
@@ -363,9 +363,9 @@ def _ensure_build_ready(config: LauncherConfig) -> tuple[bool, str] | None:
     return None
 
 
-def _ensure_pull_ready(config: LauncherConfig) -> tuple[bool, str] | None:
-    """The pull-mode capability gate (#78): collected, actionable."""
-    blockers = build_readiness.pull_blockers(config)
+def _ensure_image_ready(config: LauncherConfig) -> tuple[bool, str] | None:
+    """The image-mode capability gate (#78): collected, actionable."""
+    blockers = build_readiness.image_blockers(config)
     if blockers:
         return False, build_readiness.join_blockers(blockers)
     return None
@@ -444,10 +444,10 @@ def install(
         build_error = _ensure_build_ready(config)
         if build_error is not None:
             return build_error
-    elif config.effective_deployment_mode == "pull":
-        pull_error = _ensure_pull_ready(config)
-        if pull_error is not None:
-            return pull_error
+    elif config.effective_deployment_mode == "image":
+        image_error = _ensure_image_ready(config)
+        if image_error is not None:
+            return image_error
     else:
         dockerfile_error = _ensure_dockerfile_ready(config)
         if dockerfile_error is not None:
@@ -457,10 +457,10 @@ def install(
         return False, _t(config, "port_occupied", port=port)
     _notify(on_step, _t(config, "docker_ok"))
 
-    if config.effective_deployment_mode == "pull":
-        pull_error = _pull_up(config, on_step=on_step, on_output=on_output, on_progress=on_progress)
-        if pull_error is not None:
-            return pull_error
+    if config.effective_deployment_mode == "image":
+        image_error = _image_up(config, on_step=on_step, on_output=on_output, on_progress=on_progress)
+        if image_error is not None:
+            return image_error
         return _verify_install(config, port, on_step=on_step, on_progress=on_progress)
     if config.effective_deployment_mode == "dockerfile":
         dockerfile_error = _dockerfile_up(config, on_step=on_step, on_output=on_output, on_progress=on_progress)
@@ -579,20 +579,20 @@ def start(
         build_error = _ensure_build_ready(config)
         if build_error is not None:
             return build_error
-    elif config.effective_deployment_mode == "pull":
-        pull_error = _ensure_pull_ready(config)
-        if pull_error is not None:
-            return pull_error
+    elif config.effective_deployment_mode == "image":
+        image_error = _ensure_image_ready(config)
+        if image_error is not None:
+            return image_error
     else:
         dockerfile_error = _ensure_dockerfile_ready(config)
         if dockerfile_error is not None:
             return dockerfile_error
     _notify(on_step, _t(config, "updating"))
     _progress(on_progress, 5, _t(config, "updating"))
-    if config.effective_deployment_mode == "pull":
-        pull_error = _pull_up(config, on_step=on_step, on_output=on_output, on_progress=on_progress)
-        if pull_error is not None:
-            return pull_error
+    if config.effective_deployment_mode == "image":
+        image_error = _image_up(config, on_step=on_step, on_output=on_output, on_progress=on_progress)
+        if image_error is not None:
+            return image_error
     elif config.effective_deployment_mode == "dockerfile":
         dockerfile_error = _dockerfile_up(config, on_step=on_step, on_output=on_output, on_progress=on_progress)
         if dockerfile_error is not None:
@@ -643,7 +643,7 @@ def app_logs(config: LauncherConfig, *, lines: int | None = None) -> tuple[bool,
     if get_state(config) == "not_installed":
         return False, _t(config, "not_installed")
     tail = lines if lines is not None else config.log_tail_lines
-    if config.effective_deployment_mode in ("dockerfile", "pull"):
+    if config.effective_deployment_mode in ("dockerfile", "image"):
         ok, text = dockerfile_backend.tail_logs(config, lines=tail)
         if not ok:
             return False, _t(config, "app_logs_failed", detail=text)

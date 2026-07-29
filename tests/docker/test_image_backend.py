@@ -1,4 +1,4 @@
-"""Tests for the pull deployment mode (#78) - docker-py mocked, no daemon."""
+"""Tests for the image deployment mode (#78) - docker-py mocked, no daemon."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from typing import Any
 import pytest
 
 from docker_app_launcher.config import LauncherConfig
-from docker_app_launcher.docker import build_readiness, lifecycle, pull_backend, py_client
+from docker_app_launcher.docker import build_readiness, image_backend, lifecycle, py_client
 
 
 class _FakeImages:
@@ -75,8 +75,8 @@ class _FakePullClient:
 @pytest.fixture
 def pcfg(tmp_path):
     return LauncherConfig(
-        app_name="Pull App",
-        deployment_mode="pull",
+        app_name="Image App",
+        deployment_mode="image",
         image_reference="ghcr.io/owner/app:2.0.0",
         install_dir=str(tmp_path),
         default_port=8080,
@@ -89,8 +89,8 @@ def _wire(monkeypatch, client: _FakePullClient) -> None:
     monkeypatch.setattr(py_client, "available", lambda: True)
 
 
-class TestPullUp:
-    def test_pull_streams_layers_and_runs(self, pcfg, monkeypatch) -> None:
+class TestImageUp:
+    def test_registry_pull_streams_layers_and_runs(self, pcfg, monkeypatch) -> None:
         client = _FakePullClient(
             [
                 {"status": "Pulling from owner/app", "id": ""},
@@ -100,7 +100,7 @@ class TestPullUp:
         )
         _wire(monkeypatch, client)
         seen: list[str] = []
-        rc, detail = pull_backend.up(pcfg, on_output=seen.append)
+        rc, detail = image_backend.up(pcfg, on_output=seen.append)
         assert rc == 0 and detail == ""
         assert client.api.pull_args == ("ghcr.io/owner/app", "2.0.0")
         assert any("abc123: Downloading" in line for line in seen), "layer progress must reach the panel"
@@ -113,7 +113,7 @@ class TestPullUp:
         pcfg.image_reference = "ghcr.io/owner/app@sha256:" + "a" * 64
         client = _FakePullClient([{"status": "ok"}])
         _wire(monkeypatch, client)
-        rc, _ = pull_backend.up(pcfg)
+        rc, _ = image_backend.up(pcfg)
         assert rc == 0
         repo, tag = client.api.pull_args
         assert repo == "ghcr.io/owner/app" and tag.startswith("sha256:")
@@ -122,7 +122,7 @@ class TestPullUp:
         # #77 consistency: the pull must not touch the user's credential store.
         client = _FakePullClient([{"status": "ok"}])
         _wire(monkeypatch, client)
-        pull_backend.up(pcfg)
+        image_backend.up(pcfg)
         replaced = client.api._auth_configs
         assert replaced is not None and replaced.get_all_credentials() == {}
         # The PULL path wraps _auth_configs in docker-py's AuthConfig, which
@@ -135,13 +135,13 @@ class TestPullUp:
         pcfg.use_registry_credentials = True
         client = _FakePullClient([{"status": "ok"}])
         _wire(monkeypatch, client)
-        pull_backend.up(pcfg)
+        image_backend.up(pcfg)
         assert client.api._auth_configs is None, "opt-in must leave docker-py's auth untouched"
 
     def test_missing_platform_variant_is_actionable(self, pcfg, monkeypatch) -> None:
         client = _FakePullClient([{"error": "no matching manifest for linux/arm64 in the manifest list entries"}])
         _wire(monkeypatch, client)
-        rc, detail = pull_backend.up(pcfg)
+        rc, detail = image_backend.up(pcfg)
         assert rc == 1
         assert "platform" in detail and "multi-arch" in detail
         assert pcfg.image_reference in detail
@@ -151,7 +151,7 @@ class TestPullUp:
         client = _FakePullClient(image_present=True, pull_exc=OSError("dial tcp: no such host"))
         _wire(monkeypatch, client)
         seen: list[str] = []
-        rc, _ = pull_backend.up(pcfg, on_output=seen.append)
+        rc, _ = image_backend.up(pcfg, on_output=seen.append)
         assert rc == 0
         assert any("local image" in line for line in seen)
         assert client.containers.run_kwargs["image"] == pcfg.image_reference
@@ -159,7 +159,7 @@ class TestPullUp:
     def test_network_error_without_local_image_is_named(self, pcfg, monkeypatch) -> None:
         client = _FakePullClient(image_present=False, pull_exc=OSError("dial tcp: no such host"))
         _wire(monkeypatch, client)
-        rc, detail = pull_backend.up(pcfg)
+        rc, detail = image_backend.up(pcfg)
         assert rc == 1
         assert "internet connection" in detail
 
@@ -174,7 +174,7 @@ class TestPullUp:
         client = _FakePullClient()
         client.api.pull = no_pull  # type: ignore[method-assign]
         _wire(monkeypatch, client)
-        rc, _ = pull_backend.up(pcfg)
+        rc, _ = image_backend.up(pcfg)
         assert rc == 0
         assert client.images.loaded == [b"tarbytes"], "the archive bytes must be loaded via the API"
 
@@ -187,7 +187,7 @@ class TestPullUp:
         client = _FakePullClient()
         client.images.load_contains_reference = False
         _wire(monkeypatch, client)
-        rc, detail = pull_backend.up(pcfg)
+        rc, detail = image_backend.up(pcfg)
         assert rc == 1
         assert "wrong.tar" in detail and pcfg.image_reference in detail
         assert client.containers.run_kwargs == {}, "no container may start from a wrong archive"
@@ -196,63 +196,63 @@ class TestPullUp:
         pcfg.image_archive = str(tmp_path / "gone.tar")
         client = _FakePullClient([{"status": "ok"}])
         _wire(monkeypatch, client)
-        rc, _ = pull_backend.up(pcfg)
+        rc, _ = image_backend.up(pcfg)
         assert rc == 0 and client.api.pull_args[0] == "ghcr.io/owner/app"
 
 
-class TestPullBlockers:
+class TestImageBlockers:
     def test_ready_with_reference(self, pcfg, monkeypatch) -> None:
         monkeypatch.setattr(py_client, "available", lambda: True)
-        assert build_readiness.pull_blockers(pcfg) == []
+        assert build_readiness.image_blockers(pcfg) == []
 
     def test_no_source_is_a_blocker(self, pcfg, monkeypatch) -> None:
         monkeypatch.setattr(py_client, "available", lambda: True)
         pcfg.image_reference = ""
-        blockers = build_readiness.pull_blockers(pcfg)
+        blockers = build_readiness.image_blockers(pcfg)
         assert any("image_reference" in b for b in blockers)
 
     def test_unreadable_archive_is_a_blocker(self, pcfg, monkeypatch, tmp_path) -> None:
         monkeypatch.setattr(py_client, "available", lambda: True)
         pcfg.image_archive = str(tmp_path / "missing.tar")
-        blockers = build_readiness.pull_blockers(pcfg)
+        blockers = build_readiness.image_blockers(pcfg)
         assert any("not readable" in b for b in blockers)
 
     def test_no_dockerpy_is_a_blocker(self, pcfg, monkeypatch) -> None:
         monkeypatch.setattr(py_client, "available", lambda: False)
-        assert any("docker-py" in b for b in build_readiness.pull_blockers(pcfg))
+        assert any("docker-py" in b for b in build_readiness.image_blockers(pcfg))
 
     def test_no_compose_or_buildx_requirements(self, pcfg, monkeypatch) -> None:
         # The whole point of the mode: the toolchain matrix does not apply.
         monkeypatch.setattr(py_client, "available", lambda: True)
-        blockers = build_readiness.pull_blockers(pcfg)
+        blockers = build_readiness.image_blockers(pcfg)
         assert not any("compose" in b.lower() or "buildx" in b.lower() for b in blockers)
 
 
-class TestLifecyclePullDispatch:
+class TestLifecycleImageDispatch:
     def _base(self, monkeypatch, states: list[str]) -> None:
         it = iter(states)
         monkeypatch.setattr(lifecycle, "check_docker", lambda: (True, "ok"))
         monkeypatch.setattr(lifecycle, "get_state", lambda c: next(it))
         monkeypatch.setattr(lifecycle, "check_port", lambda p, **k: (True, "free"))
         monkeypatch.setattr(lifecycle, "health_check", lambda c, port=None: (True, "ok"))
-        monkeypatch.setattr(lifecycle, "_ensure_pull_ready", lambda c: None)
+        monkeypatch.setattr(lifecycle, "_ensure_image_ready", lambda c: None)
 
         def no_compose(*a, **k):
-            raise AssertionError("compose must not run in pull mode")
+            raise AssertionError("compose must not run in image mode")
 
         monkeypatch.setattr(lifecycle, "_stream_compose", no_compose)
 
-    def test_install_routes_to_pull_backend(self, pcfg, monkeypatch) -> None:
+    def test_install_routes_to_image_backend(self, pcfg, monkeypatch) -> None:
         self._base(monkeypatch, ["not_installed", "running"])
-        monkeypatch.setattr(pull_backend, "image_present", lambda c: True)
-        monkeypatch.setattr(pull_backend, "up", lambda c, **k: (0, ""))
+        monkeypatch.setattr(image_backend, "image_present", lambda c: True)
+        monkeypatch.setattr(image_backend, "up", lambda c, **k: (0, ""))
         ok, msg = lifecycle.install(pcfg)
         assert ok is True and "ready" in msg
 
     def test_install_prewarns_network_only_when_image_absent(self, pcfg, monkeypatch) -> None:
         self._base(monkeypatch, ["not_installed", "running"])
-        monkeypatch.setattr(pull_backend, "image_present", lambda c: False)
-        monkeypatch.setattr(pull_backend, "up", lambda c, **k: (0, ""))
+        monkeypatch.setattr(image_backend, "image_present", lambda c: False)
+        monkeypatch.setattr(image_backend, "up", lambda c, **k: (0, ""))
         steps: list[str] = []
         ok, _ = lifecycle.install(pcfg, on_step=steps.append)
         assert ok is True
@@ -260,8 +260,8 @@ class TestLifecyclePullDispatch:
 
     def test_install_no_prewarn_when_image_present(self, pcfg, monkeypatch) -> None:
         self._base(monkeypatch, ["not_installed", "running"])
-        monkeypatch.setattr(pull_backend, "image_present", lambda c: True)
-        monkeypatch.setattr(pull_backend, "up", lambda c, **k: (0, ""))
+        monkeypatch.setattr(image_backend, "image_present", lambda c: True)
+        monkeypatch.setattr(image_backend, "up", lambda c, **k: (0, ""))
         steps: list[str] = []
         lifecycle.install(pcfg, on_step=steps.append)
         assert not any("internet" in s.lower() for s in steps)

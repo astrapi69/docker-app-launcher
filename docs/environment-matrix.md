@@ -62,10 +62,10 @@ present" as independent axes, each of which can be absent or too old. The
 the compose build path; `main` today has the #48 compose-availability ladder
 but no buildx-version awareness.
 
-Pull mode (#78) deliberately collapses this table: it needs only a reachable
+Image mode (#78) deliberately collapses this table: it needs only a reachable
 engine API (`/images/create` + the containers API), so every row above -
 including the frozen-at-release distro packages with no compose and no
-buildx - is a supported cell for `deployment_mode: "pull"`. That is the
+buildx - is a supported cell for `deployment_mode: "image"`. That is the
 end-user distribution answer to the toolchain matrix, not a workaround for
 it: the build rows still apply unchanged to compose/dockerfile mode.
 
@@ -344,12 +344,12 @@ Seed cells shipped now:
 | `no_docker` | no docker binary | `check_docker` reports not-installed with an install command |
 | `no_group` | `docker.io`, daemon up, user NOT in the docker group | the ONE cell where `usermod -aG docker` is correct advice (a local root unix socket) |
 
-- NEW cell (#78): pull mode on an old-generation engine - a `docker.io`
+- NEW cell (#78): image mode on an old-generation engine - a `docker.io`
   daemon with NO compose plugin and NO buildx must pull (or
-  `images.load`) and start a prebuilt image through `pull_backend.up`.
+  `images.load`) and start a prebuilt image through `image_backend.up`.
   The engine-API path is exactly why the mode exists; this cell proves it
   where the build modes are blocked. Deterministic unit coverage lives in
-  `tests/docker/test_pull_backend.py`; the real-daemon proof is a busybox
+  `tests/docker/test_image_backend.py`; the real-daemon proof is a busybox
   pull + run via the backend (documented in the #78 report).
 
 Cells enumerated for follow-up (need the corresponding gap fix or heavier

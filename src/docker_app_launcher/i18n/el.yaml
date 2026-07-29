@@ -155,9 +155,9 @@ build_failed_network: "Το build δεν μπόρεσε να προσεγγίσ�
 port_mismatch_rendered: "Ο launcher αναμένει τη θύρα {expected}, αλλά το αρχείο compose θα δημοσιεύσει {published}. Ελέγξτε το env_port_key ({port_key}) σε σχέση με τη μεταβλητή θύρας του compose και τις τιμές .env."
 repo_url_not_cloned: 'Σημείωση: το repo_url ({url}) χρησιμοποιείται μόνο για συνδέσμους/ελέγχους ενημερώσεων - ο launcher δεν το κλωνοποιεί. Το install_dir πρέπει να δείχνει σε τοπικό checkout.'
 app_logs_follow_stop: Διακοπή καταγραφών
-pulling: Λήψη της εικόνας της εφαρμογής (μπορεί να διαρκέσει μερικά λεπτά την πρώτη φορά)...
-pull_failed: 'Η λήψη της εικόνας της εφαρμογής απέτυχε: {detail}'
-pull_needs_network: Η εικόνα της εφαρμογής δεν υπάρχει ακόμη σε αυτό το μηχάνημα - για τη λήψη χρειάζεται σύνδεση στο διαδίκτυο. Μετά, η εφαρμογή λειτουργεί εκτός σύνδεσης.
-pull_mode_needs_image: 'Η λειτουργία pull χρειάζεται πηγή εικόνας: ορίστε image_reference (tag ή digest) ή image_archive στη διαμόρφωση.'
-pull_archive_unreadable: 'Το ρυθμισμένο αρχείο εικόνας δεν είναι αναγνώσιμο: {path}'
-pull_mode_needs_dockerpy: Η λειτουργία pull χρειάζεται το πακέτο Python docker (docker-py), το οποίο δεν είναι διαθέσιμο σε αυτήν την εγκατάσταση.
+image_acquiring: Λήψη της εικόνας της εφαρμογής (μπορεί να διαρκέσει μερικά λεπτά την πρώτη φορά)...
+image_acquire_failed: 'Η λήψη της εικόνας της εφαρμογής απέτυχε: {detail}'
+image_needs_network: Η εικόνα της εφαρμογής δεν υπάρχει ακόμη σε αυτό το μηχάνημα - για τη λήψη χρειάζεται σύνδεση στο διαδίκτυο. Μετά, η εφαρμογή λειτουργεί εκτός σύνδεσης.
+image_mode_needs_reference: 'Η λειτουργία image χρειάζεται πηγή εικόνας: ορίστε image_reference (tag ή digest) ή image_archive στη διαμόρφωση.'
+image_archive_unreadable: 'Το ρυθμισμένο αρχείο εικόνας δεν είναι αναγνώσιμο: {path}'
+image_mode_needs_dockerpy: Η λειτουργία image χρειάζεται το πακέτο Python docker (docker-py), το οποίο δεν είναι διαθέσιμο σε αυτήν την εγκατάσταση.

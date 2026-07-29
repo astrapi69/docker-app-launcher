@@ -404,26 +404,26 @@ class TestRelativeInstallDir:
         assert LauncherConfig(app_name="X", install_dir="rel/path").resolve().install_dir == "rel/path"
 
 
-class TestPullModeConfig:
-    """Schema contract of the pull deployment mode (#78)."""
+class TestImageModeConfig:
+    """Schema contract of the image deployment mode (#78)."""
 
-    def test_pull_mode_is_accepted(self, tmp_path) -> None:
+    def test_image_mode_is_accepted(self, tmp_path) -> None:
         cfg = LauncherConfig(
             app_name="P",
-            deployment_mode="pull",
+            deployment_mode="image",
             image_reference="ghcr.io/o/a:1",
             install_dir=str(tmp_path),
         ).resolve()
-        assert cfg.effective_deployment_mode == "pull"
+        assert cfg.effective_deployment_mode == "image"
 
-    def test_pull_without_image_reference_is_a_hard_error(self, tmp_path) -> None:
+    def test_image_mode_without_image_reference_is_a_hard_error(self, tmp_path) -> None:
         with pytest.raises(ValueError, match="image_reference"):
-            LauncherConfig(app_name="P", deployment_mode="pull", install_dir=str(tmp_path)).resolve()
+            LauncherConfig(app_name="P", deployment_mode="image", install_dir=str(tmp_path)).resolve()
 
     def test_archive_path_relative_to_install_dir(self, tmp_path) -> None:
         cfg = LauncherConfig(
             app_name="P",
-            deployment_mode="pull",
+            deployment_mode="image",
             image_reference="ghcr.io/o/a:1",
             image_archive="images/app.tar",
             install_dir=str(tmp_path),
@@ -433,7 +433,7 @@ class TestPullModeConfig:
     def test_archive_path_absolute_wins(self, tmp_path) -> None:
         cfg = LauncherConfig(
             app_name="P",
-            deployment_mode="pull",
+            deployment_mode="image",
             image_reference="ghcr.io/o/a:1",
             image_archive=str(tmp_path / "abs.tar"),
             install_dir=str(tmp_path / "elsewhere"),
@@ -442,7 +442,7 @@ class TestPullModeConfig:
 
     def test_no_archive_means_none(self, tmp_path) -> None:
         cfg = LauncherConfig(
-            app_name="P", deployment_mode="pull", image_reference="ghcr.io/o/a:1", install_dir=str(tmp_path)
+            app_name="P", deployment_mode="image", image_reference="ghcr.io/o/a:1", install_dir=str(tmp_path)
         ).resolve()
         assert cfg.image_archive_path is None
 

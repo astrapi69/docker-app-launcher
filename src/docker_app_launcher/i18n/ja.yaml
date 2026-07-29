@@ -155,9 +155,9 @@ build_failed_network: "ビルドがイメージをダウンロードするため
 port_mismatch_rendered: "ランチャーはポート {expected} を想定していますが、compose ファイルは {published} を公開します。env_port_key（{port_key}）を compose のポート変数と .env の値に対して確認してください。"
 repo_url_not_cloned: '注: repo_url（{url}）はリンク/更新チェック専用で、ランチャーはクローンしません。install_dir はローカルのチェックアウトを指す必要があります。'
 app_logs_follow_stop: ログを停止
-pulling: アプリのイメージをダウンロード中（初回は数分かかることがあります）...
-pull_failed: 'アプリイメージのダウンロードに失敗しました: {detail}'
-pull_needs_network: アプリのイメージはまだこのマシンにありません。ダウンロードにはインターネット接続が必要です。ダウンロード後はオフラインで動作します。
-pull_mode_needs_image: pull モードにはイメージのソースが必要です。設定に image_reference（タグまたはダイジェスト）か image_archive を設定してください。
-pull_archive_unreadable: '設定されたイメージアーカイブを読み取れません: {path}'
-pull_mode_needs_dockerpy: pull モードには Python パッケージ docker（docker-py）が必要ですが、このインストールでは利用できません。
+image_acquiring: アプリのイメージをダウンロード中（初回は数分かかることがあります）...
+image_acquire_failed: 'アプリイメージのダウンロードに失敗しました: {detail}'
+image_needs_network: アプリのイメージはまだこのマシンにありません。ダウンロードにはインターネット接続が必要です。ダウンロード後はオフラインで動作します。
+image_mode_needs_reference: image モードにはイメージのソースが必要です。設定に image_reference（タグまたはダイジェスト）か image_archive を設定してください。
+image_archive_unreadable: '設定されたイメージアーカイブを読み取れません: {path}'
+image_mode_needs_dockerpy: image モードには Python パッケージ docker（docker-py）が必要ですが、このインストールでは利用できません。

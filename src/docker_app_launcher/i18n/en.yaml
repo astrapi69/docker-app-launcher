@@ -155,9 +155,9 @@ build_failed_network: "The build could not reach the network to download images:
 port_mismatch_rendered: "The launcher expects port {expected}, but the compose file will publish {published}. Check env_port_key ({port_key}) against the compose file's port variable and the .env values."
 repo_url_not_cloned: 'Note: repo_url ({url}) is only used for links/update checks - the launcher does not clone it. install_dir must point at a local checkout.'
 app_logs_follow_stop: Stop logs
-pulling: Downloading the app image (can take a few minutes on first run)...
-pull_failed: 'Downloading the app image failed: {detail}'
-pull_needs_network: The app image is not on this machine yet - downloading it needs an internet connection. Once downloaded, the app runs offline.
-pull_mode_needs_image: 'Pull mode needs an image source: set image_reference (tag or digest) or image_archive in the launcher config.'
-pull_archive_unreadable: 'The configured image archive is not readable: {path}'
-pull_mode_needs_dockerpy: The pull deployment mode needs the docker Python package (docker-py), which is not importable in this installation.
+image_acquiring: Downloading the app image (can take a few minutes on first run)...
+image_acquire_failed: 'Downloading the app image failed: {detail}'
+image_needs_network: The app image is not on this machine yet - downloading it needs an internet connection. Once downloaded, the app runs offline.
+image_mode_needs_reference: 'Image mode needs an image source: set image_reference (tag or digest) or image_archive in the launcher config.'
+image_archive_unreadable: 'The configured image archive is not readable: {path}'
+image_mode_needs_dockerpy: The image deployment mode needs the docker Python package (docker-py), which is not importable in this installation.

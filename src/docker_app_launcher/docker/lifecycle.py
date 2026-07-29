@@ -524,6 +524,10 @@ def start(
         return False, _t(config, "docker_unavailable")
     if get_state(config) == "running":
         return True, _t(config, "already_running")
+    # .env FIRST, then the gate - symmetric with install(): the rendered-port
+    # check must see the .env the 'up --build' will actually use, not a
+    # stale one from before a config port change (review finding 2026-07-28).
+    _write_env_ports(config)
     # Build capability gate BEFORE the (re)build - after the daemon check, so
     # the engine/API versions are readable, and only when we are about to
     # build (an already-running stack short-circuited above) (#54).

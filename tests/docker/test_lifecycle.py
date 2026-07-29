@@ -926,3 +926,20 @@ class TestNetworkPreflight:
         steps: list[str] = []
         lifecycle.install(config, on_step=steps.append)
         assert any("internet" in s.lower() for s in steps)
+
+
+class TestStartEnvBeforeGate:
+    def test_start_writes_env_before_the_readiness_gate(self, config, monkeypatch) -> None:
+        """Symmetric with install(): the rendered-port preflight must see the
+        .env the build will use, not a stale one (review finding 2026-07-28)."""
+        order: list[str] = []
+        monkeypatch.setattr(lifecycle, "check_docker", lambda: (True, "ok"))
+        monkeypatch.setattr(lifecycle, "get_state", lambda c: "stopped")
+        monkeypatch.setattr(lifecycle, "_write_env_ports", lambda c: order.append("env"))
+        def gate(c):
+            order.append("gate")
+            return False, "blocked"
+        monkeypatch.setattr(lifecycle, "_ensure_build_ready", gate)
+        ok, _ = lifecycle.start(config)
+        assert ok is False
+        assert order == ["env", "gate"]

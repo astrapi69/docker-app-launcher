@@ -25,6 +25,22 @@ build_timeout: Docker build timed out.
 building: Building image (may take a few minutes the first time)...
 buildx_missing: 'The Docker Compose build delegates to buildx and needs buildx {required} or later, but no buildx plugin was found. Install buildx: download the binary for your platform from the docker/buildx releases, put it at {path}, then run ''chmod +x {path}''. Distribution packages have proven unreliable for this.'
 buildx_too_old: 'The Docker Compose build delegates to buildx and needs buildx {required} or later, but buildx {found} is installed. Install a newer buildx: download the binary for your platform from the docker/buildx releases, put it at {path}, then run ''chmod +x {path}''. Distribution packages have proven unreliable for this.'
+check_compose_file_exists_fix: Make sure the app files are present under install_dir and the compose file name in the config matches the real file.
+check_compose_file_exists_meaning: This app is driven by a Docker Compose file, and the configured file does not exist at the shown path.
+check_docker_running_fix: 'Start Docker Desktop or the docker service (Linux: ''sudo systemctl start docker''), then run the system check again. If Docker is not installed, install it first.'
+check_docker_running_meaning: Docker is the runtime that hosts the app. It is installed but not running, or not installed at all - nothing can start without it.
+check_dockerfile_exists_fix: Point install_dir (and build_context) at the app's source checkout that contains the Dockerfile.
+check_dockerfile_exists_meaning: This mode builds the app from a Dockerfile, and none was found at the shown path.
+check_health_reachable_fix: Open the app logs (App logs button) to see the app's own error message, then stop and start the app again.
+check_health_reachable_meaning: The app's container is running, but the app inside does not answer its health check - the app itself may have crashed.
+check_image_source_declared_fix: Set image_reference (and optionally image_archive) in the launcher config, then run the system check again.
+check_image_source_declared_meaning: Image mode needs to know which app image to run - neither an image reference nor a usable archive is configured.
+check_install_dir_fix: Set install_dir in the launcher config to the folder that holds the app's files, then run the system check again.
+check_install_dir_meaning: The launcher could not find the app's source folder (install_dir) that this deployment mode needs.
+check_port_drift_fix: Align env_port_key and the .env file with the compose file's port variable, or reinstall the app so the ports match.
+check_port_drift_meaning: The running container publishes a different port than the launcher expects, so buttons and browser links would open the wrong address.
+check_readiness_blocker_fix: Follow the instruction in the message - every blocker names its own repair - then run the system check again.
+check_readiness_blocker_meaning: A precondition for installing or starting the app is missing; the message names the exact gap.
 checking_context: Checking Docker context '{context}' ({endpoint})…
 checking_docker: Checking Docker...
 checking_health: Checking readiness...
@@ -48,6 +64,9 @@ confirm_uninstall: 'Do you want to uninstall {app}?
   Your data is preserved.'
 container_not_running: Container was built but is not running.
 container_started: Container started ✓
+copied_to_clipboard: Copied to the clipboard.
+copy_diagnosis: Copy diagnosis
+copy_support_bundle: Copy support bundle
 data_preserved: Your data was preserved.
 disk_low: 'Low disk space for the build: only {free} free on {path}, below the {needed} a build is likely to need. Free up space, or set min_build_disk_bytes to 0 to skip this check.'
 docker_desktop_waiting: Docker Desktop is starting - this can take a moment (VM boot)…
@@ -98,6 +117,7 @@ log_copy: Copy log
 no_containers: No containers found ✓
 no_docker: Docker is not started.
 no_free_port: No free port found.
+no_problems_found: System check passed - no problems found.
 not_installed: '{app} is not installed.'
 not_reachable: 'Installed, but {app} is not reachable: {detail}'
 not_reachable_after: '{app} not reachable after {timeout}s ({detail}).'
@@ -111,6 +131,7 @@ port_mismatch_rendered: The launcher expects port {expected}, but the compose fi
 port_occupied: Port {port} is occupied.
 port_restarting: Port changed. Restarting {app}...
 port_set: Port set to {port}.
+problem_found: Problem found
 ready: Installation complete. {app} is ready.
 repo_url_not_cloned: 'Note: repo_url ({url}) is only used for links/update checks - the launcher does not clone it. install_dir must point at a local checkout.'
 restore_defaults: Restore defaults
@@ -143,6 +164,7 @@ stop_done: '{app} stopped.'
 stop_failed: 'Stop failed: {detail}'
 stop_not_verified: Container still running after the stop command.
 stopped: '{app} is installed but stopped.'
+system_check: Check system
 tooltip_already_installed: Already installed
 tooltip_already_running: Already running
 tooltip_needs_docker: Docker is not running
@@ -160,3 +182,5 @@ update_available: 'Update available: {tag} - {url}'
 updating: Updating image (a few minutes after code changes, seconds otherwise)...
 verify_clean: 'Verification: no containers found ✓'
 verify_remain: 'Verification: {count} container(s) remain ✗'
+what_it_means: What does this mean?
+what_to_do: What you can do

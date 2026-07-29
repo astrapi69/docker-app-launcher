@@ -25,6 +25,22 @@ build_timeout: Pembangunan Docker melebihi batas waktu.
 building: Membangun image (mungkin perlu beberapa menit saat pertama kali)...
 buildx_missing: 'Build Docker Compose mendelegasikan ke buildx dan memerlukan buildx {required} atau lebih baru, tetapi plugin buildx tidak ditemukan. Pasang buildx: unduh biner untuk platform Anda dari rilis docker/buildx, letakkan di {path}, lalu buat dapat dieksekusi dengan ''chmod +x {path}''. Paket distribusi terbukti tidak dapat diandalkan untuk ini.'
 buildx_too_old: 'Build Docker Compose mendelegasikan ke buildx dan memerlukan buildx {required} atau lebih baru, tetapi yang terpasang buildx {found}. Pasang buildx yang lebih baru: unduh biner untuk platform Anda dari rilis docker/buildx, letakkan di {path}, lalu buat dapat dieksekusi dengan ''chmod +x {path}''. Paket distribusi terbukti tidak dapat diandalkan untuk ini.'
+check_compose_file_exists_fix: Pastikan berkas aplikasi ada di install_dir dan nama berkas compose dalam konfigurasi cocok dengan berkas sebenarnya.
+check_compose_file_exists_meaning: Aplikasi ini dikendalikan oleh berkas Docker Compose, dan berkas yang dikonfigurasi tidak ada di jalur yang ditampilkan.
+check_docker_running_fix: 'Jalankan Docker Desktop atau layanan docker (Linux: ''sudo systemctl start docker''), lalu jalankan pemeriksaan sistem lagi. Jika Docker belum terpasang, pasang dulu.'
+check_docker_running_meaning: Docker adalah lingkungan tempat aplikasi berjalan. Docker terpasang tapi tidak berjalan, atau belum terpasang sama sekali. Tanpa Docker tidak ada yang bisa dimulai.
+check_dockerfile_exists_fix: Arahkan install_dir (dan build_context) ke sumber aplikasi yang berisi Dockerfile.
+check_dockerfile_exists_meaning: Mode ini membangun aplikasi dari sebuah Dockerfile, dan tidak ada yang ditemukan di jalur yang ditampilkan.
+check_health_reachable_fix: Buka log aplikasi (tombol App logs) untuk melihat pesan kesalahannya, lalu hentikan dan mulai lagi aplikasi.
+check_health_reachable_meaning: Kontainer aplikasi berjalan, tapi aplikasi di dalamnya tidak menjawab pemeriksaan kesehatan - aplikasi mungkin crash.
+check_image_source_declared_fix: Setel image_reference (dan opsional image_archive) dalam konfigurasi, lalu periksa lagi.
+check_image_source_declared_meaning: Mode image perlu tahu image aplikasi mana yang dijalankan - tidak ada referensi image maupun arsip yang bisa dipakai dalam konfigurasi.
+check_install_dir_fix: Setel install_dir dalam konfigurasi launcher ke folder berisi berkas aplikasi, lalu periksa lagi.
+check_install_dir_meaning: Launcher tidak menemukan folder sumber aplikasi (install_dir) yang dibutuhkan mode ini.
+check_port_drift_fix: Selaraskan env_port_key dan berkas .env dengan variabel port berkas compose, atau pasang ulang aplikasi agar port cocok.
+check_port_drift_meaning: Kontainer yang berjalan memublikasikan port berbeda dari yang diharapkan launcher - tombol dan tautan peramban akan membuka alamat yang salah.
+check_readiness_blocker_fix: Ikuti petunjuk dalam pesan - setiap penghalang menyebutkan perbaikannya sendiri - lalu periksa lagi.
+check_readiness_blocker_meaning: Sebuah prasyarat untuk memasang atau memulai aplikasi belum terpenuhi; pesan menyebutkan kekurangan pastinya.
 checking_context: Memeriksa Docker context '{context}' ({endpoint})…
 checking_docker: Memeriksa Docker...
 checking_health: Memeriksa kesiapan...
@@ -48,6 +64,9 @@ confirm_uninstall: 'Apakah Anda ingin menghapus pemasangan {app}?
   Data Anda tetap tersimpan.'
 container_not_running: Kontainer dibangun tetapi tidak berjalan.
 container_started: Kontainer dimulai ✓
+copied_to_clipboard: Disalin ke papan klip.
+copy_diagnosis: Salin diagnosis
+copy_support_bundle: Salin bundel dukungan
 data_preserved: Data Anda tetap tersimpan.
 disk_low: 'Ruang disk untuk build sedikit: hanya {free} bebas di {path}, di bawah {needed} yang kemungkinan dibutuhkan sebuah build. Kosongkan ruang, atau setel min_build_disk_bytes ke 0 untuk melewati pemeriksaan ini.'
 docker_desktop_waiting: Docker Desktop sedang dimulai - ini bisa memakan waktu sejenak (boot VM)…
@@ -98,6 +117,7 @@ log_copy: Salin log
 no_containers: Tidak ada kontainer ditemukan ✓
 no_docker: Docker belum dijalankan.
 no_free_port: Tidak ada port yang tersedia.
+no_problems_found: Pemeriksaan sistem lulus - tidak ada masalah ditemukan.
 not_installed: '{app} belum terpasang.'
 not_reachable: 'Terpasang, tetapi {app} tidak dapat dijangkau: {detail}'
 not_reachable_after: '{app} tidak dapat dijangkau setelah {timeout}d ({detail}).'
@@ -111,6 +131,7 @@ port_mismatch_rendered: Launcher mengharapkan port {expected}, tetapi berkas com
 port_occupied: Port {port} sedang dipakai.
 port_restarting: Port diubah. Memulai ulang {app}...
 port_set: Port disetel ke {port}.
+problem_found: Masalah ditemukan
 ready: Pemasangan selesai. {app} siap.
 repo_url_not_cloned: 'Catatan: repo_url ({url}) hanya untuk tautan/pemeriksaan pembaruan - launcher tidak meng-clone-nya. install_dir harus menunjuk ke checkout lokal.'
 restore_defaults: Pulihkan default
@@ -143,6 +164,7 @@ stop_done: '{app} dihentikan.'
 stop_failed: 'Gagal menghentikan: {detail}'
 stop_not_verified: Kontainer masih berjalan setelah perintah hentikan.
 stopped: '{app} terpasang tetapi dihentikan.'
+system_check: Periksa sistem
 tooltip_already_installed: Sudah terpasang
 tooltip_already_running: Sudah berjalan
 tooltip_needs_docker: Docker tidak berjalan
@@ -160,3 +182,5 @@ update_available: 'Pembaruan tersedia: {tag} - {url}'
 updating: Memperbarui image (beberapa menit setelah perubahan kode, beberapa detik jika tidak)...
 verify_clean: 'Verifikasi: tidak ada kontainer ditemukan ✓'
 verify_remain: 'Verifikasi: {count} kontainer tersisa ✗'
+what_it_means: Apa artinya ini?
+what_to_do: Yang bisa Anda lakukan

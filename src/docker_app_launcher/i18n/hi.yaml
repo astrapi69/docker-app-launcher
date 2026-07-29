@@ -25,6 +25,22 @@ build_timeout: Docker बिल्ड का समय समाप्त हो
 building: इमेज बनाई जा रही है (पहली बार कुछ मिनट लग सकते हैं)...
 buildx_missing: 'Docker Compose बिल्ड buildx को सौंपता है और buildx {required} या नया चाहिए, लेकिन कोई buildx प्लगइन नहीं मिला। buildx इंस्टॉल करें: अपने प्लेटफ़ॉर्म के लिए बाइनरी docker/buildx releases से डाउनलोड करें, उसे {path} पर रखें, फिर ''chmod +x {path}'' से executable बनाएं। इसके लिए डिस्ट्रीब्यूशन पैकेज अविश्वसनीय साबित हुए हैं।'
 buildx_too_old: 'Docker Compose बिल्ड buildx को सौंपता है और buildx {required} या नया चाहिए, लेकिन buildx {found} इंस्टॉल है। नया buildx इंस्टॉल करें: अपने प्लेटफ़ॉर्म के लिए बाइनरी docker/buildx releases से डाउनलोड करें, उसे {path} पर रखें, फिर ''chmod +x {path}'' से executable बनाएं। इसके लिए डिस्ट्रीब्यूशन पैकेज अविश्वसनीय साबित हुए हैं।'
+check_compose_file_exists_fix: सुनिश्चित करें कि ऐप की फ़ाइलें install_dir में हैं और compose फ़ाइल का नाम असली फ़ाइल से मेल खाता है।
+check_compose_file_exists_meaning: यह ऐप एक Docker Compose फ़ाइल से चलती है, और कॉन्फ़िगर की गई फ़ाइल दिखाए गए पथ पर मौजूद नहीं है।
+check_docker_running_fix: 'Docker Desktop या docker सेवा शुरू करें (Linux: ''sudo systemctl start docker''), फिर सिस्टम जाँच दोबारा चलाएँ। अगर Docker इंस्टॉल नहीं है, तो पहले उसे इंस्टॉल करें।'
+check_docker_running_meaning: Docker वह रनटाइम है जिसमें ऐप चलती है। यह इंस्टॉल है पर चालू नहीं, या बिल्कुल इंस्टॉल नहीं है। Docker के बिना कुछ भी शुरू नहीं हो सकता।
+check_dockerfile_exists_fix: install_dir (और build_context) को ऐप के उस सोर्स चेकआउट पर सेट करें जिसमें Dockerfile है।
+check_dockerfile_exists_meaning: यह मोड ऐप को एक Dockerfile से बनाता है, और दिखाए गए पथ पर कोई नहीं मिला।
+check_health_reachable_fix: ऐप की अपनी त्रुटि देखने के लिए ऐप लॉग खोलें (App logs बटन), फिर ऐप को रोककर दोबारा शुरू करें।
+check_health_reachable_meaning: ऐप का कंटेनर चल रहा है, पर अंदर की ऐप अपनी स्वास्थ्य जाँच का जवाब नहीं दे रही - शायद ऐप क्रैश हो गई है।
+check_image_source_declared_fix: कॉन्फ़िगरेशन में image_reference (और वैकल्पिक रूप से image_archive) सेट करें और दोबारा जाँचें।
+check_image_source_declared_meaning: Image मोड को जानना चाहिए कि कौन-सी ऐप इमेज चलानी है - न कोई इमेज संदर्भ और न कोई उपयोगी आर्काइव कॉन्फ़िगर है।
+check_install_dir_fix: लॉन्चर कॉन्फ़िगरेशन में install_dir को ऐप की फ़ाइलों वाले फ़ोल्डर पर सेट करें और दोबारा जाँचें।
+check_install_dir_meaning: लॉन्चर को ऐप का स्रोत फ़ोल्डर (install_dir) नहीं मिला, जो इस मोड को चाहिए।
+check_port_drift_fix: env_port_key और .env फ़ाइल को compose फ़ाइल के पोर्ट वेरिएबल से मिलाएँ, या ऐप दोबारा इंस्टॉल करें ताकि पोर्ट मेल खाएँ।
+check_port_drift_meaning: चल रहा कंटेनर उस पोर्ट से अलग पोर्ट प्रकाशित करता है जिसकी लॉन्चर अपेक्षा करता है - बटन और ब्राउज़र लिंक गलत पते खोलेंगे।
+check_readiness_blocker_fix: संदेश में दिए निर्देश का पालन करें - हर ब्लॉकर अपनी मरम्मत खुद बताता है - फिर दोबारा जाँचें।
+check_readiness_blocker_meaning: इंस्टॉल या शुरू करने की एक शर्त पूरी नहीं है; संदेश सटीक कमी बताता है।
 checking_context: Docker context '{context}' ({endpoint}) की जाँच हो रही है…
 checking_docker: Docker की जाँच हो रही है...
 checking_health: तैयारी की जाँच हो रही है...
@@ -48,6 +64,9 @@ confirm_uninstall: 'क्या आप {app} को अनइंस्टॉल
   आपका डेटा सुरक्षित रहेगा।'
 container_not_running: कंटेनर बन गया लेकिन चल नहीं रहा।
 container_started: कंटेनर शुरू हुआ ✓
+copied_to_clipboard: क्लिपबोर्ड पर कॉपी हो गया।
+copy_diagnosis: निदान कॉपी करें
+copy_support_bundle: सपोर्ट बंडल कॉपी करें
 data_preserved: आपका डेटा सुरक्षित रखा गया।
 disk_low: 'बिल्ड के लिए कम डिस्क स्थान: {path} पर केवल {free} खाली है, जो {needed} से कम है जिसकी बिल्ड को संभवतः आवश्यकता होगी। स्थान खाली करें, या इस जाँच को छोड़ने के लिए min_build_disk_bytes को 0 पर सेट करें।'
 docker_desktop_waiting: Docker Desktop शुरू हो रहा है - इसमें थोड़ा समय लग सकता है (VM बूट)…
@@ -98,6 +117,7 @@ log_copy: लॉग कॉपी करें
 no_containers: कोई कंटेनर नहीं मिला ✓
 no_docker: Docker शुरू नहीं हुआ है।
 no_free_port: कोई खाली पोर्ट नहीं मिला।
+no_problems_found: सिस्टम जाँच सफल - कोई समस्या नहीं मिली।
 not_installed: '{app} इंस्टॉल नहीं है।'
 not_reachable: 'इंस्टॉल हो गया, लेकिन {app} तक नहीं पहुँचा जा सका: {detail}'
 not_reachable_after: '{timeout}s के बाद {app} तक नहीं पहुँचा जा सका ({detail})।'
@@ -111,6 +131,7 @@ port_mismatch_rendered: Launcher को पोर्ट {expected} अपेक�
 port_occupied: पोर्ट {port} व्यस्त है।
 port_restarting: पोर्ट बदला गया। {app} फिर से शुरू हो रहा है...
 port_set: पोर्ट {port} पर सेट किया गया।
+problem_found: समस्या मिली
 ready: इंस्टॉलेशन पूरा हुआ। {app} तैयार है।
 repo_url_not_cloned: 'नोट: repo_url ({url}) केवल लिंक/अपडेट जाँच के लिए है - launcher इसे clone नहीं करता। install_dir को स्थानीय checkout पर इंगित करना होगा।'
 restore_defaults: डिफ़ॉल्ट पुनर्स्थापित करें
@@ -143,6 +164,7 @@ stop_done: '{app} रोका गया।'
 stop_failed: 'रोकना विफल रहा: {detail}'
 stop_not_verified: स्टॉप कमांड के बाद भी कंटेनर चल रहा है।
 stopped: '{app} इंस्टॉल है, लेकिन रुका हुआ है।'
+system_check: सिस्टम जाँचें
 tooltip_already_installed: पहले से इंस्टॉल है
 tooltip_already_running: पहले से चल रहा है
 tooltip_needs_docker: Docker नहीं चल रहा है
@@ -160,3 +182,5 @@ update_available: 'अपडेट उपलब्ध: {tag} - {url}'
 updating: इमेज अपडेट हो रही है (कोड बदलाव के बाद कुछ मिनट, अन्यथा कुछ सेकंड)...
 verify_clean: 'सत्यापन: कोई कंटेनर नहीं मिला ✓'
 verify_remain: 'सत्यापन: {count} कंटेनर शेष हैं ✗'
+what_it_means: इसका क्या मतलब है?
+what_to_do: आप क्या कर सकते हैं

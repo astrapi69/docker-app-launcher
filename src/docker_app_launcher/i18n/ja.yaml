@@ -25,6 +25,22 @@ build_timeout: Docker ビルドがタイムアウトしました。
 building: イメージをビルド中（初回は数分かかる場合があります）...
 buildx_missing: 'Docker Compose のビルドは buildx に委譲され、buildx {required} 以降が必要ですが、buildx プラグインが見つかりませんでした。buildx をインストールしてください: お使いのプラットフォーム向けバイナリを docker/buildx のリリースから入手し、{path} に配置して ''chmod +x {path}'' で実行可能にします。ディストリビューションのパッケージはこの用途では信頼できないことが分かっています。'
 buildx_too_old: 'Docker Compose のビルドは buildx に委譲され、buildx {required} 以降が必要ですが、インストールされているのは buildx {found} です。新しい buildx をインストールしてください: お使いのプラットフォーム向けバイナリを docker/buildx のリリースから入手し、{path} に配置して ''chmod +x {path}'' で実行可能にします。ディストリビューションのパッケージはこの用途では信頼できないことが分かっています。'
+check_compose_file_exists_fix: アプリのファイルが install_dir にあり、設定の compose ファイル名が実際のファイルと一致しているか確認してください。
+check_compose_file_exists_meaning: このアプリは Docker Compose ファイルで制御されますが、設定されたファイルが表示されたパスに存在しません。
+check_docker_running_fix: 'Docker Desktop または docker サービスを起動し（Linux: ''sudo systemctl start docker''）、システムチェックを再実行してください。未インストールの場合は先にインストールしてください。'
+check_docker_running_meaning: Docker はアプリを動かす実行環境です。インストール済みで停止しているか、そもそもインストールされていません。Docker なしでは何も起動できません。
+check_dockerfile_exists_fix: install_dir（および build_context）を Dockerfile を含むアプリのソースに向けてください。
+check_dockerfile_exists_meaning: このモードは Dockerfile からアプリをビルドしますが、表示されたパスに見つかりませんでした。
+check_health_reachable_fix: アプリログ（App logs ボタン）でアプリ自身のエラーを確認し、アプリを停止してから再起動してください。
+check_health_reachable_meaning: アプリのコンテナーは動いていますが、中のアプリがヘルスチェックに応答しません。アプリ自体がクラッシュした可能性があります。
+check_image_source_declared_fix: 設定で image_reference（必要なら image_archive も）を設定し、再チェックしてください。
+check_image_source_declared_meaning: image モードは実行するアプリイメージを知る必要があります。イメージ参照も使用可能なアーカイブも設定されていません。
+check_install_dir_fix: ランチャー設定の install_dir をアプリのファイルがあるフォルダーに設定し、再チェックしてください。
+check_install_dir_meaning: このモードに必要なアプリのソースフォルダー（install_dir）が見つかりません。
+check_port_drift_fix: env_port_key と .env を compose ファイルのポート変数に合わせるか、アプリを再インストールしてポートを一致させてください。
+check_port_drift_meaning: 実行中のコンテナーがランチャーの想定と異なるポートを公開しています。ボタンやブラウザーリンクが誤ったアドレスを開きます。
+check_readiness_blocker_fix: メッセージの指示に従ってください。各ブロッカーは自分の修復方法を示します。その後、再チェックしてください。
+check_readiness_blocker_meaning: インストール・起動の前提条件が欠けています。メッセージが不足箇所を正確に示しています。
 checking_context: Docker コンテキスト '{context}'（{endpoint}）を確認中…
 checking_docker: Docker を確認中...
 checking_health: 準備状態を確認中...
@@ -48,6 +64,9 @@ confirm_uninstall: '{app} をアンインストールしますか？
   データは保持されます。'
 container_not_running: コンテナはビルドされましたが実行されていません。
 container_started: コンテナを起動しました ✓
+copied_to_clipboard: クリップボードにコピーしました。
+copy_diagnosis: 診断をコピー
+copy_support_bundle: サポートバンドルをコピー
 data_preserved: データは保持されました。
 disk_low: 'ビルド用のディスク空き容量が不足しています: {path} に {free} しか空きがなく、ビルドに必要とみられる {needed} を下回っています。空き容量を確保するか、min_build_disk_bytes を 0 に設定してこのチェックを省略してください。'
 docker_desktop_waiting: Docker Desktop を起動しています。しばらくかかることがあります（VM 起動）…
@@ -98,6 +117,7 @@ log_copy: ログをコピー
 no_containers: コンテナは見つかりませんでした ✓
 no_docker: Docker が起動していません。
 no_free_port: 空きポートが見つかりません。
+no_problems_found: システムチェック合格 - 問題は見つかりませんでした。
 not_installed: '{app} はインストールされていません。'
 not_reachable: 'インストールされましたが、{app} に到達できません: {detail}'
 not_reachable_after: '{timeout}秒後も {app} に到達できません（{detail}）。'
@@ -111,6 +131,7 @@ port_mismatch_rendered: ランチャーはポート {expected} を想定して�
 port_occupied: ポート {port} は使用中です。
 port_restarting: ポートを変更しました。{app} を再起動しています...
 port_set: ポートを {port} に設定しました。
+problem_found: 問題が見つかりました
 ready: インストールが完了しました。{app} の準備が整いました。
 repo_url_not_cloned: '注: repo_url（{url}）はリンク/更新チェック専用で、ランチャーはクローンしません。install_dir はローカルのチェックアウトを指す必要があります。'
 restore_defaults: 既定値に戻す
@@ -143,6 +164,7 @@ stop_done: '{app} を停止しました。'
 stop_failed: '停止に失敗しました: {detail}'
 stop_not_verified: 停止コマンドの後もコンテナがまだ実行中です。
 stopped: '{app} はインストール済みですが停止しています。'
+system_check: システムを確認
 tooltip_already_installed: すでにインストール済みです
 tooltip_already_running: すでに実行中です
 tooltip_needs_docker: Docker が実行されていません
@@ -160,3 +182,5 @@ update_available: 'アップデートがあります: {tag} - {url}'
 updating: イメージを更新中（コード変更後は数分、それ以外は数秒）...
 verify_clean: '検証: コンテナは見つかりませんでした ✓'
 verify_remain: '検証: {count} 個のコンテナが残っています ✗'
+what_it_means: これはどういう意味？
+what_to_do: できること

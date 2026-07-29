@@ -25,6 +25,22 @@ build_timeout: Docker derlemesi zaman aşımına uğradı.
 building: İmaj derleniyor (ilk seferde birkaç dakika sürebilir)...
 buildx_missing: 'Docker Compose derlemesi buildx''e devreder ve buildx {required} veya sonrasını gerektirir, ancak buildx eklentisi bulunamadı. buildx kurun: platformunuz için ikili dosyayı docker/buildx sürümlerinden indirin, {path} konumuna koyun ve ''chmod +x {path}'' ile çalıştırılabilir yapın. Dağıtım paketleri bunun için güvenilmez çıktı.'
 buildx_too_old: 'Docker Compose derlemesi buildx''e devreder ve buildx {required} veya sonrasını gerektirir, ancak buildx {found} kurulu. Daha yeni bir buildx kurun: platformunuz için ikili dosyayı docker/buildx sürümlerinden indirin, {path} konumuna koyun ve ''chmod +x {path}'' ile çalıştırılabilir yapın. Dağıtım paketleri bunun için güvenilmez çıktı.'
+check_compose_file_exists_fix: Uygulama dosyalarının install_dir altında olduğundan ve compose dosya adının gerçek dosyayla eşleştiğinden emin olun.
+check_compose_file_exists_meaning: Bu uygulama bir Docker Compose dosyasıyla yönetiliyor ve yapılandırılan dosya gösterilen yolda yok.
+check_docker_running_fix: 'Docker Desktop''ı veya docker hizmetini başlatın (Linux: ''sudo systemctl start docker''), sonra sistem denetimini yeniden çalıştırın. Docker kurulu değilse önce kurun.'
+check_docker_running_meaning: Docker, uygulamanın çalıştığı ortamdır. Kurulu ama çalışmıyor ya da hiç kurulu değil. Docker olmadan hiçbir şey başlatılamaz.
+check_dockerfile_exists_fix: install_dir (ve build_context) değerini Dockerfile içeren uygulama kaynağına yönlendirin.
+check_dockerfile_exists_meaning: Bu mod uygulamayı bir Dockerfile'dan derler ve gösterilen yolda hiçbiri bulunamadı.
+check_health_reachable_fix: Uygulamanın kendi hatasını görmek için uygulama günlüklerini açın (App logs düğmesi), sonra uygulamayı durdurup yeniden başlatın.
+check_health_reachable_meaning: Uygulamanın kapsayıcısı çalışıyor ama içindeki uygulama sağlık denetimine yanıt vermiyor - uygulamanın kendisi çökmüş olabilir.
+check_image_source_declared_fix: Yapılandırmada image_reference (isteğe bağlı olarak image_archive) ayarlayın ve yeniden denetleyin.
+check_image_source_declared_meaning: Image modu hangi uygulama imajının çalıştırılacağını bilmelidir - ne bir imaj referansı ne de kullanılabilir bir arşiv yapılandırılmış.
+check_install_dir_fix: Launcher yapılandırmasında install_dir değerini uygulama dosyalarının bulunduğu klasöre ayarlayın ve yeniden denetleyin.
+check_install_dir_meaning: Launcher, bu modun gerektirdiği uygulama kaynak klasörünü (install_dir) bulamıyor.
+check_port_drift_fix: env_port_key ve .env dosyasını compose dosyasının port değişkeniyle hizalayın veya portların eşleşmesi için uygulamayı yeniden kurun.
+check_port_drift_meaning: Çalışan kapsayıcı, launcher'ın beklediğinden farklı bir port yayımlıyor - düğmeler ve tarayıcı bağlantıları yanlış adresi açar.
+check_readiness_blocker_fix: Mesajdaki talimatı izleyin - her engel kendi onarımını adlandırır - sonra yeniden denetleyin.
+check_readiness_blocker_meaning: Kurulum veya başlatma için bir önkoşul eksik; mesaj eksikliği tam olarak adlandırıyor.
 checking_context: Docker context '{context}' ({endpoint}) denetleniyor…
 checking_docker: Docker kontrol ediliyor...
 checking_health: Hazırlık kontrol ediliyor...
@@ -48,6 +64,9 @@ confirm_uninstall: '{app} uygulamasını kaldırmak istiyor musunuz?
   Verileriniz korunur.'
 container_not_running: Konteyner derlendi ancak çalışmıyor.
 container_started: Konteyner başlatıldı ✓
+copied_to_clipboard: Panoya kopyalandı.
+copy_diagnosis: Tanıyı kopyala
+copy_support_bundle: Destek paketini kopyala
 data_preserved: Verileriniz korundu.
 disk_low: 'Derleme için disk alanı az: {path} üzerinde yalnızca {free} boş, bir derlemenin muhtemelen ihtiyaç duyacağı {needed} altında. Yer açın veya bu kontrolü atlamak için min_build_disk_bytes değerini 0 yapın.'
 docker_desktop_waiting: Docker Desktop başlatılıyor - bu biraz sürebilir (VM önyüklemesi)…
@@ -98,6 +117,7 @@ log_copy: Günlüğü kopyala
 no_containers: Konteyner bulunamadı ✓
 no_docker: Docker başlatılmadı.
 no_free_port: Boş bağlantı noktası bulunamadı.
+no_problems_found: Sistem denetimi geçti - sorun bulunamadı.
 not_installed: '{app} kurulu değil.'
 not_reachable: 'Kuruldu, ancak {app} erişilebilir değil: {detail}'
 not_reachable_after: '{app} {timeout}sn sonra erişilebilir değil ({detail}).'
@@ -111,6 +131,7 @@ port_mismatch_rendered: Launcher {expected} portunu bekliyor, ancak compose dosy
 port_occupied: '{port} bağlantı noktası dolu.'
 port_restarting: Bağlantı noktası değiştirildi. {app} yeniden başlatılıyor...
 port_set: Bağlantı noktası {port} olarak ayarlandı.
+problem_found: Sorun bulundu
 ready: Kurulum tamamlandı. {app} hazır.
 repo_url_not_cloned: 'Not: repo_url ({url}) yalnızca bağlantılar/güncelleme denetimleri içindir - launcher onu klonlamaz. install_dir yerel bir checkout''u göstermelidir.'
 restore_defaults: Varsayılanları geri yükle
@@ -143,6 +164,7 @@ stop_done: '{app} durduruldu.'
 stop_failed: 'Durdurma başarısız oldu: {detail}'
 stop_not_verified: Durdurma komutundan sonra konteyner hâlâ çalışıyor.
 stopped: '{app} kurulu ancak durdurulmuş.'
+system_check: Sistemi denetle
 tooltip_already_installed: Zaten yüklü
 tooltip_already_running: Zaten çalışıyor
 tooltip_needs_docker: Docker çalışmıyor
@@ -160,3 +182,5 @@ update_available: 'Güncelleme mevcut: {tag} - {url}'
 updating: İmaj güncelleniyor (kod değişikliklerinden sonra birkaç dakika, aksi halde saniyeler)...
 verify_clean: 'Doğrulama: konteyner bulunamadı ✓'
 verify_remain: 'Doğrulama: {count} konteyner kaldı ✗'
+what_it_means: Bu ne anlama geliyor?
+what_to_do: Ne yapabilirsiniz

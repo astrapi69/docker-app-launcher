@@ -25,6 +25,22 @@ build_timeout: Docker-Build hat das Zeitlimit überschritten.
 building: Image bauen (kann beim ersten Mal einige Minuten dauern)...
 buildx_missing: 'Der Docker-Compose-Build delegiert an buildx und benötigt buildx {required} oder neuer, es wurde aber kein buildx-Plugin gefunden. buildx installieren: die Binärdatei für deine Plattform aus den docker/buildx-Releases herunterladen, unter {path} ablegen und mit ''chmod +x {path}'' ausführbar machen. Paketquellen haben sich hierfür als unzuverlässig erwiesen.'
 buildx_too_old: 'Der Docker-Compose-Build delegiert an buildx und benötigt buildx {required} oder neuer, installiert ist aber buildx {found}. Neueres buildx installieren: die Binärdatei für deine Plattform aus den docker/buildx-Releases herunterladen, unter {path} ablegen und mit ''chmod +x {path}'' ausführbar machen. Paketquellen haben sich hierfür als unzuverlässig erwiesen.'
+check_compose_file_exists_fix: Stelle sicher, dass die App-Dateien unter install_dir liegen und der Compose-Dateiname in der Konfiguration mit der echten Datei übereinstimmt.
+check_compose_file_exists_meaning: Diese App wird über eine Docker-Compose-Datei gesteuert, und die konfigurierte Datei existiert am angezeigten Pfad nicht.
+check_docker_running_fix: 'Starte Docker Desktop oder den docker-Dienst (Linux: ''sudo systemctl start docker'') und führe die Systemprüfung erneut aus. Falls Docker fehlt, installiere es zuerst.'
+check_docker_running_meaning: Docker ist die Laufzeitumgebung, in der die App läuft. Es ist installiert, aber nicht gestartet - oder gar nicht installiert. Ohne Docker kann nichts starten.
+check_dockerfile_exists_fix: Richte install_dir (und build_context) auf den Quell-Checkout der App mit dem Dockerfile.
+check_dockerfile_exists_meaning: Dieser Modus baut die App aus einem Dockerfile, und am angezeigten Pfad wurde keines gefunden.
+check_health_reachable_fix: Öffne die App-Logs (Button App-Logs), um die Fehlermeldung der App zu sehen, und stoppe und starte die App danach neu.
+check_health_reachable_meaning: Der Container der App läuft, aber die App darin antwortet nicht auf ihre Gesundheitsprüfung - möglicherweise ist die App selbst abgestürzt.
+check_image_source_declared_fix: Setze image_reference (und optional image_archive) in der Launcher-Konfiguration und prüfe erneut.
+check_image_source_declared_meaning: Der Image-Modus muss wissen, welches App-Image laufen soll - es ist weder eine Image-Referenz noch ein nutzbares Archiv konfiguriert.
+check_install_dir_fix: Setze install_dir in der Launcher-Konfiguration auf den Ordner mit den App-Dateien und prüfe erneut.
+check_install_dir_meaning: Der Launcher findet den Quellordner der App (install_dir) nicht, den dieser Modus benötigt.
+check_port_drift_fix: Bringe env_port_key und die .env-Datei mit der Port-Variable der Compose-Datei in Einklang oder installiere die App neu, damit die Ports übereinstimmen.
+check_port_drift_meaning: Der laufende Container veröffentlicht einen anderen Port als der Launcher erwartet - Buttons und Browser-Links würden die falsche Adresse öffnen.
+check_readiness_blocker_fix: Folge der Anweisung in der Meldung - jeder Blocker benennt seine eigene Reparatur - und prüfe erneut.
+check_readiness_blocker_meaning: Eine Voraussetzung zum Installieren oder Starten fehlt; die Meldung benennt die genaue Lücke.
 checking_context: Prüfe Docker-Context '{context}' ({endpoint})…
 checking_docker: Docker prüfen...
 checking_health: Bereitschaft prüfen...
@@ -48,6 +64,9 @@ confirm_uninstall: 'Möchtest du {app} deinstallieren?
   Deine Daten bleiben erhalten.'
 container_not_running: Container wurde gebaut, läuft aber nicht.
 container_started: Container gestartet ✓
+copied_to_clipboard: In die Zwischenablage kopiert.
+copy_diagnosis: Diagnose kopieren
+copy_support_bundle: Supportpaket kopieren
 data_preserved: Deine Daten wurden beibehalten.
 disk_low: 'Wenig Speicherplatz für den Build: nur {free} frei auf {path}, unter den {needed}, die ein Build voraussichtlich braucht. Speicher freigeben oder min_build_disk_bytes auf 0 setzen, um diese Prüfung zu überspringen.'
 docker_desktop_waiting: Docker Desktop startet - das kann einen Moment dauern (VM-Boot)…
@@ -98,6 +117,7 @@ log_copy: Log kopieren
 no_containers: Keine Container gefunden ✓
 no_docker: Docker ist nicht gestartet.
 no_free_port: Kein freier Port gefunden.
+no_problems_found: Systemprüfung bestanden - keine Probleme gefunden.
 not_installed: '{app} ist nicht installiert.'
 not_reachable: 'Installiert, aber {app} ist nicht erreichbar: {detail}'
 not_reachable_after: '{app} nicht erreichbar nach {timeout}s ({detail}).'
@@ -111,6 +131,7 @@ port_mismatch_rendered: Der Launcher erwartet Port {expected}, aber die Compose-
 port_occupied: Port {port} ist belegt.
 port_restarting: Port geändert. {app} wird neu gestartet...
 port_set: Port auf {port} gesetzt.
+problem_found: Problem gefunden
 ready: Installation abgeschlossen. {app} ist bereit.
 repo_url_not_cloned: 'Hinweis: repo_url ({url}) dient nur für Links/Update-Checks - der Launcher klont es nicht. install_dir muss auf einen lokalen Checkout zeigen.'
 restore_defaults: Standardwerte wiederherstellen
@@ -143,6 +164,7 @@ stop_done: '{app} gestoppt.'
 stop_failed: 'Stoppen fehlgeschlagen: {detail}'
 stop_not_verified: Container läuft nach dem Stop-Befehl noch.
 stopped: '{app} ist installiert, aber gestoppt.'
+system_check: System prüfen
 tooltip_already_installed: Bereits installiert
 tooltip_already_running: Läuft bereits
 tooltip_needs_docker: Docker läuft nicht
@@ -160,3 +182,5 @@ update_available: 'Update verfügbar: {tag} - {url}'
 updating: Image wird aktualisiert (nach Code-Änderungen einige Minuten, sonst Sekunden)...
 verify_clean: 'Verifizierung: keine Container gefunden ✓'
 verify_remain: 'Verifizierung: {count} Container verbleiben ✗'
+what_it_means: Was bedeutet das?
+what_to_do: Was du tun kannst

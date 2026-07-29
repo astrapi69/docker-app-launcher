@@ -25,6 +25,22 @@ build_timeout: Η κατασκευή Docker υπερέβη το χρονικό �
 building: Κατασκευή image (μπορεί να διαρκέσει μερικά λεπτά την πρώτη φορά)...
 buildx_missing: 'Η κατασκευή του Docker Compose ανατίθεται στο buildx και χρειάζεται buildx {required} ή νεότερο, αλλά δεν βρέθηκε πρόσθετο buildx. Εγκαταστήστε buildx: κατεβάστε το εκτελέσιμο για την πλατφόρμα σας από τα docker/buildx releases, τοποθετήστε το στο {path} και κάντε το εκτελέσιμο με ''chmod +x {path}''. Τα πακέτα διανομής αποδείχθηκαν αναξιόπιστα γι'' αυτό.'
 buildx_too_old: 'Η κατασκευή του Docker Compose ανατίθεται στο buildx και χρειάζεται buildx {required} ή νεότερο, αλλά είναι εγκατεστημένο buildx {found}. Εγκαταστήστε νεότερο buildx: κατεβάστε το εκτελέσιμο για την πλατφόρμα σας από τα docker/buildx releases, τοποθετήστε το στο {path} και κάντε το εκτελέσιμο με ''chmod +x {path}''. Τα πακέτα διανομής αποδείχθηκαν αναξιόπιστα γι'' αυτό.'
+check_compose_file_exists_fix: Βεβαιωθείτε ότι τα αρχεία της εφαρμογής βρίσκονται στο install_dir και ότι το όνομα του αρχείου compose ταιριάζει με το πραγματικό αρχείο.
+check_compose_file_exists_meaning: Η εφαρμογή ελέγχεται από ένα αρχείο Docker Compose, και το ρυθμισμένο αρχείο δεν υπάρχει στη διαδρομή που εμφανίζεται.
+check_docker_running_fix: 'Ξεκινήστε το Docker Desktop ή την υπηρεσία docker (Linux: ''sudo systemctl start docker'') και εκτελέστε ξανά τον έλεγχο. Αν το Docker δεν είναι εγκατεστημένο, εγκαταστήστε το πρώτα.'
+check_docker_running_meaning: Το Docker είναι το περιβάλλον εκτέλεσης της εφαρμογής. Είναι εγκατεστημένο αλλά δεν εκτελείται, ή δεν είναι καθόλου εγκατεστημένο. Χωρίς Docker τίποτα δεν μπορεί να ξεκινήσει.
+check_dockerfile_exists_fix: Κατευθύνετε το install_dir (και το build_context) στον πηγαίο κώδικα της εφαρμογής που περιέχει το Dockerfile.
+check_dockerfile_exists_meaning: Αυτή η λειτουργία χτίζει την εφαρμογή από ένα Dockerfile, και δεν βρέθηκε κανένα στη διαδρομή που εμφανίζεται.
+check_health_reachable_fix: Ανοίξτε τα αρχεία καταγραφής της εφαρμογής (κουμπί App logs) για να δείτε το σφάλμα της και μετά σταματήστε και ξεκινήστε ξανά την εφαρμογή.
+check_health_reachable_meaning: Το container εκτελείται, αλλά η εφαρμογή μέσα του δεν απαντά στον έλεγχο υγείας - ίσως έχει καταρρεύσει.
+check_image_source_declared_fix: Ορίστε image_reference (και προαιρετικά image_archive) στη ρύθμιση και ελέγξτε ξανά.
+check_image_source_declared_meaning: Η λειτουργία image πρέπει να ξέρει ποια εικόνα θα εκτελεστεί - δεν έχει ρυθμιστεί ούτε αναφορά εικόνας ούτε χρησιμοποιήσιμο αρχείο.
+check_install_dir_fix: Ορίστε το install_dir στη ρύθμιση του launcher στον φάκελο με τα αρχεία της εφαρμογής και ελέγξτε ξανά.
+check_install_dir_meaning: Ο launcher δεν βρίσκει τον φάκελο προέλευσης της εφαρμογής (install_dir) που απαιτεί αυτή η λειτουργία.
+check_port_drift_fix: Ευθυγραμμίστε το env_port_key και το αρχείο .env με τη μεταβλητή θύρας του αρχείου compose, ή επανεγκαταστήστε την εφαρμογή ώστε οι θύρες να ταιριάζουν.
+check_port_drift_meaning: Το εκτελούμενο container δημοσιεύει διαφορετική θύρα από αυτήν που περιμένει ο launcher - κουμπιά και σύνδεσμοι θα άνοιγαν λάθος διεύθυνση.
+check_readiness_blocker_fix: Ακολουθήστε την οδηγία του μηνύματος - κάθε εμπόδιο κατονομάζει τη δική του επισκευή - και ελέγξτε ξανά.
+check_readiness_blocker_meaning: Λείπει μια προϋπόθεση για εγκατάσταση ή εκκίνηση· το μήνυμα κατονομάζει το ακριβές κενό.
 checking_context: Έλεγχος του Docker context '{context}' ({endpoint})…
 checking_docker: Έλεγχος Docker...
 checking_health: Έλεγχος ετοιμότητας...
@@ -48,6 +64,9 @@ confirm_uninstall: 'Θέλετε να απεγκαταστήσετε το {app};
   Τα δεδομένα σας διατηρούνται.'
 container_not_running: Το container κατασκευάστηκε αλλά δεν εκτελείται.
 container_started: Το container ξεκίνησε ✓
+copied_to_clipboard: Αντιγράφηκε στο πρόχειρο.
+copy_diagnosis: Αντιγραφή διάγνωσης
+copy_support_bundle: Αντιγραφή πακέτου υποστήριξης
 data_preserved: Τα δεδομένα σας διατηρήθηκαν.
 disk_low: 'Λίγος χώρος στον δίσκο για το build: μόνο {free} ελεύθερα στο {path}, κάτω από τα {needed} που πιθανότατα θα χρειαστεί ένα build. Ελευθερώστε χώρο ή ορίστε το min_build_disk_bytes σε 0 για να παραλείψετε αυτόν τον έλεγχο.'
 docker_desktop_waiting: Το Docker Desktop ξεκινά - μπορεί να πάρει λίγη ώρα (εκκίνηση VM)…
@@ -98,6 +117,7 @@ log_copy: Αντιγραφή καταγραφής
 no_containers: Δεν βρέθηκαν containers ✓
 no_docker: Το Docker δεν έχει ξεκινήσει.
 no_free_port: Δεν βρέθηκε ελεύθερη θύρα.
+no_problems_found: Ο έλεγχος συστήματος πέρασε - δεν βρέθηκαν προβλήματα.
 not_installed: Το {app} δεν είναι εγκατεστημένο.
 not_reachable: 'Εγκαταστάθηκε, αλλά το {app} δεν είναι προσβάσιμο: {detail}'
 not_reachable_after: Το {app} δεν είναι προσβάσιμο μετά από {timeout}s ({detail}).
@@ -111,6 +131,7 @@ port_mismatch_rendered: Ο launcher αναμένει τη θύρα {expected}, �
 port_occupied: Η θύρα {port} είναι κατειλημμένη.
 port_restarting: Η θύρα άλλαξε. Επανεκκίνηση {app}...
 port_set: Η θύρα ορίστηκε σε {port}.
+problem_found: Βρέθηκε πρόβλημα
 ready: Η εγκατάσταση ολοκληρώθηκε. Το {app} είναι έτοιμο.
 repo_url_not_cloned: 'Σημείωση: το repo_url ({url}) χρησιμοποιείται μόνο για συνδέσμους/ελέγχους ενημερώσεων - ο launcher δεν το κλωνοποιεί. Το install_dir πρέπει να δείχνει σε τοπικό checkout.'
 restore_defaults: Επαναφορά προεπιλογών
@@ -143,6 +164,7 @@ stop_done: Το {app} σταμάτησε.
 stop_failed: 'Η διακοπή απέτυχε: {detail}'
 stop_not_verified: Το container εξακολουθεί να εκτελείται μετά την εντολή διακοπής.
 stopped: Το {app} είναι εγκατεστημένο αλλά σταματημένο.
+system_check: Έλεγχος συστήματος
 tooltip_already_installed: Έχει ήδη εγκατασταθεί
 tooltip_already_running: Εκτελείται ήδη
 tooltip_needs_docker: Το Docker δεν εκτελείται
@@ -160,3 +182,5 @@ update_available: 'Διαθέσιμη ενημέρωση: {tag} - {url}'
 updating: Ενημέρωση image (μερικά λεπτά μετά από αλλαγές κώδικα, αλλιώς δευτερόλεπτα)...
 verify_clean: 'Επαλήθευση: δεν βρέθηκαν containers ✓'
 verify_remain: 'Επαλήθευση: {count} container(s) απομένουν ✗'
+what_it_means: Τι σημαίνει αυτό;
+what_to_do: Τι μπορείτε να κάνετε

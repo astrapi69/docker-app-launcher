@@ -113,3 +113,36 @@ class TestParity:
     def test_available_languages_is_all_eleven(self) -> None:
         assert i18n.available_languages() == sorted(SUPPORTED_LOCALES)
         assert len(SUPPORTED_LOCALES) == 11
+
+
+class TestPerCheckIdExplanationParity:
+    """#81 condition 2: PER-ID parity. Catalog-level parity alone would let a
+    new error-capable check ship with an empty explanation card."""
+
+    def test_every_error_check_id_has_both_texts_in_every_language(self) -> None:
+        from docker_app_launcher import i18n as _i18n
+        from docker_app_launcher.ui_model import ERROR_CHECK_IDS
+
+        missing: list[str] = []
+        catalogs = _i18n._load_all()
+        for code in _i18n.available_languages():
+            catalog = catalogs[code]
+            for check_id in ERROR_CHECK_IDS:
+                for suffix in ("meaning", "fix"):
+                    key = f"check_{check_id}_{suffix}"
+                    if not str(catalog.get(key, "")).strip():
+                        missing.append(f"{code}:{key}")
+        assert not missing, f"explanation texts missing or empty: {missing}"
+
+    def test_error_check_ids_cover_the_doctor_error_checks(self) -> None:
+        # The checked set: every id the doctor can emit as "error" must be in
+        # ERROR_CHECK_IDS - otherwise its card would render empty.
+        from docker_app_launcher.ui_model import ERROR_CHECK_IDS
+        from tests.test_diagnostics_report import KNOWN_CHECK_IDS
+
+        info_only = {"config_identity", "toolchain_versions", "launcher_port", "state", "published_ports", "readiness"}
+        error_capable = KNOWN_CHECK_IDS - info_only
+        assert error_capable == set(ERROR_CHECK_IDS), (
+            f"ERROR_CHECK_IDS out of sync with the doctor's error-capable ids: "
+            f"missing {error_capable - set(ERROR_CHECK_IDS)}, stale {set(ERROR_CHECK_IDS) - error_capable}"
+        )

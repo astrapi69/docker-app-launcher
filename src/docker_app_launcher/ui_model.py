@@ -17,9 +17,13 @@ import logging
 import platform
 from collections.abc import Callable
 from importlib.metadata import PackageNotFoundError, version
+from typing import TYPE_CHECKING
 
 from docker_app_launcher import actions, i18n
 from docker_app_launcher.config import LauncherConfig
+
+if TYPE_CHECKING:
+    from docker_app_launcher.diagnostics_report import DoctorReport
 
 logger = logging.getLogger("docker_app_launcher.ui_model")
 
@@ -357,3 +361,120 @@ def should_keep_alive_on_close(state: str, *, minimize_enabled: bool) -> bool:
     running, or the app opted out, the X quits the launcher.
     """
     return state == "running" and minimize_enabled
+
+
+# --- #81: assistant presentation layer -------------------------------------
+# The SINGLE source of structure and texts for the installation assistant.
+# Renderers (tk/ctk/qt) decide presentation, never content. Every element
+# listed here MUST be rendered by every frontend - enforced structurally by
+# tests/test_frontend_parity.py against each frontend's
+# ASSISTANT_WIDGET_BUILDERS, so a new element cannot exist in one window only.
+ASSISTANT_ELEMENTS: tuple[str, ...] = (
+    "status_headline",
+    "doctor_checklist",
+    "problem_card",
+    "copy_diagnosis_button",
+    "copy_support_bundle_button",
+    "log_toggle",
+)
+
+# Check ids that can carry status "error" and therefore NEED the two
+# explanation texts (check_<id>_meaning / check_<id>_fix) in all 11 catalogs.
+# Parity is enforced PER ID by tests/test_i18n.py - a new error-capable id
+# without both texts fails the suite, never ships with an empty card.
+ERROR_CHECK_IDS: tuple[str, ...] = (
+    "docker_running",
+    "install_dir",
+    "compose_file_exists",
+    "dockerfile_exists",
+    "image_source_declared",
+    "readiness_blocker",
+    "port_drift",
+    "health_reachable",
+)
+
+# Non-color status markers (accessibility: a state must be readable without
+# color; the same symbols the text doctor report uses).
+_STATUS_SYMBOL = {"ok": "✓", "error": "✗", "warn": "✗", "info": "·"}
+
+
+def check_meaning(config: LauncherConfig, check_id: str) -> str:
+    """The learner-facing 'What does this mean?' text for an error check."""
+    return i18n.t(f"check_{check_id}_meaning", config)
+
+
+def check_fix(config: LauncherConfig, check_id: str) -> str:
+    """The learner-facing 'What you can do' text for an error check."""
+    return i18n.t(f"check_{check_id}_fix", config)
+
+
+def assistant_labels(config: LauncherConfig) -> dict[str, str]:
+    """Localized labels for the assistant elements - renderers never invent text."""
+    return {
+        key: i18n.t(key, config)
+        for key in (
+            "system_check",
+            "copy_diagnosis",
+            "copy_support_bundle",
+            "copied_to_clipboard",
+            "problem_found",
+            "what_it_means",
+            "what_to_do",
+            "no_problems_found",
+        )
+    }
+
+
+def doctor_checklist_rows(report: DoctorReport) -> list[tuple[str, str]]:
+    """(status, line) per check - the line carries its non-color symbol."""
+    return [(c.status, f"{_STATUS_SYMBOL[c.status]} {c.message}") for c in report.checks]
+
+
+def primary_problem(config: LauncherConfig, report: DoctorReport) -> dict[str, str] | None:
+    """The problem card for the FIRST error check, or None when all green.
+
+    Learners see problem class + meaning + fix on top; the raw detail stays
+    in the check message (rendered in the collapsible log, never first).
+    """
+    for check in report.checks:
+        if check.status == "error":
+            known = check.id in ERROR_CHECK_IDS
+            return {
+                "id": check.id,
+                "title": i18n.t("problem_found", config),
+                "message": check.message,
+                "meaning_label": i18n.t("what_it_means", config),
+                "meaning": check_meaning(config, check.id) if known else "",
+                "fix_label": i18n.t("what_to_do", config),
+                "fix": check_fix(config, check.id) if known else "",
+            }
+    return None
+
+
+def status_headline(config: LauncherConfig, state: str, *, health_ok: bool | None = None) -> tuple[str, str]:
+    """(severity, text) for the window's status head.
+
+    severity drives the (redundant, never sole) color; the text carries the
+    non-color symbol and the localized state label the windows already use.
+    """
+    state_label = i18n.t(_STATE_KEYS.get(state, "no_docker"), config, port="").strip()
+    if health_ok is False:
+        return "error", f"{_STATUS_SYMBOL['error']} {state_label}"
+    if state == "running":
+        return "ok", f"{_STATUS_SYMBOL['ok']} {state_label}"
+    return "info", f"{_STATUS_SYMBOL['info']} {state_label}"
+
+
+def diagnosis_clipboard_text(config: LauncherConfig) -> str:
+    """What 'Copy diagnosis' copies: the full doctor text report."""
+    from docker_app_launcher.doctor import collect_doctor_report, render_doctor_text
+
+    return render_doctor_text(collect_doctor_report(config))
+
+
+def support_bundle_clipboard_text(config: LauncherConfig) -> str:
+    """What 'Copy support bundle' copies: the human-readable bundle,
+    contents stated first - identical to the CLI --support-bundle output."""
+    from docker_app_launcher.doctor import collect_support_bundle
+
+    return collect_support_bundle(config).to_text()

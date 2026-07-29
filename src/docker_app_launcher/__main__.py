@@ -45,6 +45,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--version", action="store_true", help="Print the launcher version and exit.")
     # Headless action flags (CLI<->GUI parity).
     parser.add_argument("--check", action="store_true", help="Check Docker status and exit.")
+    parser.add_argument(
+        "--doctor",
+        action="store_true",
+        help="Run every diagnostic (config, Docker, readiness, ports, health) and exit 0/1.",
+    )
     parser.add_argument("--status", action="store_true", help="Print the app state and exit.")
     parser.add_argument("--install", action="store_true", help="Build + start the app and exit.")
     parser.add_argument("--start", action="store_true", help="Start the stopped app and exit.")
@@ -98,6 +103,12 @@ def run_cli_action(args: argparse.Namespace, config: LauncherConfig) -> int | No
     Returns an exit code when an action flag was handled, or ``None`` when no
     action flag was present (the caller then launches the GUI).
     """
+    if args.doctor:
+        from docker_app_launcher.doctor import run_doctor
+
+        healthy, report = run_doctor(config)
+        print(report)
+        return 0 if healthy else 1
     if args.check:
         ok, msg = actions.check_docker()
         print(msg)

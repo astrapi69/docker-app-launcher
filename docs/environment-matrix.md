@@ -254,6 +254,12 @@ the zero-cost PyPI/pipx path is continuously verified to install and start on
 both OSes. The signed downloadable-binary options in the table above remain a
 maintainer decision (still open in #58).
 
+#### Distribution decision (closed 2026-07-29, #73)
+
+PyPI/pipx is the supported install path on macOS/Windows (CI-verified,
+#71). No signing/notarization investment: direct downloadable binaries
+stay best-effort with the documented manual-approval steps above.
+
 ### 1.5 Prioritization and explicit non-support
 
 Ranked by frequency in the target audience x severity. The collector issue is

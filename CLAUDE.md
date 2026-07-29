@@ -18,7 +18,7 @@ base works for any Docker app.
     - `detection.py` — is Docker usable here (checks, context sweep, errno
       socket probe, daemon/Desktop start, group self-repair)
     - `lifecycle.py` — install/start/stop/uninstall/health/get_state;
-      dispatches per `deployment_mode` (compose | dockerfile, #51)
+      dispatches per `deployment_mode` (compose | dockerfile | pull, #51/#78)
     - `compose_runtime.py` — which Compose frontend is usable (plugin /
       legacy v1 / none), cached per process (#48)
     - `tool_versions.py` — engine/CLI/compose/buildx versions (parsed via
@@ -29,6 +29,8 @@ base works for any Docker app.
       minimums, source-attributed (#54)
     - `dockerfile_backend.py` — single-service build/run via docker-py,
       zero compose dependency (#51)
+    - `pull_backend.py` — prebuilt-image pull/load + run via the engine
+      API, zero build toolchain (#78); archive source wins over registry
     - `py_client.py` — native Docker API access, typed exception
       classification (#44)
     - `cleanup.py` — find + remove leftovers of previous installs
@@ -125,8 +127,32 @@ Recorded error classes (a fix is not done until it is measured against these):
 
 Concretely: the build paths go through one capability gate per mode
 (`docker/build_readiness.py`) that collects all blockers before the build
-(`compose_blockers` / `dockerfile_blockers`), never a chain of independent
-green checkmarks.
+(`compose_blockers` / `dockerfile_blockers` / `pull_blockers`), never a
+chain of independent green checkmarks.
+
+### Mode completeness rule (#78)
+
+Every deployment mode multiplies the maintenance surface. A mode counts as
+SUPPORTED only when it appears in ALL of the following; missing any one
+means it is supported on paper and checks nothing in the field — exactly
+the state the error classes above are directed against:
+
+1. Readiness gate as a CAPABILITY check (its own `*_blockers` collector,
+   not existence proxies).
+2. Its own line(s) in `--doctor`.
+3. Integration tests for the full operation set (acquire/start/stop/
+   remove/logs/state) against a real engine, or a named cell in the
+   environment-matrix manual checklist when not containerizable.
+4. The full test contract (RED-first, mocked unit suite, proof of the
+   checked set, message-visibility tests).
+5. Config validation with a hard error at `resolve()` on an inconsistent
+   mode config (e.g. `pull` without `image_reference`).
+6. A README section with a working example config.
+7. An entry in `docs/environment-matrix.md` (supported cells + test cell).
+
+This rule applies to every FUTURE mode as well; adding a mode without all
+seven items is an incomplete change, not a smaller one. Gaps found in
+EXISTING modes get their own issues at the moment they are found.
 
 ### Docker requirement sources (intrinsic vs app-declared)
 

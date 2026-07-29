@@ -6,6 +6,41 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Third deployment mode `pull` (#78).** For consumers that publish a
+  PREBUILT image: the launcher pulls (or loads) and starts it via the
+  engine API — nothing is built on the user machine, so neither compose
+  nor buildx is needed and old Docker generations are supported cells.
+  New config fields: `image_reference` (tag or digest, required in pull
+  mode — hard error at config load when missing) and optional
+  `image_archive` (a `docker save` file; when present it wins and the
+  registry is never contacted). Pull progress streams layer-by-layer into
+  the log panel; fetching happens on install and explicit start only.
+  Offline: a locally present image starts without network (registry
+  unreachable → documented local-image fallback); a missing one gets the
+  named network pre-warning before any attempt. A multi-arch image with
+  no variant for the machine's platform yields a clear publisher-facing
+  message instead of a raw library error. Registry credentials stay
+  untouched by default (#77; `use_registry_credentials` opts in). An
+  archive that does not contain `image_reference` is a hard, named error.
+  Readiness gate (`pull_blockers`), `--doctor`, and all 11 i18n catalogs
+  extended; README documents which audience needs which of the three
+  modes.
+- **Mode completeness rule (CLAUDE.md).** A deployment mode counts as
+  supported only when it appears in readiness gate, `--doctor`,
+  integration tests, the full test contract, config validation, README,
+  and the environment matrix — gaps in existing modes are tracked as #79
+  (per-mode lifecycle integration matrix) and #80 (pull manifest detail).
+
+### Fixed
+
+- **Pull path no longer trips over the #77 auth sentinel.** docker-py's
+  pull wraps `_auth_configs` in its dict-based `AuthConfig`; the sentinel
+  is now a real `{"auths": {}}` dict (still non-empty, still helper-free),
+  fixing "argument of type '_NoRegistryAuth' is not iterable" — found by
+  the #78 live proof against a real daemon, invisible to the mocked suite.
+
 ## [0.22.0] - 2026-07-29
 
 ### Added

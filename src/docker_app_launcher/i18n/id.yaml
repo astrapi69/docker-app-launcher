@@ -155,3 +155,9 @@ build_failed_network: "Build tidak dapat menjangkau jaringan untuk mengunduh ima
 port_mismatch_rendered: "Launcher mengharapkan port {expected}, tetapi berkas compose akan memublikasikan {published}. Periksa env_port_key ({port_key}) terhadap variabel port compose dan nilai .env."
 repo_url_not_cloned: 'Catatan: repo_url ({url}) hanya untuk tautan/pemeriksaan pembaruan - launcher tidak meng-clone-nya. install_dir harus menunjuk ke checkout lokal.'
 app_logs_follow_stop: Hentikan log
+pulling: Mengunduh image aplikasi (pertama kali bisa beberapa menit)...
+pull_failed: 'Unduhan image aplikasi gagal: {detail}'
+pull_needs_network: Image aplikasi belum ada di mesin ini - mengunduhnya memerlukan koneksi internet. Setelah itu, aplikasi berjalan offline.
+pull_mode_needs_image: 'Mode pull memerlukan sumber image: setel image_reference (tag atau digest) atau image_archive di konfigurasi.'
+pull_archive_unreadable: 'Arsip image yang dikonfigurasi tidak dapat dibaca: {path}'
+pull_mode_needs_dockerpy: Mode pull memerlukan paket Python docker (docker-py), yang tidak tersedia di instalasi ini.

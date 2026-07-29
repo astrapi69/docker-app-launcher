@@ -80,7 +80,17 @@ Everything is configurable. Only `app_name` is required — the rest is derived
 
 ### Deployment modes
 
-The launcher supports two deployment modes (`deployment_mode`, #51):
+The launcher supports three deployment modes (`deployment_mode`, #51, #78).
+Which one you need, at a glance:
+
+| Mode | Who it is for | Toolchain on the user machine |
+|------|---------------|-------------------------------|
+| `pull` | **End users** — the consumer publishes a prebuilt image; nothing is built locally | Docker engine only (no compose, no buildx — works on old Docker generations) |
+| `dockerfile` | Installs **from the source tree** — developers and everyone who wants to build locally | Docker engine + a Dockerfile in the checkout |
+| `compose` | Consumers with real **multi-service stacks** (separate containers, compose networking) | Docker engine + a usable Compose frontend |
+
+Registry pull and a local image archive are two *sources within* `pull`
+mode, not separate modes.
 
 **`"compose"`** (the default — existing configs keep working unchanged):
 the stack is driven through Docker Compose. The launcher detects a usable
@@ -121,6 +131,50 @@ all. Mode-specific fields:
 
 Multi-service stacks (separate frontend/backend containers, compose
 networking, `depends_on` ordering) need `"compose"` mode.
+
+**`"pull"`** — prebuilt images, zero build toolchain (#78): the image is
+pulled (or loaded from a local archive) and run directly through the
+Docker API. Nothing is built on the user machine, so neither compose nor
+buildx is needed — this is the end-user distribution mode. Mode-specific
+fields:
+
+```json
+{
+  "app_name": "My App",
+  "deployment_mode": "pull",
+  "image_reference": "ghcr.io/owner/my-app:1.2.3",
+  "image_archive": "images/my-app.tar",
+  "default_port": 8080,
+  "container_port": 80,
+  "container_volumes": { "my-app-data": "/app/data" },
+  "container_env": { "MY_APP_DEBUG": "false" },
+  "restart_policy": "unless-stopped"
+}
+```
+
+- `image_reference` (required) is a tag or a digest
+  (`ghcr.io/owner/my-app@sha256:…`) — pin a digest when you want
+  immutability guarantees. A missing `image_reference` is a hard error at
+  config load.
+- `image_archive` (optional) is a `docker save` archive, relative to
+  `install_dir` (absolute paths work too). **When the file exists it wins**
+  — the image is loaded from it and the registry is never contacted (the
+  registry-free path). When it is configured but absent, the launcher
+  falls back to pulling and the readiness gate flags the unreadable file.
+- Ports, volumes, env, and `restart_policy` behave exactly as in
+  dockerfile mode.
+- The image is fetched on **install and explicit start only** — never
+  silently in the background. A new tag is picked up by pressing Start
+  (the launcher re-pulls the reference); pinned digests never change.
+- **Offline:** if the registry is unreachable but the image is already
+  local, the start proceeds on the local image. If it is missing locally,
+  the launcher names the network requirement up front instead of failing
+  mid-way.
+- Registry credentials are **not** touched by default (#77);
+  `use_registry_credentials: true` opts in for private registries.
+- Multi-arch images are resolved to the machine's platform by the engine
+  itself; if the publisher shipped no variant for this platform, the
+  launcher reports exactly that instead of a raw library error.
 
 ## Features
 

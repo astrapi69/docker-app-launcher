@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from docker_app_launcher import actions, gui
 from docker_app_launcher.config import (
     LOCALE_LABELS,
@@ -400,3 +402,52 @@ class TestRelativeInstallDir:
         # No config file, no file-relative rule: a programmatic relative
         # install_dir keeps its meaning (resolved against the CWD at use).
         assert LauncherConfig(app_name="X", install_dir="rel/path").resolve().install_dir == "rel/path"
+
+
+class TestPullModeConfig:
+    """Schema contract of the pull deployment mode (#78)."""
+
+    def test_pull_mode_is_accepted(self, tmp_path) -> None:
+        cfg = LauncherConfig(
+            app_name="P",
+            deployment_mode="pull",
+            image_reference="ghcr.io/o/a:1",
+            install_dir=str(tmp_path),
+        ).resolve()
+        assert cfg.effective_deployment_mode == "pull"
+
+    def test_pull_without_image_reference_is_a_hard_error(self, tmp_path) -> None:
+        with pytest.raises(ValueError, match="image_reference"):
+            LauncherConfig(app_name="P", deployment_mode="pull", install_dir=str(tmp_path)).resolve()
+
+    def test_archive_path_relative_to_install_dir(self, tmp_path) -> None:
+        cfg = LauncherConfig(
+            app_name="P",
+            deployment_mode="pull",
+            image_reference="ghcr.io/o/a:1",
+            image_archive="images/app.tar",
+            install_dir=str(tmp_path),
+        ).resolve()
+        assert cfg.image_archive_path == tmp_path / "images" / "app.tar"
+
+    def test_archive_path_absolute_wins(self, tmp_path) -> None:
+        cfg = LauncherConfig(
+            app_name="P",
+            deployment_mode="pull",
+            image_reference="ghcr.io/o/a:1",
+            image_archive=str(tmp_path / "abs.tar"),
+            install_dir=str(tmp_path / "elsewhere"),
+        ).resolve()
+        assert cfg.image_archive_path == tmp_path / "abs.tar"
+
+    def test_no_archive_means_none(self, tmp_path) -> None:
+        cfg = LauncherConfig(
+            app_name="P", deployment_mode="pull", image_reference="ghcr.io/o/a:1", install_dir=str(tmp_path)
+        ).resolve()
+        assert cfg.image_archive_path is None
+
+    def test_existing_modes_unaffected(self, tmp_path) -> None:
+        # Backward compatibility: configs without the new fields resolve as before.
+        cfg = LauncherConfig(app_name="P", install_dir=str(tmp_path)).resolve()
+        assert cfg.effective_deployment_mode == "compose"
+        assert cfg.image_reference == "" and cfg.image_archive_path is None

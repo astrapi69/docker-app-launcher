@@ -23,7 +23,7 @@ from docker_app_launcher.launcher_settings import resolve_port
 logger = logging.getLogger("docker_app_launcher.docker.dockerfile_backend")
 
 
-class _NoRegistryAuth:
+class _NoRegistryAuth(dict):  # type: ignore[type-arg]
     """Credential-free stand-in for docker-py's AuthConfig (#77).
 
     ``get_all_credentials`` is where a stale ``credsStore`` (e.g. a leftover
@@ -34,9 +34,20 @@ class _NoRegistryAuth:
     Deliberately NOT empty: docker-py reloads ``~/.docker/config.json`` when
     ``_auth_configs`` is falsy or ``is_empty`` - which would re-arm the
     broken store.
+
+    Shaped as a real ``{"auths": {}}`` dict because the PULL path (#78) does
+    not call ``get_all_credentials``: docker-py wraps ``_auth_configs`` in
+    its ``AuthConfig`` (itself a dict subclass) and reads only the keys - no
+    ``credsStore`` key means no helper lookup, and the empty ``auths`` map
+    resolves to an anonymous pull. A non-dict object breaks there with
+    "argument of type '_NoRegistryAuth' is not iterable" (found by the #78
+    live proof, invisible to the mocked suite).
     """
 
     is_empty = False
+
+    def __init__(self) -> None:
+        super().__init__({"auths": {}})
 
     def get_all_credentials(self) -> dict[str, Any]:
         return {}

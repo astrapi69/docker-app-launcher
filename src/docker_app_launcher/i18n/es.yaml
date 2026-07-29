@@ -155,3 +155,9 @@ build_failed_network: "El build no pudo acceder a la red para descargar imágene
 port_mismatch_rendered: "El launcher espera el puerto {expected}, pero el archivo compose publicará {published}. Revisa env_port_key ({port_key}) frente a la variable de puerto del compose y los valores de .env."
 repo_url_not_cloned: 'Nota: repo_url ({url}) solo se usa para enlaces/comprobaciones de actualización - el launcher no lo clona. install_dir debe apuntar a un checkout local.'
 app_logs_follow_stop: Detener registros
+pulling: Descargando la imagen de la app (la primera vez puede tardar unos minutos)...
+pull_failed: 'La descarga de la imagen de la app falló: {detail}'
+pull_needs_network: 'La imagen de la app aún no está en esta máquina: descargarla requiere conexión a internet. Después, la app funciona sin conexión.'
+pull_mode_needs_image: 'El modo pull necesita una fuente de imagen: define image_reference (tag o digest) o image_archive en la configuración.'
+pull_archive_unreadable: 'El archivo de imagen configurado no se puede leer: {path}'
+pull_mode_needs_dockerpy: El modo pull necesita el paquete Python docker (docker-py), que no está disponible en esta instalación.

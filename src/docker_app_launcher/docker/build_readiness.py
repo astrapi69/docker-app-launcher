@@ -280,6 +280,38 @@ def dockerfile_blockers(config: LauncherConfig) -> list[str]:
     return blockers
 
 
+def pull_blockers(config: LauncherConfig) -> list[str]:
+    """All reasons the pull mode cannot run this project, collected (#78).
+
+    No compose, no buildx - by design. What remains: docker-py importable,
+    an image source declared (reference or archive), a configured archive
+    actually readable, plus any app-declared engine/API floor.
+    """
+    blockers: list[str] = []
+    if not py_client.available():
+        blockers.append(_t(config, "pull_mode_needs_dockerpy"))
+    if not config.image_reference and config.image_archive_path is None:
+        blockers.append(_t(config, "pull_mode_needs_image"))
+    archive = config.image_archive_path
+    if archive is not None:
+        try:
+            with archive.open("rb"):
+                pass
+        except OSError:
+            blockers.append(_t(config, "pull_archive_unreadable", path=archive))
+    tv = detect_tool_versions(config)
+    for component, declared_raw, found in (
+        ("engine", config.min_engine_version, tv.engine),
+        ("api", config.min_api_version, tv.api),
+    ):
+        declared = parse_version(declared_raw) if declared_raw else None
+        if declared is not None:
+            req = _Requirement(component, declared, found, "app")
+            if req.unmet:
+                blockers.append(_version_blocker(config, req))
+    return blockers
+
+
 def _human_bytes(n: int) -> str:
     """A compact human size (``1.8 GB``) for the disk message."""
     step = 1000.0

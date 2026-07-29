@@ -155,3 +155,9 @@ build_failed_network: "Der Build konnte das Netzwerk nicht erreichen, um Images 
 port_mismatch_rendered: "Der Launcher erwartet Port {expected}, aber die Compose-Datei veröffentlicht {published}. env_port_key ({port_key}) gegen die Port-Variable der Compose-Datei und die .env-Werte prüfen."
 repo_url_not_cloned: 'Hinweis: repo_url ({url}) dient nur für Links/Update-Checks - der Launcher klont es nicht. install_dir muss auf einen lokalen Checkout zeigen.'
 app_logs_follow_stop: Logs stoppen
+pulling: App-Image wird heruntergeladen (kann beim ersten Mal einige Minuten dauern)...
+pull_failed: 'Herunterladen des App-Images fehlgeschlagen: {detail}'
+pull_needs_network: Das App-Image ist noch nicht auf diesem Rechner - zum Herunterladen wird eine Internetverbindung benötigt. Danach läuft die App offline.
+pull_mode_needs_image: 'Der Pull-Modus braucht eine Image-Quelle: image_reference (Tag oder Digest) oder image_archive in der Launcher-Konfiguration setzen.'
+pull_archive_unreadable: 'Das konfigurierte Image-Archiv ist nicht lesbar: {path}'
+pull_mode_needs_dockerpy: Der Pull-Modus benötigt das Python-Paket docker (docker-py), das in dieser Installation nicht importierbar ist.

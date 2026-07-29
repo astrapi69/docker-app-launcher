@@ -155,3 +155,9 @@ build_failed_network: "Derleme, imgeleri indirmek için ağa erişemedi: {detail
 port_mismatch_rendered: "Launcher {expected} portunu bekliyor, ancak compose dosyası {published} yayınlayacak. env_port_key ({port_key}) değerini compose dosyasının port değişkeni ve .env değerleriyle karşılaştırın."
 repo_url_not_cloned: 'Not: repo_url ({url}) yalnızca bağlantılar/güncelleme denetimleri içindir - launcher onu klonlamaz. install_dir yerel bir checkout''u göstermelidir.'
 app_logs_follow_stop: Günlükleri durdur
+pulling: Uygulama imajı indiriliyor (ilk seferde birkaç dakika sürebilir)...
+pull_failed: 'Uygulama imajı indirme başarısız: {detail}'
+pull_needs_network: Uygulama imajı henüz bu makinede yok - indirmek için internet bağlantısı gerekir. İndirildikten sonra uygulama çevrimdışı çalışır.
+pull_mode_needs_image: 'Pull modu bir imaj kaynağı gerektirir: yapılandırmada image_reference (tag veya digest) veya image_archive ayarlayın.'
+pull_archive_unreadable: 'Yapılandırılan imaj arşivi okunamıyor: {path}'
+pull_mode_needs_dockerpy: Pull modu, bu kurulumda kullanılamayan Python docker paketine (docker-py) ihtiyaç duyar.

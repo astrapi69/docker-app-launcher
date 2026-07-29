@@ -113,12 +113,14 @@ class LauncherConfig:
     show_advanced_ports: bool = False
 
     # === Docker ===
-    # Deployment mode (#51): "compose" (default for existing configs - a
-    # configured compose file keeps working unchanged) or "dockerfile"
+    # Deployment mode (#51, #78): "compose" (default for existing configs -
+    # a configured compose file keeps working unchanged), "dockerfile"
     # (single-service build/run directly through the docker-py API, zero
-    # compose dependency - runs on Docker 20.10 systems without the
-    # compose plugin). "" resolves to "compose". Any other value is a
-    # hard error at resolve() time (#32 philosophy: never guess).
+    # compose dependency) or "pull" (run a PREBUILT image - pull via the
+    # engine API or load a local archive; zero build toolchain on the user
+    # machine, works on Docker generations without compose/buildx). ""
+    # resolves to "compose". Any other value is a hard error at resolve()
+    # time (#32 philosophy: never guess).
     deployment_mode: str = ""
     # --- dockerfile-mode block (ignored in compose mode) ---
     dockerfile_file: str = "Dockerfile"  # relative to build_context
@@ -137,6 +139,15 @@ class LauncherConfig:
     # docker-py where the CLI shrugs. Consumers that pull PRIVATE images
     # declare it explicitly; only then is a broken helper a hard error.
     use_registry_credentials: bool = False
+    # --- pull-mode block (#78; ports/volumes/env/restart above are shared
+    # with dockerfile mode) ---
+    # Image to run: tag ("ghcr.io/owner/app:1.2.3") or digest pin
+    # ("ghcr.io/owner/app@sha256:..." - immutability guarantee).
+    image_reference: str = ""
+    # Optional registry-free path: a local image archive (docker save
+    # format), relative to install_dir. When configured AND present it is
+    # loaded via the engine API INSTEAD of pulling; else the pull runs.
+    image_archive: str = ""
     compose_file: str = "docker-compose.prod.yml"
     build_timeout: int = 600
     start_timeout: int = 120
@@ -272,10 +283,17 @@ class LauncherConfig:
             self.releases_url = f"{self.repo_url.rstrip('/')}/releases/latest"
         if self.locale == "auto":
             self.locale = detect_system_locale()
-        if self.deployment_mode not in ("", "compose", "dockerfile"):
+        if self.deployment_mode not in ("", "compose", "dockerfile", "pull"):
             raise ValueError(
-                f"deployment_mode must be 'compose' or 'dockerfile', got {self.deployment_mode!r} "
-                "(#51 - the mode is explicit, never guessed)"
+                f"deployment_mode must be 'compose', 'dockerfile' or 'pull', got {self.deployment_mode!r} "
+                "(#51/#78 - the mode is explicit, never guessed)"
+            )
+        if self.deployment_mode == "pull" and not self.image_reference:
+            # Even the archive path needs the reference: the loaded image is
+            # started BY that name, so an unset reference can never work (#78).
+            raise ValueError(
+                "deployment_mode 'pull' requires image_reference (tag or digest); "
+                "an optional image_archive is loaded INTO that reference, not instead of it (#78)"
             )
         self._validate_min_versions()
         return self
@@ -299,8 +317,8 @@ class LauncherConfig:
 
     @property
     def effective_deployment_mode(self) -> str:
-        """``"compose"`` or ``"dockerfile"`` - the default rule for existing
-        configs is compose, so no consumer breaks (#51)."""
+        """``"compose"``, ``"dockerfile"`` or ``"pull"`` - the default rule
+        for existing configs is compose, so no consumer breaks (#51, #78)."""
         return self.deployment_mode or "compose"
 
     @property
@@ -310,6 +328,17 @@ class LauncherConfig:
         if context.is_absolute():
             return context
         return self._base_dir()[0] / context
+
+    @property
+    def image_archive_path(self) -> Path | None:
+        """Absolute path of the optional pull-mode image archive, or None."""
+        if not self.image_archive:
+            return None
+        archive = Path(self.image_archive).expanduser()
+        if archive.is_absolute():
+            return archive
+        base = Path(self.install_dir).expanduser() if self.install_dir else Path.cwd()
+        return base / archive
 
     @property
     def dockerfile_path(self) -> Path:

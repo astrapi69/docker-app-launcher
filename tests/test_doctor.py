@@ -109,3 +109,61 @@ class TestDoctorCli:
         rc = __main__.main(["--config", str(tmp_path / "launcher.json"), "--doctor"])
         assert rc == 1
         assert "the report" in capsys.readouterr().out
+
+
+class TestDoctorPullMode:
+    """--doctor line for the pull deployment mode (#78)."""
+
+    @pytest.fixture
+    def pconfig(self, tmp_path):
+        return LauncherConfig(
+            app_name="Pull App",
+            deployment_mode="pull",
+            image_reference="ghcr.io/owner/app:2.0.0",
+            default_port=8080,
+            install_dir=str(tmp_path / "repo"),
+            config_dir=str(tmp_path / ".pull-app"),
+            locale="en",
+        ).resolve()
+
+    def _pull_world(self, monkeypatch, blockers: list[str] | None = None) -> None:
+        monkeypatch.setattr(doctor, "check_docker", lambda: (True, "Docker is running."))
+        monkeypatch.setattr(doctor, "detect_tool_versions", lambda c: ToolVersions())
+        monkeypatch.setattr("docker_app_launcher.docker.build_readiness.pull_blockers", lambda c: list(blockers or []))
+        monkeypatch.setattr(doctor, "get_state", lambda c: "not_installed")
+        monkeypatch.setattr(doctor, "health_check", lambda c, port=None: (True, "healthy"))
+
+    def test_image_reference_line_and_green(self, pconfig, monkeypatch) -> None:
+        self._pull_world(monkeypatch)
+        healthy, report = doctor.run_doctor(pconfig)
+        assert healthy is True
+        assert "ghcr.io/owner/app:2.0.0" in report
+        assert "0 problem(s)" in report
+
+    def test_pull_blockers_are_dispatched(self, pconfig, monkeypatch) -> None:
+        self._pull_world(monkeypatch, blockers=["pull blocker"])
+        healthy, report = doctor.run_doctor(pconfig)
+        assert healthy is False and "pull blocker" in report
+
+    def test_compose_blockers_never_consulted(self, pconfig, monkeypatch) -> None:
+        self._pull_world(monkeypatch)
+
+        def boom(c: object) -> list[str]:
+            raise AssertionError("compose_blockers must not run in pull mode")
+
+        monkeypatch.setattr("docker_app_launcher.docker.build_readiness.compose_blockers", boom)
+        healthy, _ = doctor.run_doctor(pconfig)
+        assert healthy is True
+
+    def test_missing_install_dir_is_informational_only(self, pconfig, monkeypatch) -> None:
+        # Pull mode needs no source tree: an absent install_dir must not
+        # count as a problem (it is where the archive MAY live, nothing more).
+        self._pull_world(monkeypatch)
+        healthy, report = doctor.run_doctor(pconfig)
+        assert healthy is True and "0 problem(s)" in report
+
+    def test_no_image_source_is_a_problem(self, pconfig, monkeypatch) -> None:
+        self._pull_world(monkeypatch)
+        pconfig.image_reference = ""
+        healthy, _ = doctor.run_doctor(pconfig)
+        assert healthy is False

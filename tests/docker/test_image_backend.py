@@ -309,3 +309,31 @@ class TestArchiveBlockerNamesTheBase:
         assert len(blockers) == 1
         assert "install_dir" not in blockers[0]
         assert str(tmp_path) in blockers[0]
+
+
+class TestRegistryAccessClassification:
+    """#87: a failing registry token flow (GHCR-style denied/unauthorized)
+    must name the REGISTRY ACCESS as the cause - never a raw library error."""
+
+    @pytest.mark.parametrize(
+        "raw",
+        [
+            "denied: requested access to the resource is denied",
+            "unauthorized: authentication required",
+            "pull access denied for ghcr.io/owner/app, repository does not exist or may require 'docker login'",
+        ],
+    )
+    def test_denied_pull_names_the_registry_access(self, pcfg, monkeypatch, raw) -> None:
+        client = _FakePullClient([{"error": raw}])
+        _wire(monkeypatch, client)
+        rc, detail = image_backend.up(pcfg)
+        assert rc == 1
+        assert "registry" in detail.lower(), "the cause must be named as registry access"
+        assert pcfg.image_reference in detail
+        assert "use_registry_credentials" in detail, "the private-image path must be named"
+
+    def test_denied_exception_is_classified_too(self, pcfg, monkeypatch) -> None:
+        client = _FakePullClient(pull_exc=RuntimeError("unauthorized: authentication required"))
+        _wire(monkeypatch, client)
+        rc, detail = image_backend.up(pcfg)
+        assert rc == 1 and "registry" in detail.lower()

@@ -23,6 +23,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   explicit `install_dir`, file-loaded configs, and the flagged cwd
   fallback. A new path field that skips classification fails the suite
   (rule in CLAUDE.md, precedent #83).
+- **GHCR measured on the old engine + registry-refusal classification
+  (#87).** The old-engine cell now also pulls a public GHCR image
+  (anonymous token flow differs from Docker Hub's) credential-free, and
+  a refused pull (missing or private repository) is classified into a
+  message naming the registry access and the `use_registry_credentials`
+  path for private images — never a raw library error. 5/5 green on the
+  pinned 20.10.24 engine.
 - **The image mode's old-engine promise is now MEASURED, not argued
   (#84).** A new CI job (`image-mode-old-engine`) runs both acquisition
   sources — registry pull and local archive load, each followed by a

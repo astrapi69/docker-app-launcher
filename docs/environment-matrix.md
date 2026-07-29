@@ -353,7 +353,15 @@ Seed cells shipped now:
   archive-loads a prebuilt image through `image_backend.up`, starts it,
   and answers HTTP. Runs in CI on every push (`image-mode-old-engine`
   job); local: `tests/integration/run_image_mode_old_engine_integration.sh`.
-  First measured 2026-07-29: 3/3 green on 20.10.24. This closes the
+  First measured 2026-07-29: 3/3 green on 20.10.24. Extended the same day
+  (#87) with GHCR: its anonymous token flow differs from Docker Hub's, so
+  the cell also pulls `ghcr.io/traefik/whoami:v1.10` credential-free
+  (auth neutralized by default per #77, no stored logins in the dind) and
+  proves the refusal case - a denied/unknown GHCR repository yields a
+  classified message naming the registry access and the
+  `use_registry_credentials` path for private images, never a raw
+  library error. 5/5 green on 20.10.24. One-time run against the real
+  consumer reference after its first GHCR publish is tracked separately. This closes the
   old-generation promise with a measurement instead of the API-surface
   argument; a future failure here is a finding about the documented
   minimum engine generation, never a reason to bend the test.

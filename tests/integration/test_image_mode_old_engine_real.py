@@ -41,18 +41,21 @@ pytestmark = [
 
 # Tiny, multi-arch, serves HTTP on :80 - the same image the #78 live proof used.
 _REF = "traefik/whoami:v1.10"
+# The SAME app from GHCR (#87): users of GHCR-publishing consumers hit its
+# anonymous token flow, which differs from Docker Hub's - measured, not assumed.
+_GHCR_REF = "ghcr.io/traefik/whoami:v1.10"
 _PORT = 18124
 _HTTP_HOST = os.environ.get("DAL_OLD_ENGINE_HTTP_HOST", "127.0.0.1")
 
 
-def _config(tmp_path: Path, archive: str = "") -> LauncherConfig:
+def _config(tmp_path: Path, archive: str = "", reference: str = _REF) -> LauncherConfig:
     from docker_app_launcher.config import LauncherConfig
 
     return LauncherConfig(
         app_name="Old Engine Cell",
         container_name="dal-old-engine-cell",
         deployment_mode="image",
-        image_reference=_REF,
+        image_reference=reference,
         image_archive=archive,
         install_dir=str(tmp_path),
         default_port=_PORT,
@@ -112,6 +115,50 @@ class TestRegistrySource:
         assert rc == 0, f"registry source failed on the old engine: {detail}"
         assert any("Pull" in ln or "Download" in ln for ln in lines), "layer progress must stream"
         assert _http_ok(), "published endpoint did not answer on the old engine"
+
+
+class TestGhcrRegistrySource:
+    def test_anonymous_ghcr_pull_run_and_http(self, tmp_path: Path) -> None:
+        """#87: GHCR's anonymous token flow on the old engine, measured.
+
+        Credential-freedom is twofold: use_registry_credentials defaults to
+        False, so image_backend neutralizes docker-py's auth (#77 sentinel),
+        and the throwaway dind daemon has no stored logins at all.
+        """
+        from docker_app_launcher.docker import image_backend
+
+        client = _client()
+        try:
+            _cleanup(client)
+            with contextlib.suppress(Exception):
+                client.images.remove(_GHCR_REF, force=True)
+        finally:
+            client.close()
+        config = _config(tmp_path, reference=_GHCR_REF)
+        assert config.use_registry_credentials is False, "the pull must be credential-free"
+        lines: list[str] = []
+        rc, detail = image_backend.up(config, on_output=lines.append)
+        assert rc == 0, f"anonymous GHCR pull failed on the old engine: {detail}"
+        assert any("Pull" in ln or "Download" in ln for ln in lines), "layer progress must stream"
+        assert _http_ok(), "published endpoint did not answer after the GHCR pull"
+        client = _client()
+        try:
+            _cleanup(client)
+            with contextlib.suppress(Exception):
+                client.images.remove(_GHCR_REF, force=True)
+        finally:
+            client.close()
+
+    def test_refused_ghcr_pull_names_the_registry_access(self, tmp_path: Path) -> None:
+        """#87 error case: a refused token flow (missing/private repository)
+        must name the registry access, never a raw library error."""
+        from docker_app_launcher.docker import image_backend
+
+        config = _config(tmp_path, reference="ghcr.io/astrapi69/dal-does-not-exist:1.0.0")
+        rc, detail = image_backend.up(config)
+        assert rc == 1
+        assert "registry" in detail.lower(), f"cause must be the registry access, got: {detail}"
+        assert "use_registry_credentials" in detail, "the private-image path must be named"
 
 
 class TestArchiveSource:

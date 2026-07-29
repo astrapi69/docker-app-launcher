@@ -205,6 +205,23 @@ def _classify_pull_message(message: str, config: LauncherConfig) -> str:
             f"could not reach the registry for {config.image_reference}: {message}. "
             "Downloading the app image needs an internet connection; once pulled, the app runs offline."
         )
+    refusal_markers = (
+        "denied",
+        "unauthorized",
+        "authentication required",
+        "pull access denied",
+        "repository does not exist",
+    )
+    if any(m in lower for m in refusal_markers):
+        # Registry token flow refused the pull (#87) - GHCR answers like this
+        # for missing AND private repositories. Name the registry access as
+        # the cause, never the raw library line.
+        return (
+            f"the registry refused access to {config.image_reference}: {message}. "
+            "Either the image is not published (the publisher must provide a public image at "
+            "this reference) or it is private - a private registry needs "
+            "use_registry_credentials: true in the launcher config plus a docker login."
+        )
     return message
 
 

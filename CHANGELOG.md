@@ -23,6 +23,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   explicit `install_dir`, file-loaded configs, and the flagged cwd
   fallback. A new path field that skips classification fails the suite
   (rule in CLAUDE.md, precedent #83).
+- **Installation assistant in the GUI (#81, phases a+b: presentation
+  layer + Tk).** The diagnostics stop being CLI-only: a "Check system"
+  button renders the doctor pass as a checklist, the FIRST problem
+  becomes a card with two learner-facing sections ("What does this
+  mean?" / "What you can do") in all 11 languages — parity enforced PER
+  check id, so a new check cannot ship with an empty card. The status
+  head carries a non-color state symbol (accessible without color),
+  "Copy diagnosis" / "Copy support bundle" confirm visibly, and the raw
+  log starts collapsed behind a details toggle — an error line
+  auto-expands it, messages are never swallowed. The frozen-binary
+  contract now asserts presence and TRANSLATED labels of every assistant
+  element (judge self-tested, including the recorded RED for the pre-#81
+  shape). ctk/qt follow in phase c with the cross-frontend enforcement
+  test.
 - **Complete CLI contract with machine-readable output (#86).** New
   flags `--health` (probe + exit 0/1), `--app-logs` (container log tail),
   and `--support-bundle` (a HUMAN-READABLE diagnosis document that states

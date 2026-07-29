@@ -95,6 +95,7 @@ error_word: 오류
 fix_docker_permission: Docker 접근 설정…
 free_port_found: '사용 가능한 포트 발견: {port}.'
 health_ok: 준비가 확인되었습니다 ✓
+hide_details: 자세히 숨기기
 image_acquire_failed: '앱 이미지 다운로드 실패: {detail}'
 image_acquiring: 앱 이미지 다운로드 중(처음에는 몇 분 걸릴 수 있음)...
 image_archive_base_unresolved: '{path}에서 이미지 아카이브를 찾을 수 없습니다. install_dir이 설정되지 않아 현재 디렉터리를 기준으로 검색했으며, 이는 메뉴 바로가기·Snap·파일 관리자에서 실행할 때 신뢰할 수 없습니다. 런처 설정의 install_dir을 아카이브가 있는 디렉터리로 설정하세요.'
@@ -142,6 +143,7 @@ scan_configs: 구성 잔여물 검색 중... {count}개 발견
 scan_containers: 분리된 컨테이너 검색 중... {count}개 발견
 scan_images: 오래된 이미지 검색 중... {count}개 발견
 scan_volumes: 분리된 볼륨 검색 중... {count}개 발견
+show_details: 자세히 보기
 skip: 건너뛰기
 start: 시작
 start_docker: Docker 시작

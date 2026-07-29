@@ -105,6 +105,22 @@ def run_render_probe(config: LauncherConfig) -> int:
         if app._status.get("1.0", "end").strip()
         else "",
         "locale": config.locale,
+        # Installation assistant (#81): presence AND translated labels of the
+        # new elements are part of the frozen contract - the device check
+        # judges looks and clarity, completeness is machine work.
+        "assistant": {
+            "elements": sorted(app._assistant.keys()),
+            "system_check": str(app._system_check_btn.cget("text")),
+            "copy_diagnosis": str(app._copy_buttons["copy_diagnosis"].cget("text")),
+            "copy_support_bundle": str(app._copy_buttons["copy_support_bundle"].cget("text")),
+            "log_toggle": str(app._log_toggle_btn.cget("text")),
+            "problem_card_sections": [
+                str(app._problem_meaning_label.cget("text")),
+                str(app._problem_fix_label.cget("text")),
+            ],
+            "status_headline": str(app._state_label.cget("text")),
+            "log_collapsed_default": bool(app._log_collapsed),
+        },
     }
     app.destroy()
     print(_json.dumps(contract, ensure_ascii=False))

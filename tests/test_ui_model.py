@@ -24,6 +24,8 @@ class TestAssistantPresentationLayer:
             "what_it_means",
             "what_to_do",
             "no_problems_found",
+            "show_details",
+            "hide_details",
         }
         assert set(labels) == expected
         assert all(v.strip() for v in labels.values()), "renderers never invent or drop text"

@@ -30,8 +30,9 @@ import tkinter as tk
 from collections.abc import Callable
 from pathlib import Path
 from tkinter import messagebox, ttk
+from typing import TYPE_CHECKING
 
-from docker_app_launcher import actions, i18n, lockfile, tray, update_check
+from docker_app_launcher import actions, i18n, lockfile, tray, ui_model, update_check
 from docker_app_launcher.config import LOCALE_LABELS, LauncherConfig, locale_for_label
 from docker_app_launcher.frontends.tooltip import Tooltip as _Tooltip
 
@@ -102,7 +103,22 @@ from docker_app_launcher.ui_model import (
     window_title as window_title,
 )
 
+if TYPE_CHECKING:
+    from docker_app_launcher.diagnostics_report import DoctorReport
+
 logger = logging.getLogger("docker_app_launcher.gui")
+
+# The assistant elements this window renders (#81): element -> builder
+# method on LauncherApp. Pinned against ui_model.ASSISTANT_ELEMENTS by
+# tests/test_frontend_parity.py - identical for every frontend.
+ASSISTANT_WIDGET_BUILDERS = {
+    "status_headline": "_build_status_headline",
+    "doctor_checklist": "_build_doctor_checklist",
+    "problem_card": "_build_problem_card",
+    "copy_diagnosis_button": "_build_copy_diagnosis_button",
+    "copy_support_bundle_button": "_build_copy_support_bundle_button",
+    "log_toggle": "_build_log_toggle",
+}
 
 
 class LauncherApp(tk.Tk):
@@ -228,6 +244,13 @@ class LauncherApp(tk.Tk):
         for name in SECONDARY_BUTTONS:
             self._make_button(self._secondary_frame, name, button_handlers[name]).pack(side="left", padx=4)
 
+        # Installation assistant (#81): every element from
+        # ui_model.ASSISTANT_ELEMENTS, built via ASSISTANT_WIDGET_BUILDERS.
+        self._assistant_labels = ui_model.assistant_labels(config)
+        self._assistant: dict[str, tk.Widget] = {}
+        for element, builder in ASSISTANT_WIDGET_BUILDERS.items():
+            self._assistant[element] = getattr(self, builder)()
+
         self._log(f"{about_lines(config)[0]} · {config.gui_backend} · {platform.system()}")
         self._refresh()
         if config.cleanup_on_start:
@@ -282,6 +305,157 @@ class LauncherApp(tk.Tk):
         return btn
 
     # --- helpers ---
+
+    # --- installation assistant (#81) ---
+
+    def _build_status_headline(self) -> tk.Widget:
+        """The existing state heading IS the status head; severity styling is
+        applied in _refresh via _apply_status_headline (symbol + color, never
+        color alone)."""
+        return self._state_label
+
+    def _apply_status_headline(self, state: str, *, health_ok: bool | None = None) -> None:
+        severity, text = ui_model.status_headline(self._cfg, state, health_ok=health_ok)
+        colors = {"ok": "#188038", "error": "#c5221f", "info": "#333333"}
+        self._state_label.configure(foreground=colors[severity])
+        self._headline_symbol = text.split(" ", 1)[0]
+
+    def _build_doctor_checklist(self) -> tk.Widget:
+        """The 'Check system' button; results render as a checklist into the
+        (auto-expanded) log panel and feed the problem card."""
+        btn = tk.Button(
+            self._secondary_frame,
+            text=self._assistant_labels["system_check"],
+            command=self._on_system_check,
+        )
+        btn.pack(side="left", padx=4)
+        self._system_check_btn = btn
+        return btn
+
+    def _on_system_check(self) -> None:
+        from docker_app_launcher.doctor import collect_doctor_report
+
+        self._system_check_btn.configure(state="disabled")
+
+        def _run() -> None:
+            report = collect_doctor_report(self._cfg)
+            self.after(0, lambda: self._render_doctor(report))
+
+        threading.Thread(target=_run, daemon=True, name="dal-gui-doctor").start()
+
+    def _render_doctor(self, report: DoctorReport) -> bool:
+        self._system_check_btn.configure(state="normal")
+        self._set_log_collapsed(False)
+        for status, line in ui_model.doctor_checklist_rows(report):
+            self._log(line, tag={"ok": "ok", "error": "err"}.get(status, "info"))
+        card = ui_model.primary_problem(self._cfg, report)
+        if card is None:
+            self._log(self._assistant_labels["no_problems_found"], tag="ok")
+            self._hide_problem_card()
+        else:
+            self._show_problem_card(card)
+        return True
+
+    def _build_problem_card(self) -> tk.Widget:
+        """Problem class + 'What does this mean?' + 'What you can do' - shown
+        on a failed system check, above the log; raw detail stays in the log."""
+        frame = tk.Frame(self, relief="groove", borderwidth=1, padx=8, pady=6)
+        wrap = max(200, self._cfg.window_width - 60)
+        self._problem_title = tk.Label(frame, font=("Segoe UI", 10, "bold"), anchor="w", wraplength=wrap)
+        self._problem_title.pack(fill="x")
+        self._problem_message = tk.Label(frame, anchor="w", justify="left", wraplength=wrap)
+        self._problem_message.pack(fill="x")
+        self._problem_meaning_label = tk.Label(
+            frame, text=self._assistant_labels["what_it_means"], font=("Segoe UI", 9, "bold"), anchor="w"
+        )
+        self._problem_meaning = tk.Label(frame, anchor="w", justify="left", wraplength=wrap)
+        self._problem_fix_label = tk.Label(
+            frame, text=self._assistant_labels["what_to_do"], font=("Segoe UI", 9, "bold"), anchor="w"
+        )
+        self._problem_fix = tk.Label(frame, anchor="w", justify="left", wraplength=wrap)
+        self._problem_frame = frame
+        return frame
+
+    def _show_problem_card(self, card: dict[str, str]) -> None:
+        self._problem_title.configure(text=f"✗ {card['title']}: {card['id']}")
+        self._problem_message.configure(text=card["message"])
+        for widget, text in (
+            (self._problem_meaning_label, card["meaning_label"]),
+            (self._problem_meaning, card["meaning"]),
+            (self._problem_fix_label, card["fix_label"]),
+            (self._problem_fix, card["fix"]),
+        ):
+            widget.configure(text=text)
+            if text:
+                widget.pack(fill="x")
+            else:
+                widget.pack_forget()
+        self._problem_frame.pack(fill="x", padx=12, pady=(4, 0), before=self._status_frame)
+
+    def _hide_problem_card(self) -> None:
+        self._problem_frame.pack_forget()
+
+    def _build_copy_diagnosis_button(self) -> tk.Widget:
+        btn = tk.Button(
+            self._secondary_frame,
+            text=self._assistant_labels["copy_diagnosis"],
+            command=lambda: self._copy_with_feedback("copy_diagnosis", ui_model.diagnosis_clipboard_text),
+        )
+        btn.pack(side="left", padx=4)
+        self._copy_buttons = getattr(self, "_copy_buttons", {})
+        self._copy_buttons["copy_diagnosis"] = btn
+        return btn
+
+    def _build_copy_support_bundle_button(self) -> tk.Widget:
+        btn = tk.Button(
+            self._secondary_frame,
+            text=self._assistant_labels["copy_support_bundle"],
+            command=lambda: self._copy_with_feedback("copy_support_bundle", ui_model.support_bundle_clipboard_text),
+        )
+        btn.pack(side="left", padx=4)
+        self._copy_buttons["copy_support_bundle"] = btn
+        return btn
+
+    def _copy_with_feedback(self, label_key: str, text_fn: Callable[[LauncherConfig], str]) -> None:
+        """Copy + VISIBLE confirmation - a silent copy looks like a dead button."""
+        button = self._copy_buttons[label_key]
+        button.configure(state="disabled")
+
+        def _run() -> None:
+            text = text_fn(self._cfg)
+
+            def done() -> None:
+                self.clipboard_clear()
+                self.clipboard_append(text)
+                button.configure(text=self._assistant_labels["copied_to_clipboard"], state="normal")
+                self.after(2000, lambda: button.configure(text=self._assistant_labels[label_key]))
+
+            self.after(0, done)
+
+        threading.Thread(target=_run, daemon=True, name=f"dal-gui-{label_key}").start()
+
+    def _build_log_toggle(self) -> tk.Widget:
+        """The log stays collapsed by default but findable (#81): learners see
+        headline + checklist + card; the toggle reveals the raw stream. An
+        error line auto-expands it - messages are never swallowed."""
+        btn = tk.Button(self._secondary_frame, command=self._toggle_log)
+        btn.pack(side="left", padx=4)
+        self._log_collapsed = False  # set by _set_log_collapsed below
+        self._log_toggle_btn = btn
+        self._set_log_collapsed(True)
+        return btn
+
+    def _toggle_log(self) -> None:
+        self._set_log_collapsed(not self._log_collapsed)
+
+    def _set_log_collapsed(self, collapsed: bool) -> None:
+        self._log_collapsed = collapsed
+        if collapsed:
+            self._status_frame.pack_forget()
+            self._log_toggle_btn.configure(text=self._assistant_labels["show_details"])
+        else:
+            self._status_frame.pack(fill="both", expand=True, padx=12, pady=(8, 8), before=self._divider)
+            self._log_toggle_btn.configure(text=self._assistant_labels["hide_details"])
 
     def _t(self, key: str, **kwargs: object) -> str:
         return i18n.t(key, self._cfg, **kwargs)
@@ -346,6 +520,8 @@ class LauncherApp(tk.Tk):
 
     def _log(self, line: str, *, tag: str = "info") -> None:
         log_panel_line(line, tag)
+        if tag == "err" and getattr(self, "_log_collapsed", False):
+            self._set_log_collapsed(False)  # errors must never hide behind the toggle
         self._status.configure(state="normal")
         self._status.insert("end", line + "\n", tag)
         self._status.see("end")
@@ -386,7 +562,8 @@ class LauncherApp(tk.Tk):
             self._render_docker_help()
         else:
             heading = self._t(_STATE_KEYS.get(state, "no_docker"), port=actions.resolve_port(self._cfg))
-            self._state_label.configure(text=heading, justify="center")
+            self._apply_status_headline(state)
+            self._state_label.configure(text=f"{self._headline_symbol} {heading}", justify="center")
             self._hide_docker_help()
         self._port_entry.configure(state="normal" if port_editable(state) else "disabled")
         self._validate_port()

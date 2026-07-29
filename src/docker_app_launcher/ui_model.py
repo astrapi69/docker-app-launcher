@@ -421,6 +421,8 @@ def assistant_labels(config: LauncherConfig) -> dict[str, str]:
             "what_it_means",
             "what_to_do",
             "no_problems_found",
+            "show_details",
+            "hide_details",
         )
     }
 

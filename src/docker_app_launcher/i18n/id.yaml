@@ -95,6 +95,7 @@ error_word: Kesalahan
 fix_docker_permission: Siapkan akses Docker…
 free_port_found: 'Port tersedia ditemukan: {port}.'
 health_ok: Kesiapan dikonfirmasi ✓
+hide_details: Sembunyikan detail
 image_acquire_failed: 'Unduhan image aplikasi gagal: {detail}'
 image_acquiring: Mengunduh image aplikasi (pertama kali bisa beberapa menit)...
 image_archive_base_unresolved: Arsip image tidak ditemukan di {path}. install_dir tidak disetel, sehingga pencarian dilakukan relatif terhadap direktori saat ini, yang tidak andal saat launcher dijalankan dari pintasan menu, Snap, atau pengelola berkas. Setel install_dir dalam konfigurasi launcher ke direktori yang berisi arsip.
@@ -142,6 +143,7 @@ scan_configs: Mencari sisa konfigurasi... {count} ditemukan
 scan_containers: Mencari kontainer yatim... {count} ditemukan
 scan_images: Mencari image usang... {count} ditemukan
 scan_volumes: Mencari volume yatim... {count} ditemukan
+show_details: Tampilkan detail
 skip: Lewati
 start: Mulai
 start_docker: Jalankan Docker

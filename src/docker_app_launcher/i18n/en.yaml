@@ -95,6 +95,7 @@ error_word: Error
 fix_docker_permission: Set up Docker access…
 free_port_found: 'Free port found: {port}.'
 health_ok: Readiness confirmed ✓
+hide_details: Hide details
 image_acquire_failed: 'Downloading the app image failed: {detail}'
 image_acquiring: Downloading the app image (can take a few minutes on first run)...
 image_archive_base_unresolved: Image archive not found at {path}. install_dir is not set, so it was looked up relative to the current directory, which is unreliable when the launcher starts from a menu shortcut, a Snap, or a file manager. Set install_dir in the launcher config to the directory that holds the archive.
@@ -142,6 +143,7 @@ scan_configs: Searching config leftovers... {count} found
 scan_containers: Searching orphaned containers... {count} found
 scan_images: Searching stale images... {count} found
 scan_volumes: Searching orphaned volumes... {count} found
+show_details: Show details
 skip: Skip
 start: Start
 start_docker: Start Docker

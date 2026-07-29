@@ -95,6 +95,7 @@ error_word: Hata
 fix_docker_permission: Docker erişimini ayarla…
 free_port_found: 'Boş bağlantı noktası bulundu: {port}.'
 health_ok: Hazırlık doğrulandı ✓
+hide_details: Ayrıntıları gizle
 image_acquire_failed: 'Uygulama imajı indirme başarısız: {detail}'
 image_acquiring: Uygulama imajı indiriliyor (ilk seferde birkaç dakika sürebilir)...
 image_archive_base_unresolved: '{path} konumunda imaj arşivi bulunamadı. install_dir ayarlı olmadığından arama geçerli dizine göre yapıldı; launcher bir menü kısayolundan, Snap''ten veya dosya yöneticisinden başlatıldığında bu güvenilir değildir. Launcher yapılandırmasında install_dir değerini arşivin bulunduğu dizine ayarlayın.'
@@ -142,6 +143,7 @@ scan_configs: Yapılandırma kalıntıları aranıyor... {count} bulundu
 scan_containers: Sahipsiz konteynerler aranıyor... {count} bulundu
 scan_images: Eski imajlar aranıyor... {count} bulundu
 scan_volumes: Sahipsiz birimler aranıyor... {count} bulundu
+show_details: Ayrıntıları göster
 skip: Atla
 start: Başlat
 start_docker: Docker'ı başlat

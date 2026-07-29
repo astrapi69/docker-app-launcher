@@ -95,6 +95,7 @@ error_word: エラー
 fix_docker_permission: Docker アクセスを設定…
 free_port_found: '空きポートが見つかりました: {port}。'
 health_ok: 準備が完了しました ✓
+hide_details: 詳細を隠す
 image_acquire_failed: 'アプリイメージのダウンロードに失敗しました: {detail}'
 image_acquiring: アプリのイメージをダウンロード中（初回は数分かかることがあります）...
 image_archive_base_unresolved: '{path} にイメージアーカイブが見つかりません。install_dir が未設定のため現在のディレクトリを基準に検索しましたが、メニューショートカット・Snap・ファイルマネージャーから起動した場合は信頼できません。ランチャー設定の install_dir にアーカイブのあるディレクトリを設定してください。'
@@ -142,6 +143,7 @@ scan_configs: 設定の残骸を検索中... {count} 個見つかりました
 scan_containers: 孤立したコンテナを検索中... {count} 個見つかりました
 scan_images: 古いイメージを検索中... {count} 個見つかりました
 scan_volumes: 孤立したボリュームを検索中... {count} 個見つかりました
+show_details: 詳細を表示
 skip: スキップ
 start: 開始
 start_docker: Docker を起動

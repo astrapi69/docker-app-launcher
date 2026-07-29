@@ -56,6 +56,48 @@ def main() -> int:
     if args.expect_version not in first_line:
         errors.append(f"version missing from first log line: {first_line!r}")
 
+    # Installation assistant (#81): presence + translated labels. The device
+    # check judges looks and clarity; completeness is machine work here.
+    assistant = contract.get("assistant")
+    if not isinstance(assistant, dict):
+        errors.append("assistant contract missing entirely (pre-#81 window?)")
+    else:
+        expected_elements = [
+            "copy_diagnosis_button",
+            "copy_support_bundle_button",
+            "doctor_checklist",
+            "log_toggle",
+            "problem_card",
+            "status_headline",
+        ]
+        if assistant.get("elements") != expected_elements:
+            errors.append(f"assistant elements mismatch: {assistant.get('elements')!r} != {expected_elements!r}")
+        assistant_raw_keys = {
+            "system_check",
+            "copy_diagnosis",
+            "copy_support_bundle",
+            "show_details",
+            "hide_details",
+            "what_it_means",
+            "what_to_do",
+        }
+        for label_field in ("system_check", "copy_diagnosis", "copy_support_bundle", "log_toggle"):
+            label = str(assistant.get(label_field, ""))
+            if not label.strip():
+                errors.append(f"assistant label {label_field} is empty")
+            elif label in assistant_raw_keys:
+                errors.append(f"assistant label {label_field} shows the raw i18n key {label!r}")
+        sections = assistant.get("problem_card_sections", [])
+        if len(sections) != 2 or not all(str(s).strip() for s in sections):
+            errors.append(f"problem card must render BOTH explanation sections, got {sections!r}")
+        elif any(str(s) in assistant_raw_keys for s in sections):
+            errors.append(f"problem card sections show raw i18n keys: {sections!r}")
+        headline = str(assistant.get("status_headline", ""))
+        if not headline or headline[0] not in "✓✗·":
+            errors.append(f"status headline must carry a non-color state symbol, got {headline!r}")
+        if assistant.get("log_collapsed_default") is not True:
+            errors.append("the log must start collapsed (learners see headline/card first)")
+
     if errors:
         print("FROZEN BINARY CONTRACT VIOLATIONS:")
         for error in errors:

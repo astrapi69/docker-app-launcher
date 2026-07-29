@@ -95,6 +95,7 @@ error_word: Error
 fix_docker_permission: Configurar acceso a Docker…
 free_port_found: 'Puerto libre encontrado: {port}.'
 health_ok: Disponibilidad confirmada ✓
+hide_details: Ocultar detalles
 image_acquire_failed: 'La descarga de la imagen de la app falló: {detail}'
 image_acquiring: Descargando la imagen de la app (la primera vez puede tardar unos minutos)...
 image_archive_base_unresolved: No se encontró el archivo de imagen en {path}. install_dir no está definido, así que se buscó relativo al directorio actual, lo cual es poco fiable cuando el launcher se inicia desde un acceso directo, un Snap o un gestor de archivos. Define install_dir en la configuración del launcher con el directorio que contiene el archivo.
@@ -142,6 +143,7 @@ scan_configs: Buscando restos de configuración... {count} encontrados
 scan_containers: Buscando contenedores huérfanos... {count} encontrados
 scan_images: Buscando imágenes obsoletas... {count} encontradas
 scan_volumes: Buscando volúmenes huérfanos... {count} encontrados
+show_details: Mostrar detalles
 skip: Omitir
 start: Iniciar
 start_docker: Iniciar Docker

@@ -95,6 +95,7 @@ error_word: Fehler
 fix_docker_permission: Docker-Zugriff einrichten…
 free_port_found: 'Freier Port gefunden: {port}.'
 health_ok: Bereitschaft bestätigt ✓
+hide_details: Details ausblenden
 image_acquire_failed: 'Herunterladen des App-Images fehlgeschlagen: {detail}'
 image_acquiring: App-Image wird heruntergeladen (kann beim ersten Mal einige Minuten dauern)...
 image_archive_base_unresolved: Image-Archiv nicht gefunden unter {path}. install_dir ist nicht gesetzt, daher wurde relativ zum aktuellen Verzeichnis gesucht, was unzuverlässig ist, wenn der Launcher aus einer Menüverknüpfung, einem Snap oder einem Dateimanager gestartet wird. Setze install_dir in der Launcher-Konfiguration auf das Verzeichnis mit dem Archiv.
@@ -142,6 +143,7 @@ scan_configs: Suche Config-Reste... {count} gefunden
 scan_containers: Suche verwaiste Container... {count} gefunden
 scan_images: Suche veraltete Images... {count} gefunden
 scan_volumes: Suche verwaiste Volumes... {count} gefunden
+show_details: Details anzeigen
 skip: Überspringen
 start: Starten
 start_docker: Docker starten

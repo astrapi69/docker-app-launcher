@@ -95,6 +95,7 @@ error_word: त्रुटि
 fix_docker_permission: Docker पहुँच सेट करें…
 free_port_found: 'खाली पोर्ट मिला: {port}।'
 health_ok: तैयारी की पुष्टि हुई ✓
+hide_details: विवरण छिपाएँ
 image_acquire_failed: 'ऐप इमेज डाउनलोड विफल: {detail}'
 image_acquiring: ऐप इमेज डाउनलोड हो रही है (पहली बार कुछ मिनट लग सकते हैं)...
 image_archive_base_unresolved: '{path} पर इमेज आर्काइव नहीं मिला। install_dir सेट नहीं है, इसलिए वर्तमान डायरेक्टरी के सापेक्ष खोजा गया, जो मेनू शॉर्टकट, Snap या फ़ाइल मैनेजर से लॉन्चर शुरू होने पर अविश्वसनीय है। लॉन्चर कॉन्फ़िगरेशन में install_dir को उस डायरेक्टरी पर सेट करें जिसमें आर्काइव है।'
@@ -142,6 +143,7 @@ scan_configs: कॉन्फ़िग अवशेष खोजे जा र�
 scan_containers: अनाथ कंटेनर खोजे जा रहे हैं... {count} मिले
 scan_images: पुरानी इमेज खोजी जा रही हैं... {count} मिलीं
 scan_volumes: अनाथ वॉल्यूम खोजे जा रहे हैं... {count} मिले
+show_details: विवरण दिखाएँ
 skip: छोड़ें
 start: शुरू करें
 start_docker: Docker शुरू करें

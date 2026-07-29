@@ -6,9 +6,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.23.0] - 2026-07-29
+
 ### Added
 
-- **Third deployment mode `image` (#78).** For consumers that publish a
+- **Third deployment mode `image` (#78, #82).** For consumers that publish a
   PREBUILT image: the launcher pulls (or loads) and starts it via the
   engine API — nothing is built on the user machine, so neither compose
   nor buildx is needed and old Docker generations are supported cells.
@@ -33,7 +35,36 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and the environment matrix — gaps in existing modes are tracked as #79
   (per-mode lifecycle integration matrix) and #80 (image-mode manifest detail).
 
+### Changed
+
+- **The mode is named `image`, not `pull` (#82).** `compose` and
+  `dockerfile` name the artifact that drives the mode; `pull` named an
+  action — one the mode documentedly does not perform when `image_archive`
+  is set. The config fields already said it (`image_reference`,
+  `image_archive`). Renamed before the first release, so no consumer
+  config ever used the old name.
+
+### Known limitation
+
+- **The old-engine cell is documented but not yet automated (#79).** The
+  image mode's central promise — pull + run on a Docker generation with
+  no compose and no buildx — is so far backed by the API surface argument
+  (the path uses only `/images/create` and the containers API) and a live
+  proof against a current engine (registry pull + archive load + run +
+  HTTP check). A containerized old-generation engine cell is named in
+  `docs/environment-matrix.md` and tracked in #79; consumers should wait
+  for it before switching their distribution to this mode.
+
 ### Fixed
+
+- **A relative `image_archive` resolves via the shared base rule (#83).**
+  The archive path had its own inline base (install_dir or cwd) — the
+  #64/#2120 class where a frozen binary resolves against its unpack
+  directory. It now anchors to the same `_base_dir()` as the compose file
+  and the build context (file-loaded configs anchor to the config file's
+  directory), and the readiness gate names the searched directory — or
+  the missing `install_dir` on the cwd fallback (new i18n key, all 11
+  catalogs).
 
 - **Pull path no longer trips over the #77 auth sentinel.** docker-py's
   pull wraps `_auth_configs` in its dict-based `AuthConfig`; the sentinel
@@ -917,7 +948,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - CLI ↔ GUI parity: both route through the same actions.
 - 160+ tests (no display required), mypy strict, ruff clean.
 
-[Unreleased]: https://github.com/astrapi69/docker-app-launcher/compare/v0.22.0...HEAD
+[Unreleased]: https://github.com/astrapi69/docker-app-launcher/compare/v0.23.0...HEAD
+[0.23.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.22.0...v0.23.0
 [0.22.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.21.1...v0.22.0
 [0.21.1]: https://github.com/astrapi69/docker-app-launcher/compare/v0.21.0...v0.21.1
 [0.21.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.20.0...v0.21.0

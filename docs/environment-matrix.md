@@ -349,8 +349,13 @@ Seed cells shipped now:
   `images.load`) and start a prebuilt image through `image_backend.up`.
   The engine-API path is exactly why the mode exists; this cell proves it
   where the build modes are blocked. Deterministic unit coverage lives in
-  `tests/docker/test_image_backend.py`; the real-daemon proof is a busybox
-  pull + run via the backend (documented in the #78 report).
+  `tests/docker/test_image_backend.py`; a real-daemon proof ran against a
+  CURRENT engine (registry pull + archive load + run + HTTP check,
+  documented in the #78 report). **The old-engine cell itself is NOT yet
+  automated** - until it runs (#79), the mode's old-generation promise
+  rests on the API-surface argument (only `/images/create` + the
+  containers API, both ancient), not on a measured run. #79 is a
+  prerequisite for consumers switching their distribution to this mode.
 
 Cells enumerated for follow-up (need the corresponding gap fix or heavier
 provisioning, tracked by their gap issue):

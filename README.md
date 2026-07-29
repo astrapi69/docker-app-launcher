@@ -39,7 +39,11 @@ launch(LauncherConfig(
 docker-app-launcher --config launcher.json   # open the window
 docker-app-launcher --version                 # print the launcher version and exit
 docker-app-launcher --check                   # is Docker running?
-docker-app-launcher --status                  # print state and exit
+docker-app-launcher --doctor                  # full diagnosis: config, Docker, readiness, ports, health
+docker-app-launcher --status                  # state - and health, when the app is running
+docker-app-launcher --health                  # probe the app's health endpoint, exit 0/1
+docker-app-launcher --app-logs                # print the tail of the app container's logs
+docker-app-launcher --support-bundle          # sanitized diagnosis to paste into a bug report
 docker-app-launcher --install --port 9000     # build + start headless
 docker-app-launcher --start                   # start the stopped app
 docker-app-launcher --stop                    # stop the running app
@@ -48,6 +52,29 @@ docker-app-launcher --cleanup                 # remove stale leftovers
 docker-app-launcher --open                    # open the app in the browser
 docker-app-launcher --debug ...               # verbose logging to stdout + launcher-debug.log
 ```
+
+**Machine-readable output**: `--json` turns `--doctor`, `--status`,
+`--health` and `--support-bundle` into JSON with **stable `id` fields**
+(e.g. `docker_running`, `readiness_blocker`, `port_drift`,
+`health_reachable`) — an API that only evolves additively:
+
+```bash
+docker-app-launcher --config launcher.json --doctor --json
+# {"app": "My App", "deployment_mode": "image", "ok": false, "complete": true,
+#  "problems": 1, "checks": [{"id": "docker_running", "status": "ok", ...},
+#                            {"id": "image_source_declared", "status": "error", ...}]}
+docker-app-launcher --config launcher.json --health --json
+# {"ok": true, "detail": "reachable (HTTP 200).", "url": "http://localhost:8080/api/health"}
+```
+
+**Exit codes** (contract): `0` success · `1` operation failed / doctor
+found blockers / health failed · `2` config or usage error.
+
+**Support bundle**: a human-readable document, never an opaque archive —
+it states first what it contains, so you can review it before sending.
+It carries versions, mode, state, port, health, the exact image identity
+from the install manifest, and env **key names only** (values are never
+included; key names that look like secrets are withheld).
 
 ### launcher.json
 

@@ -98,7 +98,11 @@ class TestCliActions:
         assert __main__.main(["--check"]) == 1
 
     def test_status(self, monkeypatch, capsys) -> None:
-        monkeypatch.setattr(actions, "get_state", lambda c: "running")
+        # --status routes through the structured StatusReport since #86.
+        from docker_app_launcher import doctor
+
+        monkeypatch.setattr(doctor, "get_state", lambda c: "running")
+        monkeypatch.setattr(doctor, "health_check", lambda c, port=None: (True, "healthy"))
         rc = __main__.main(["--status"])
         assert rc == 0 and "running" in capsys.readouterr().out
 

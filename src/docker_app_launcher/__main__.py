@@ -50,7 +50,21 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Run every diagnostic (config, Docker, readiness, ports, health) and exit 0/1.",
     )
-    parser.add_argument("--status", action="store_true", help="Print the app state and exit.")
+    parser.add_argument(
+        "--status", action="store_true", help="Print the app state (and health, when running) and exit."
+    )
+    parser.add_argument("--health", action="store_true", help="Probe the app's health endpoint and exit 0/1.")
+    parser.add_argument("--app-logs", action="store_true", help="Print the tail of the app container's logs and exit.")
+    parser.add_argument(
+        "--support-bundle",
+        action="store_true",
+        help="Print a sanitized, human-readable diagnosis (no env values, no secrets) to paste into a bug report.",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Machine-readable output for --doctor/--status/--health/--support-bundle (stable check ids).",
+    )
     parser.add_argument("--install", action="store_true", help="Build + start the app and exit.")
     parser.add_argument("--start", action="store_true", help="Start the stopped app and exit.")
     parser.add_argument("--stop", action="store_true", help="Stop the running app and exit.")
@@ -102,19 +116,44 @@ def run_cli_action(args: argparse.Namespace, config: LauncherConfig) -> int | No
 
     Returns an exit code when an action flag was handled, or ``None`` when no
     action flag was present (the caller then launches the GUI).
-    """
-    if args.doctor:
-        from docker_app_launcher.doctor import run_doctor
 
-        healthy, report = run_doctor(config)
-        print(report)
-        return 0 if healthy else 1
+    Exit-code contract (#86, documented in the README): 0 = success,
+    1 = the operation failed / the doctor found blockers / health failed,
+    2 = config or usage error (raised before this function runs).
+    """
+    import json as _json
+
+    if args.doctor:
+        from docker_app_launcher.doctor import collect_doctor_report, render_doctor_text
+
+        report = collect_doctor_report(config)
+        print(_json.dumps(report.to_dict(), ensure_ascii=False) if args.json else render_doctor_text(report))
+        return 0 if (report.ok and report.complete) else 1
     if args.check:
         ok, msg = actions.check_docker()
         print(msg)
         return 0 if ok else 1
     if args.status:
-        print(f"Status: {actions.get_state(config)}")
+        from docker_app_launcher.doctor import collect_status_report
+
+        status = collect_status_report(config)
+        print(_json.dumps(status.to_dict(), ensure_ascii=False) if args.json else status.to_text())
+        return 0
+    if args.health:
+        from docker_app_launcher.doctor import collect_health_report
+
+        health = collect_health_report(config)
+        print(_json.dumps(health.to_dict(), ensure_ascii=False) if args.json else f"{health.url} -> {health.detail}")
+        return 0 if health.ok else 1
+    if args.app_logs:
+        ok, text = actions.app_logs(config)
+        print(text)
+        return 0 if ok else 1
+    if args.support_bundle:
+        from docker_app_launcher.doctor import collect_support_bundle
+
+        bundle = collect_support_bundle(config)
+        print(_json.dumps(bundle.to_dict(), ensure_ascii=False) if args.json else bundle.to_text())
         return 0
     if args.install:
         ok, msg = actions.install(config, on_step=print, on_output=print)

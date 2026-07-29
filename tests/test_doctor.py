@@ -104,8 +104,12 @@ class TestDoctor:
 
 class TestDoctorCli:
     def test_flag_routes_and_exits_by_verdict(self, dconfig, monkeypatch, tmp_path, capsys) -> None:
+        from docker_app_launcher.diagnostics_report import CheckResult, DoctorReport
+
         dconfig.to_json(tmp_path / "launcher.json")
-        monkeypatch.setattr(doctor, "run_doctor", lambda c: (False, "the report"))
+        checks = [CheckResult("docker_running", "error", "the report")]
+        report = DoctorReport(app_name="X", mode="compose", checks=checks)
+        monkeypatch.setattr(doctor, "collect_doctor_report", lambda c: report)
         rc = __main__.main(["--config", str(tmp_path / "launcher.json"), "--doctor"])
         assert rc == 1
         assert "the report" in capsys.readouterr().out

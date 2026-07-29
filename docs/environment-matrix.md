@@ -414,6 +414,13 @@ code changes.
       `$XDG_RUNTIME_DIR/docker.sock` and does NOT offer `usermod`.
 - [ ] Snap Docker: confirm behavior with a compose file under `~/.<app>/`
       (expected to fail today; tracked by G7).
+- [ ] FINAL ACCEPTANCE for the image-mode end-user path (#86/#81): on the
+      REAL QA old device (the one the original field failures came from),
+      run `--doctor` -> `--install` (image mode) -> `--health` ->
+      `--support-bundle`, then the same via the GUI (system check +
+      install). The credential-helper case in particular must come out as
+      a classified, explained problem - CI cells are the daily currency,
+      the device finding is the acceptance currency.
 
 ---
 

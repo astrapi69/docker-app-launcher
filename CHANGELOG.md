@@ -23,6 +23,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   explicit `install_dir`, file-loaded configs, and the flagged cwd
   fallback. A new path field that skips classification fails the suite
   (rule in CLAUDE.md, precedent #83).
+- **Complete CLI contract with machine-readable output (#86).** New
+  flags `--health` (probe + exit 0/1), `--app-logs` (container log tail),
+  and `--support-bundle` (a HUMAN-READABLE diagnosis document that states
+  first what it contains — versions, mode, state, port, health, image
+  identity from the manifest, env key names only; values never included,
+  secret-looking key names withheld). `--json` renders `--doctor`,
+  `--status`, `--health` and `--support-bundle` as JSON with STABLE check
+  ids (additive evolution only). `--status` now surfaces
+  running-but-unhealthy instead of a bare "running". Exit-code contract
+  documented: 0 ok, 1 failed/blockers, 2 config or usage error. The
+  doctor pass is collected as a structured report object first and
+  rendered from it — the same objects the GUI assistant (#81) renders.
 - **The install manifest records the image identity (#80).** In image
   mode the manifest now carries `image_reference`, the resolved
   `image_id`, `image_digests`, and `image_source` (`registry`/`archive`)

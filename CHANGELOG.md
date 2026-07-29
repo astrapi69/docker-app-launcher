@@ -6,6 +6,25 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-07-29
+
+### Added
+
+- **`--doctor` (#75, #76).** One diagnostic pass: config identity + files,
+  daemon, toolchain versions, every collected readiness blocker (incl. the
+  rendered-port check), launcher port/env_port_key — and for an ALREADY
+  RUNNING stack the published-port drift check plus the real health probe
+  with its URL, which plain `--status` hid. Exit 0/1; made for running
+  locally before every wrapper release.
+- **Live log follow in the GUI (#72).** While the stack runs, the App-logs
+  button starts a live follow (name-prefixed lines streaming into the log
+  panel) and flips to "Stop logs"; a second click, leaving the running
+  state, or closing the window stops it. All three frontends; the one-shot
+  tail stays for stopped stacks. Closes the follow-up declared in 0.17.0.
+- **`use_registry_credentials` opt-in (#77).** Consumers pulling private
+  images declare it; only then does the dockerfile-mode build resolve
+  registry credentials (and a broken helper is a hard, named error).
+
 ### Fixed
 
 - **A stale credential helper no longer breaks dockerfile-mode builds
@@ -863,7 +882,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - CLI ↔ GUI parity: both route through the same actions.
 - 160+ tests (no display required), mypy strict, ruff clean.
 
-[Unreleased]: https://github.com/astrapi69/docker-app-launcher/compare/v0.21.1...HEAD
+[Unreleased]: https://github.com/astrapi69/docker-app-launcher/compare/v0.22.0...HEAD
+[0.22.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.21.1...v0.22.0
 [0.21.1]: https://github.com/astrapi69/docker-app-launcher/compare/v0.21.0...v0.21.1
 [0.21.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.20.0...v0.21.0
 [0.20.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.19.0...v0.20.0

@@ -97,6 +97,25 @@ class TestPorts:
         finally:
             sock.close()
 
+    def test_check_port_free_despite_time_wait(self) -> None:
+        # #90 field case (found live by the update-path matrix): a
+        # just-stopped app leaves TIME_WAIT entries on its published port.
+        # Docker CAN republish (docker-proxy binds with SO_REUSEADDR), so the
+        # probe must bind the same way instead of reporting a false
+        # "occupied" for ~60 seconds.
+        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        server.bind(("127.0.0.1", 0))
+        server.listen(1)
+        port = server.getsockname()[1]
+        client = socket.create_connection(("127.0.0.1", port))
+        conn, _ = server.accept()
+        conn.close()  # server side closes first -> TIME_WAIT on the port
+        client.close()
+        server.close()
+        ok, msg = settings.check_port(port)
+        assert ok is True, f"TIME_WAIT must not read as occupied: {msg}"
+
     def test_check_port_too_low(self) -> None:
         ok, _ = settings.check_port(80)
         assert ok is False

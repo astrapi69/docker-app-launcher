@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -53,6 +54,11 @@ services:
     container_name: {container}
     ports:
       - "${{APP_PORT:-{port}}}:80"
+    volumes:
+      - appdata:/data
+volumes:
+  appdata:
+    name: {container}-data
 """
 
 # The operation set every mode must pass - the proof of the checked set.
@@ -115,6 +121,9 @@ def _mode_config(mode: str, tmp_path: Path):
         image_name=container,
         deployment_mode=mode,
         image_reference="traefik/whoami:v1.10" if mode == "image" else "",
+        # The named volume is the update-path proof object (#88): compose
+        # mounts it via the yaml above (pinned name), the API modes here.
+        container_volumes={} if mode == "compose" else {f"{container}-data": "/data"},
         install_dir=str(install_dir),
         config_dir=str(tmp_path / f".{container}"),
         default_port=port,
@@ -195,3 +204,225 @@ class TestComposeModeLifecycle:
     def test_full_operation_set(self, tmp_path: Path) -> None:
         _skip_unless("compose")
         _drive_full_operation_set("compose", tmp_path)
+
+
+# --- Update path (#88): ref A -> ref B with named-volume preservation ---
+
+_UPDATE_STEPS_IMAGE = [
+    "install_ref_a",
+    "marker_written",
+    "updated_to_ref_b",
+    "single_container_on_ref_b",
+    "volume_preserved",
+    "old_image_still_present",
+    "backward_to_ref_a",
+    "volume_preserved_backward",
+]
+_UPDATE_STEPS_BUILD = [
+    "install_state_one",
+    "marker_written",
+    "rebuilt_state_two",
+    "state_two_served",
+    "volume_preserved",
+]
+
+
+def _volume_write(client: Any, volume: str, content: str) -> None:
+    client.containers.run(
+        "busybox:1.36.1",
+        ["sh", "-c", f"printf %s '{content}' > /data/marker"],
+        volumes={volume: {"bind": "/data", "mode": "rw"}},
+        remove=True,
+    )
+
+
+def _volume_read(client: Any, volume: str) -> str:
+    out = client.containers.run(
+        "busybox:1.36.1",
+        ["cat", "/data/marker"],
+        volumes={volume: {"bind": "/data", "mode": "ro"}},
+        remove=True,
+    )
+    return str(out.decode("utf-8"))
+
+
+def _http_body(port: int) -> str:
+    import time
+    import urllib.request
+
+    for _ in range(30):
+        try:
+            with urllib.request.urlopen(f"http://localhost:{port}/", timeout=2) as r:
+                return str(r.read().decode("utf-8", "replace"))
+        except Exception:  # noqa: BLE001 - retry until the container answers
+            time.sleep(0.5)
+    return ""
+
+
+def _real_client() -> Any:
+    from docker_app_launcher.docker import py_client
+
+    return py_client.get_client()
+
+
+def _cleanup_volume(name: str) -> None:
+    import contextlib
+
+    client = _real_client()
+    try:
+        with contextlib.suppress(Exception):
+            client.volumes.get(name).remove(force=True)
+    finally:
+        client.close()
+
+
+class TestUpdatePathImageMode:
+    """#88: the path every user walks on every app update - installed with
+    reference A, then updated (= explicit Start, the documented update
+    action) to reference B. THE decisive proof: the named volume survives."""
+
+    REF_A = "traefik/whoami:v1.9"
+    REF_B = "traefik/whoami:v1.10"
+
+    def test_update_and_backward_preserve_the_volume(self, tmp_path: Path) -> None:
+        _skip_unless("image")
+        import os
+
+        from docker_app_launcher.docker import lifecycle
+
+        marker = os.urandom(8).hex()
+        config = _mode_config("image", tmp_path)
+        volume = f"{config.container_name}-data"
+        config.image_reference = self.REF_A
+        steps: list[str] = []
+        lifecycle.uninstall(config)
+        _cleanup_volume(volume)
+        try:
+            ok, msg = lifecycle.install(config)
+            assert ok, f"install(ref A) failed: {msg}"
+            client = _real_client()
+            try:
+                assert self.REF_A in (client.containers.get(config.container_name).image.tags or [])
+            finally:
+                client.close()
+            steps.append("install_ref_a")
+
+            client = _real_client()
+            try:
+                _volume_write(client, volume, marker)
+            finally:
+                client.close()
+            steps.append("marker_written")
+
+            config.image_reference = self.REF_B
+            ok, msg = lifecycle.start(config)  # start IS the documented update action
+            assert ok, f"update to ref B failed: {msg}"
+            steps.append("updated_to_ref_b")
+
+            client = _real_client()
+            try:
+                # REPLACED, not duplicated: exactly one container of the name,
+                # and it runs reference B - the two-references proof.
+                matching = [c for c in client.containers.list(all=True) if c.name == config.container_name]
+                assert len(matching) == 1, f"old container must be replaced, found {len(matching)}"
+                assert self.REF_B in (matching[0].image.tags or []), "container must run reference B"
+                steps.append("single_container_on_ref_b")
+
+                assert _volume_read(client, volume) == marker, "user data lost on update!"
+                steps.append("volume_preserved")
+
+                # Documented behavior (README): the OLD image remains until
+                # docker image prune / cleanup - assert so a change is noticed.
+                client.images.get(self.REF_A)
+                steps.append("old_image_still_present")
+            finally:
+                client.close()
+
+            # Backward: an OLDER reference. No claim about app functionality,
+            # but no data loss and a comprehensible message.
+            config.image_reference = self.REF_A
+            ok, msg = lifecycle.start(config)
+            assert ok and msg, f"backward update must report comprehensibly: {msg!r}"
+            steps.append("backward_to_ref_a")
+            client = _real_client()
+            try:
+                assert _volume_read(client, volume) == marker, "user data lost on backward update!"
+                assert self.REF_A in (client.containers.get(config.container_name).image.tags or [])
+            finally:
+                client.close()
+            steps.append("volume_preserved_backward")
+
+            assert steps == _UPDATE_STEPS_IMAGE, f"update path incomplete: {steps}"
+        finally:
+            lifecycle.uninstall(config)
+            _cleanup_volume(volume)
+
+
+class _UpdateViaRebuild:
+    """dockerfile/compose analog (#88): two different source STATES - the
+    fixture content changes, Start rebuilds, the volume survives."""
+
+    mode = ""
+
+    def _run(self, tmp_path: Path) -> None:
+        import os
+
+        from docker_app_launcher.docker import lifecycle
+
+        marker = os.urandom(8).hex()
+        config = _mode_config(self.mode, tmp_path)
+        volume = f"{config.container_name}-data"
+        install_dir = Path(config.install_dir)
+        steps: list[str] = []
+        lifecycle.uninstall(config)
+        _cleanup_volume(volume)
+        try:
+            (install_dir / "index.html").write_text("state-one\n", encoding="utf-8")
+            ok, msg = lifecycle.install(config)
+            assert ok, f"[{self.mode}] install(state one) failed: {msg}"
+            assert "state-one" in _http_body(config.default_port)
+            steps.append("install_state_one")
+
+            client = _real_client()
+            try:
+                _volume_write(client, volume, marker)
+            finally:
+                client.close()
+            steps.append("marker_written")
+
+            (install_dir / "index.html").write_text("state-two\n", encoding="utf-8")
+            ok, msg = lifecycle.start(config)
+            assert ok, f"[{self.mode}] rebuild start failed: {msg}"
+            steps.append("rebuilt_state_two")
+
+            body = _http_body(config.default_port)
+            assert "state-two" in body, f"[{self.mode}] two-states proof failed, body: {body!r}"
+            steps.append("state_two_served")
+
+            client = _real_client()
+            try:
+                assert _volume_read(client, volume) == marker, f"[{self.mode}] user data lost on update!"
+            finally:
+                client.close()
+            steps.append("volume_preserved")
+
+            assert steps == _UPDATE_STEPS_BUILD, f"[{self.mode}] update path incomplete: {steps}"
+        finally:
+            lifecycle.uninstall(config)
+            _cleanup_volume(volume)
+
+
+class TestUpdatePathDockerfileMode(_UpdateViaRebuild):
+    mode = "dockerfile"
+
+    def test_rebuild_preserves_the_volume(self, tmp_path: Path) -> None:
+        _skip_unless("dockerfile")
+        self._run(tmp_path)
+
+
+class TestUpdatePathComposeMode(_UpdateViaRebuild):
+    mode = "compose"
+
+    def test_rebuild_preserves_the_volume(self, tmp_path: Path) -> None:
+        _skip_unless("compose")
+        self._run(tmp_path)

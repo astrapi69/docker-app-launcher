@@ -55,6 +55,12 @@ def check_port(port: int, *, host: str = "") -> tuple[bool, str]:
     try:
         if hasattr(socket, "SO_EXCLUSIVEADDRUSE"):  # Windows only
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        else:
+            # POSIX: docker-proxy publishes with SO_REUSEADDR, so probe the
+            # same way - without it, TIME_WAIT remnants of a just-stopped app
+            # read as a false "occupied" for ~60s (#90). A port that is
+            # actually bound/LISTENed still fails this bind.
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.bind((host, port))
     except OSError:
         return False, f"Port {port} is occupied."

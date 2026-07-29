@@ -1,163 +1,162 @@
-not_installed: '{app} não está instalado.'
-running: '{app} está em execução na porta {port}.'
-stopped: '{app} está instalado, mas parado.'
-no_docker: O Docker não está iniciado.
-install: Instalar
-start: Iniciar
-stop: Parar
-uninstall: Desinstalar
-open_browser: Abrir no navegador
-run_in_background: Em segundo plano
-background_tray: Em execução na bandeja do sistema. Clique duas vezes no ícone da bandeja para restaurar.
-background_iconified: Em execução em segundo plano. Restaure a janela pela barra de tarefas.
-closed_minimized: O app continua em execução; janela minimizada.
-apply_port: Aplicar porta
-apply: Aplicar
+about: Sobre…
+about_open_issues: Relatar um problema - abrir o issue tracker no navegador?
 advanced_settings: Configurações avançadas (especialistas)
 advanced_warning: Altere isto apenas se souber o que está fazendo. Uma alteração exige uma reconstrução (2-5 minutos).
-restore_defaults: Restaurar padrões
-internal_port_field: 'Porta {name} (interna):'
-retry: Verificar novamente
-cleanup: Limpar
-skip: Pular
-tray_open: Abrir
-tray_quit: Sair
-checking_docker: Verificando o Docker...
-docker_ok: O Docker está em execução ✓
-installing: '{app} está sendo configurado...'
-building: Construindo imagem (pode levar alguns minutos na primeira vez)...
-image_built: Imagem construída ✓
-starting: Iniciando contêiner...
-container_started: Contêiner iniciado ✓
-updating: Atualizando imagem (alguns minutos após alterações de código, segundos caso contrário)...
-checking_health: Verificando prontidão...
-health_ok: Prontidão confirmada ✓
-uninstalling: Desinstalação iniciada...
-no_containers: Nenhum contêiner encontrado ✓
-verify_clean: 'Verificação: nenhum contêiner encontrado ✓'
-verify_remain: 'Verificação: {count} contêiner(es) restante(s) ✗'
-ready: Instalação concluída. {app} está pronto.
 already_installed: '{app} já está instalado e em execução.'
 already_running: '{app} já está em execução.'
-start_done: '{app} iniciado.'
-stop_done: '{app} parado.'
 already_stopped: '{app} já estava parado.'
-uninstall_done: Desinstalação concluída. Seus dados são preservados.
-nothing_to_uninstall: Nada para desinstalar (nenhum contêiner presente).
-confirm_uninstall: 'Deseja desinstalar {app}?
-
-  Seus dados são preservados.'
-cleanup_found: 'Resíduos de instalação anterior encontrados:'
-cleanup_running: Limpando...
-cleanup_done: 'Limpeza concluída: {count} artefato(s) removido(s), {freed} liberado(s).'
-cleanup_partial: A limpeza falhou parcialmente ({count} etapa(s)).
-cleanup_skipped: Limpeza ignorada.
-data_preserved: Seus dados foram preservados.
-step_stop_container: Parar contêiner '{name}'
-step_remove_container: Remover contêiner '{name}'
-step_remove_image: Remover imagem '{ref}'
-step_remove_volume: Remover volume '{name}'
-step_remove_config: Remover configuração '{path}'
-scan_containers: Procurando contêineres órfãos... {count} encontrado(s)
-scan_images: Procurando imagens obsoletas... {count} encontrada(s)
-scan_volumes: Procurando volumes órfãos... {count} encontrado(s)
-scan_configs: Procurando resíduos de configuração... {count} encontrado(s)
-port_free: A porta {port} está livre.
-port_occupied: A porta {port} está ocupada.
-port_invalid: A porta deve estar entre {min} e {max}.
-port_set: Porta definida como {port}.
-port_restarting: Porta alterada. Reiniciando {app}...
-port_changed: Porta alterada para {port}.
-internal_port_unknown: 'Porta interna desconhecida: {name}.'
-internal_port_set: Porta interna {name} definida como {port}.
-internal_port_rebuilding: Porta interna alterada. Reconstruindo imagens (isto pode levar alguns minutos)...
-internal_port_changed: Porta interna {name} alterada para {port}.
-internal_port_confirm: Alterar uma porta interna exige reconstruir as imagens do Docker (2-5 minutos). Continuar?
-no_free_port: Nenhuma porta livre encontrada.
-free_port_found: 'Porta livre encontrada: {port}.'
-docker_unavailable: O Docker não está disponível (não iniciado).
-docker_not_installed: O Docker não está instalado (docker não está no PATH).
-docker_no_response: O Docker não está respondendo.
-docker_running: O Docker está em execução.
-docker_stopped: O Docker não está iniciado.
-compose_not_found: 'Arquivo compose não encontrado: {path}'
+app_logs: Logs do app
+app_logs_empty: O app ainda não produziu nenhuma saída de log.
+app_logs_failed: 'Não foi possível obter os logs do app: {detail}'
+app_logs_follow_stop: Parar logs
+app_requirement_missing: Este app requer {component} {required} ou mais recente, mas não foi possível detectar {component}. Instale ou atualize o Docker para atender.
+app_requirement_too_old: Este app requer {component} {required} ou mais recente, mas está instalado {found}. Atualize o Docker para atender.
+apply: Aplicar
+apply_port: Aplicar porta
+background_iconified: Em execução em segundo plano. Restaure a janela pela barra de tarefas.
+background_tray: Em execução na bandeja do sistema. Clique duas vezes no ícone da bandeja para restaurar.
+build_cancelled: A construção foi cancelada.
+build_context_not_found: 'Diretório de contexto de construção não encontrado: {path}. Verifique build_context na configuração do launcher.'
 build_failed: 'Falha na construção do Docker:
 
   {detail}'
+build_failed_network: 'O build não conseguiu acessar a rede para baixar as imagens: {detail}. Verifique sua conexão à internet ou o proxy e tente novamente.'
 build_timeout: O tempo limite da construção do Docker foi excedido.
-build_cancelled: A construção foi cancelada.
+building: Construindo imagem (pode levar alguns minutos na primeira vez)...
+buildx_missing: 'A construção do Docker Compose delega ao buildx e precisa de buildx {required} ou mais recente, mas nenhum plugin buildx foi encontrado. Instale o buildx: baixe o binário para a sua plataforma nas releases do docker/buildx, coloque-o em {path} e torne-o executável com ''chmod +x {path}''. Pacotes de distribuição têm se mostrado pouco confiáveis para isso.'
+buildx_too_old: 'A construção do Docker Compose delega ao buildx e precisa de buildx {required} ou mais recente, mas está instalado buildx {found}. Instale um buildx mais recente: baixe o binário para a sua plataforma nas releases do docker/buildx, coloque-o em {path} e torne-o executável com ''chmod +x {path}''. Pacotes de distribuição têm se mostrado pouco confiáveis para isso.'
+checking_context: Verificando o contexto Docker '{context}' ({endpoint})…
+checking_docker: Verificando o Docker...
+checking_health: Verificando prontidão...
+cleanup: Limpar
+cleanup_done: 'Limpeza concluída: {count} artefato(s) removido(s), {freed} liberado(s).'
+cleanup_found: 'Resíduos de instalação anterior encontrados:'
+cleanup_none: Nenhum resíduo de instalação encontrado.
+cleanup_now: Limpar agora
+cleanup_partial: A limpeza falhou parcialmente ({count} etapa(s)).
+cleanup_running: Limpando...
+cleanup_scanning: Procurando resíduos de instalação...
+cleanup_skipped: Limpeza ignorada.
+closed_minimized: O app continua em execução; janela minimizada.
+compose_base_unresolved: Arquivo compose não encontrado em {path}. install_dir não está definido, então foi procurado em relação ao diretório atual, o que não é confiável quando o launcher inicia a partir de um atalho de menu, um Snap ou um gerenciador de arquivos. Defina install_dir na configuração do launcher para o diretório que contém o arquivo compose.
+compose_missing: 'O Docker Compose não está disponível. Instale o plugin Compose v2 — Ubuntu/Debian: ''sudo apt install docker-compose-plugin'' (ou atualize o Docker) — e reinicie o launcher. Apps de serviço único podem alternativamente usar deployment_mode ''dockerfile'' (sem Compose).'
+compose_not_found: 'Arquivo compose não encontrado: {path}'
+compose_unreadable: 'Arquivo compose encontrado, mas ilegível: {path} ({error}).'
+compose_v1_incompatible: 'Apenas o antigo docker-compose v1 foi encontrado e ele não consegue ler o arquivo compose deste app ({path}). Instale o plugin Compose v2: ''sudo apt install docker-compose-plugin'' e reinicie o launcher.'
+confirm_uninstall: 'Deseja desinstalar {app}?
+
+  Seus dados são preservados.'
+container_not_running: O contêiner foi construído, mas não está em execução.
+container_started: Contêiner iniciado ✓
+data_preserved: Seus dados foram preservados.
+disk_low: 'Pouco espaço em disco para o build: apenas {free} livres em {path}, abaixo dos {needed} que um build provavelmente vai precisar. Libere espaço, ou defina min_build_disk_bytes como 0 para pular esta verificação.'
+docker_desktop_waiting: O Docker Desktop está iniciando - isso pode levar um momento (boot da VM)…
+docker_group_added: Grupo 'docker' adicionado. Saia e entre novamente (ou reinicie) para a mudança valer - o Docker ainda não está utilizável nesta sessão.
+docker_group_cancelled: 'Cancelado - nada foi alterado. Manual: execute ''sudo usermod -aG docker $USER'' e depois saia e entre novamente.'
+docker_group_confirm: Sua conta será adicionada ao grupo 'docker'. Na prática isso concede privilégios de root neste sistema (prática padrão com Docker). Continuar?
+docker_group_failed: 'Não foi possível adicionar ao grupo ''docker'': {error}. Manual: execute ''sudo usermod -aG docker $USER'' e depois saia e entre novamente.'
+docker_no_path: O Docker Desktop está instalado mas não está no PATH.
+docker_no_permission: 'O Docker está em execução, mas o seu usuário não tem permissão (fora do grupo ''docker''). Execute ''sudo usermod -aG docker $USER'' E depois saia e entre novamente (ou reinicie) - a mudança de grupo só vale numa nova sessão de login. Apenas para o terminal atual: ''newgrp docker''.'
+docker_no_response: O Docker não está respondendo.
+docker_not_installed: O Docker não está instalado (docker não está no PATH).
+docker_not_running: O Docker está instalado mas não iniciado.
+docker_not_running_detail: 'O Docker não está em execução. Contexto verificado ''{context}'' ({endpoint}): {error}'
+docker_ok: O Docker está em execução ✓
+docker_permission_non_root_socket: O Docker recusou a conexão neste endpoint, que não é o socket root clássico, então o grupo 'docker' não se aplica aqui. Para Docker rootless, defina DOCKER_HOST como $XDG_RUNTIME_DIR/docker.sock; para um endpoint remoto, verifique suas regras de acesso; para Docker Desktop, confirme que está em execução.
+docker_running: O Docker está em execução.
+docker_running_other_context: O Docker está em execução através do contexto '{context}' - o contexto ativo estava inacessível, o launcher conectou-se automaticamente.
+docker_stopped: O Docker não está iniciado.
+docker_unavailable: O Docker não está disponível (não iniciado).
+dockerfile_base_unresolved: Dockerfile não encontrado em {path}. install_dir não está definido, então foi procurado em relação ao diretório atual, o que não é confiável quando o launcher inicia a partir de um atalho de menu, um Snap ou um gerenciador de arquivos. Defina install_dir na configuração do launcher para o diretório de build.
+dockerfile_mode_needs_dockerpy: O modo dockerfile precisa do pacote Python docker (docker-py), que não está disponível nesta instalação.
+dockerfile_not_found: 'Dockerfile não encontrado: {path}. Verifique deployment_mode/Dockerfile na configuração do launcher.'
+dockerfile_unreadable: 'Dockerfile encontrado, mas ilegível: {path} ({error}).'
+error: 'Erro: {msg}'
+error_word: Erro
+fix_docker_permission: Configurar acesso ao Docker…
+free_port_found: 'Porta livre encontrada: {port}.'
+health_ok: Prontidão confirmada ✓
+image_acquire_failed: 'O download da imagem do app falhou: {detail}'
+image_acquiring: Baixando a imagem do app (pode levar alguns minutos na primeira vez)...
+image_archive_base_unresolved: Arquivo de imagem não encontrado em {path}. install_dir não está definido, então a busca foi relativa ao diretório atual, o que não é confiável quando o launcher inicia por um atalho de menu, Snap ou gerenciador de arquivos. Defina install_dir na configuração do launcher para o diretório que contém o arquivo.
+image_archive_unreadable: 'O arquivo de imagem configurado não pode ser lido: {path} (procurado em {base})'
+image_built: Imagem construída ✓
+image_mode_needs_dockerpy: O modo image precisa do pacote Python docker (docker-py), que não está disponível nesta instalação.
+image_mode_needs_reference: 'O modo image precisa de uma fonte de imagem: defina image_reference (tag ou digest) ou image_archive na configuração.'
+image_needs_network: A imagem do app ainda não está nesta máquina - o download exige conexão com a internet. Depois, o app funciona offline.
+install: Instalar
+install_needs_network: A instalação precisa agora de conexão à internet para baixar as imagens base. O app em si funciona offline depois de instalado.
+installing: '{app} está sendo configurado...'
+internal_port_changed: Porta interna {name} alterada para {port}.
+internal_port_confirm: Alterar uma porta interna exige reconstruir as imagens do Docker (2-5 minutos). Continuar?
+internal_port_field: 'Porta {name} (interna):'
+internal_port_rebuilding: Porta interna alterada. Reconstruindo imagens (isto pode levar alguns minutos)...
+internal_port_set: Porta interna {name} definida como {port}.
+internal_port_unknown: 'Porta interna desconhecida: {name}.'
+log_copied: Copiado!
+log_copy: Copiar log
+no_containers: Nenhum contêiner encontrado ✓
+no_docker: O Docker não está iniciado.
+no_free_port: Nenhuma porta livre encontrada.
+not_installed: '{app} não está instalado.'
+not_reachable: 'Instalado, mas {app} não está acessível: {detail}'
+not_reachable_after: '{app} não acessível após {timeout}s ({detail}).'
+nothing_to_uninstall: Nada para desinstalar (nenhum contêiner presente).
+open_browser: Abrir no navegador
+open_install_guide: Abrir guia de instalação
+port_changed: Porta alterada para {port}.
+port_free: A porta {port} está livre.
+port_invalid: A porta deve estar entre {min} e {max}.
+port_mismatch_rendered: O launcher espera a porta {expected}, mas o arquivo compose publicará {published}. Verifique env_port_key ({port_key}) contra a variável de porta do compose e os valores do .env.
+port_occupied: A porta {port} está ocupada.
+port_restarting: Porta alterada. Reiniciando {app}...
+port_set: Porta definida como {port}.
+ready: Instalação concluída. {app} está pronto.
+repo_url_not_cloned: 'Nota: repo_url ({url}) é usado apenas para links/verificações de atualização - o launcher não o clona. install_dir deve apontar para um checkout local.'
+restore_defaults: Restaurar padrões
+retry: Verificar novamente
+run_in_background: Em segundo plano
+running: '{app} está em execução na porta {port}.'
+scan_configs: Procurando resíduos de configuração... {count} encontrado(s)
+scan_containers: Procurando contêineres órfãos... {count} encontrado(s)
+scan_images: Procurando imagens obsoletas... {count} encontrada(s)
+scan_volumes: Procurando volumes órfãos... {count} encontrado(s)
+skip: Pular
+start: Iniciar
+start_docker: Iniciar Docker
+start_done: '{app} iniciado.'
 start_failed: 'Falha ao iniciar:
 
   {detail}'
-start_timeout: O tempo limite de início foi excedido.
-not_reachable: 'Instalado, mas {app} não está acessível: {detail}'
-container_not_running: O contêiner foi construído, mas não está em execução.
 start_no_container: O comando de início foi executado, mas nenhum contêiner está em execução.
+start_timeout: O tempo limite de início foi excedido.
+starting: Iniciando contêiner...
+step_remove_config: Remover configuração '{path}'
+step_remove_container: Remover contêiner '{name}'
+step_remove_image: Remover imagem '{ref}'
+step_remove_volume: Remover volume '{name}'
+step_skip_volume: Volume '{name}' ignorado (não selecionado).
+step_skip_volume_active: Volume '{name}' ignorado (projeto ativo).
+step_stop_container: Parar contêiner '{name}'
+stop: Parar
+stop_done: '{app} parado.'
 stop_failed: 'Falha ao parar: {detail}'
 stop_not_verified: O contêiner ainda está em execução após o comando de parada.
+stopped: '{app} está instalado, mas parado.'
+tooltip_already_installed: Já instalada
+tooltip_already_running: Já em execução
+tooltip_needs_docker: O Docker não está em execução
+tooltip_no_log: Ainda não há registro para copiar
+tooltip_not_installed: O aplicativo ainda não está instalado
+tooltip_not_running: O aplicativo não está em execução
+tooltip_only_running: Disponível apenas enquanto o aplicativo está em execução
+tray_open: Abrir
+tray_quit: Sair
+uninstall: Desinstalar
+uninstall_done: Desinstalação concluída. Seus dados são preservados.
 uninstall_partial: 'Removido parcialmente: {count} contêiner(es) não pôde(puderam) ser removido(s).'
-not_reachable_after: '{app} não acessível após {timeout}s ({detail}).'
-error: 'Erro: {msg}'
-error_word: Erro
+uninstalling: Desinstalação iniciada...
 update_available: 'Atualização disponível: {tag} - {url}'
-step_skip_volume: "Volume '{name}' ignorado (não selecionado)."
-step_skip_volume_active: "Volume '{name}' ignorado (projeto ativo)."
-docker_not_running: "O Docker está instalado mas não iniciado."
-docker_no_permission: "O Docker está em execução, mas o seu usuário não tem permissão (fora do grupo 'docker'). Execute 'sudo usermod -aG docker $USER' E depois saia e entre novamente (ou reinicie) - a mudança de grupo só vale numa nova sessão de login. Apenas para o terminal atual: 'newgrp docker'."
-docker_no_path: "O Docker Desktop está instalado mas não está no PATH."
-start_docker: "Iniciar Docker"
-open_install_guide: "Abrir guia de instalação"
-log_copy: "Copiar log"
-log_copied: "Copiado!"
-cleanup_scanning: "Procurando resíduos de instalação..."
-cleanup_none: "Nenhum resíduo de instalação encontrado."
-tooltip_needs_docker: "O Docker não está em execução"
-tooltip_already_installed: "Já instalada"
-tooltip_already_running: "Já em execução"
-tooltip_not_installed: "O aplicativo ainda não está instalado"
-tooltip_not_running: "O aplicativo não está em execução"
-tooltip_only_running: "Disponível apenas enquanto o aplicativo está em execução"
-tooltip_no_log: "Ainda não há registro para copiar"
-docker_not_running_detail: 'O Docker não está em execução. Contexto verificado ''{context}'' ({endpoint}): {error}'
-docker_running_other_context: 'O Docker está em execução através do contexto ''{context}'' - o contexto ativo estava inacessível, o launcher conectou-se automaticamente.'
-fix_docker_permission: "Configurar acesso ao Docker…"
-docker_group_confirm: "Sua conta será adicionada ao grupo 'docker'. Na prática isso concede privilégios de root neste sistema (prática padrão com Docker). Continuar?"
-docker_group_added: "Grupo 'docker' adicionado. Saia e entre novamente (ou reinicie) para a mudança valer - o Docker ainda não está utilizável nesta sessão."
-docker_group_cancelled: "Cancelado - nada foi alterado. Manual: execute 'sudo usermod -aG docker $USER' e depois saia e entre novamente."
-docker_group_failed: "Não foi possível adicionar ao grupo 'docker': {error}. Manual: execute 'sudo usermod -aG docker $USER' e depois saia e entre novamente."
-docker_desktop_waiting: "O Docker Desktop está iniciando - isso pode levar um momento (boot da VM)…"
-about: "Sobre…"
-about_open_issues: "Relatar um problema - abrir o issue tracker no navegador?"
-checking_context: "Verificando o contexto Docker '{context}' ({endpoint})…"
-cleanup_now: "Limpar agora"
-app_logs: "Logs do app"
-app_logs_failed: "Não foi possível obter os logs do app: {detail}"
-app_logs_empty: "O app ainda não produziu nenhuma saída de log."
-compose_missing: "O Docker Compose não está disponível. Instale o plugin Compose v2 — Ubuntu/Debian: 'sudo apt install docker-compose-plugin' (ou atualize o Docker) — e reinicie o launcher. Apps de serviço único podem alternativamente usar deployment_mode 'dockerfile' (sem Compose)."
-compose_v1_incompatible: "Apenas o antigo docker-compose v1 foi encontrado e ele não consegue ler o arquivo compose deste app ({path}). Instale o plugin Compose v2: 'sudo apt install docker-compose-plugin' e reinicie o launcher."
-dockerfile_not_found: "Dockerfile não encontrado: {path}. Verifique deployment_mode/Dockerfile na configuração do launcher."
-dockerfile_mode_needs_dockerpy: "O modo dockerfile precisa do pacote Python docker (docker-py), que não está disponível nesta instalação."
-
-# --- build readiness / capability gate (#54) ---
-buildx_too_old: "A construção do Docker Compose delega ao buildx e precisa de buildx {required} ou mais recente, mas está instalado buildx {found}. Instale um buildx mais recente: baixe o binário para a sua plataforma nas releases do docker/buildx, coloque-o em {path} e torne-o executável com 'chmod +x {path}'. Pacotes de distribuição têm se mostrado pouco confiáveis para isso."
-buildx_missing: "A construção do Docker Compose delega ao buildx e precisa de buildx {required} ou mais recente, mas nenhum plugin buildx foi encontrado. Instale o buildx: baixe o binário para a sua plataforma nas releases do docker/buildx, coloque-o em {path} e torne-o executável com 'chmod +x {path}'. Pacotes de distribuição têm se mostrado pouco confiáveis para isso."
-app_requirement_too_old: "Este app requer {component} {required} ou mais recente, mas está instalado {found}. Atualize o Docker para atender."
-app_requirement_missing: "Este app requer {component} {required} ou mais recente, mas não foi possível detectar {component}. Instale ou atualize o Docker para atender."
-compose_unreadable: "Arquivo compose encontrado, mas ilegível: {path} ({error})."
-dockerfile_unreadable: "Dockerfile encontrado, mas ilegível: {path} ({error})."
-build_context_not_found: "Diretório de contexto de construção não encontrado: {path}. Verifique build_context na configuração do launcher."
-docker_permission_non_root_socket: "O Docker recusou a conexão neste endpoint, que não é o socket root clássico, então o grupo 'docker' não se aplica aqui. Para Docker rootless, defina DOCKER_HOST como $XDG_RUNTIME_DIR/docker.sock; para um endpoint remoto, verifique suas regras de acesso; para Docker Desktop, confirme que está em execução."
-compose_base_unresolved: "Arquivo compose não encontrado em {path}. install_dir não está definido, então foi procurado em relação ao diretório atual, o que não é confiável quando o launcher inicia a partir de um atalho de menu, um Snap ou um gerenciador de arquivos. Defina install_dir na configuração do launcher para o diretório que contém o arquivo compose."
-dockerfile_base_unresolved: "Dockerfile não encontrado em {path}. install_dir não está definido, então foi procurado em relação ao diretório atual, o que não é confiável quando o launcher inicia a partir de um atalho de menu, um Snap ou um gerenciador de arquivos. Defina install_dir na configuração do launcher para o diretório de build."
-disk_low: "Pouco espaço em disco para o build: apenas {free} livres em {path}, abaixo dos {needed} que um build provavelmente vai precisar. Libere espaço, ou defina min_build_disk_bytes como 0 para pular esta verificação."
-install_needs_network: "A instalação precisa agora de conexão à internet para baixar as imagens base. O app em si funciona offline depois de instalado."
-build_failed_network: "O build não conseguiu acessar a rede para baixar as imagens: {detail}. Verifique sua conexão à internet ou o proxy e tente novamente."
-port_mismatch_rendered: "O launcher espera a porta {expected}, mas o arquivo compose publicará {published}. Verifique env_port_key ({port_key}) contra a variável de porta do compose e os valores do .env."
-repo_url_not_cloned: 'Nota: repo_url ({url}) é usado apenas para links/verificações de atualização - o launcher não o clona. install_dir deve apontar para um checkout local.'
-app_logs_follow_stop: Parar logs
-image_acquiring: Baixando a imagem do app (pode levar alguns minutos na primeira vez)...
-image_acquire_failed: 'O download da imagem do app falhou: {detail}'
-image_needs_network: A imagem do app ainda não está nesta máquina - o download exige conexão com a internet. Depois, o app funciona offline.
-image_mode_needs_reference: 'O modo image precisa de uma fonte de imagem: defina image_reference (tag ou digest) ou image_archive na configuração.'
-image_archive_unreadable: 'O arquivo de imagem configurado não pode ser lido: {path}'
-image_mode_needs_dockerpy: O modo image precisa do pacote Python docker (docker-py), que não está disponível nesta instalação.
+updating: Atualizando imagem (alguns minutos após alterações de código, segundos caso contrário)...
+verify_clean: 'Verificação: nenhum contêiner encontrado ✓'
+verify_remain: 'Verificação: {count} contêiner(es) restante(s) ✗'

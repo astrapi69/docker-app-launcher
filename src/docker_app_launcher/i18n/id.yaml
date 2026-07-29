@@ -1,163 +1,162 @@
-not_installed: '{app} belum terpasang.'
-running: '{app} berjalan di port {port}.'
-stopped: '{app} terpasang tetapi dihentikan.'
-no_docker: Docker belum dijalankan.
-install: Pasang
-start: Mulai
-stop: Hentikan
-uninstall: Hapus pemasangan
-open_browser: Buka di browser
-run_in_background: Di latar belakang
-background_tray: Berjalan di system tray. Klik dua kali ikon tray untuk memulihkan.
-background_iconified: Berjalan di latar belakang. Pulihkan jendela dari taskbar.
-closed_minimized: Aplikasi tetap berjalan; jendela diminimalkan.
-apply_port: Terapkan port
-apply: Terapkan
+about: Tentang…
+about_open_issues: Laporkan masalah - buka issue tracker di browser?
 advanced_settings: Pengaturan lanjutan (ahli)
 advanced_warning: Ubah ini hanya jika Anda tahu apa yang Anda lakukan. Perubahan memerlukan pembangunan ulang (2-5 menit).
-restore_defaults: Pulihkan default
-internal_port_field: 'Port {name} (internal):'
-retry: Periksa lagi
-cleanup: Bersihkan
-skip: Lewati
-tray_open: Buka
-tray_quit: Keluar
-checking_docker: Memeriksa Docker...
-docker_ok: Docker berjalan ✓
-installing: '{app} sedang disiapkan...'
-building: Membangun image (mungkin perlu beberapa menit saat pertama kali)...
-image_built: Image dibangun ✓
-starting: Memulai kontainer...
-container_started: Kontainer dimulai ✓
-updating: Memperbarui image (beberapa menit setelah perubahan kode, beberapa detik jika tidak)...
-checking_health: Memeriksa kesiapan...
-health_ok: Kesiapan dikonfirmasi ✓
-uninstalling: Penghapusan pemasangan dimulai...
-no_containers: Tidak ada kontainer ditemukan ✓
-verify_clean: 'Verifikasi: tidak ada kontainer ditemukan ✓'
-verify_remain: 'Verifikasi: {count} kontainer tersisa ✗'
-ready: Pemasangan selesai. {app} siap.
 already_installed: '{app} sudah terpasang dan berjalan.'
 already_running: '{app} sudah berjalan.'
-start_done: '{app} dimulai.'
-stop_done: '{app} dihentikan.'
 already_stopped: '{app} sudah dihentikan.'
-uninstall_done: Penghapusan pemasangan selesai. Data Anda tetap tersimpan.
-nothing_to_uninstall: Tidak ada yang perlu dihapus (tidak ada kontainer).
-confirm_uninstall: 'Apakah Anda ingin menghapus pemasangan {app}?
-
-  Data Anda tetap tersimpan.'
-cleanup_found: 'Sisa pemasangan sebelumnya ditemukan:'
-cleanup_running: Membersihkan...
-cleanup_done: 'Pembersihan selesai: {count} artefak dihapus, {freed} dibebaskan.'
-cleanup_partial: Pembersihan sebagian gagal ({count} langkah).
-cleanup_skipped: Pembersihan dilewati.
-data_preserved: Data Anda tetap tersimpan.
-step_stop_container: Hentikan kontainer '{name}'
-step_remove_container: Hapus kontainer '{name}'
-step_remove_image: Hapus image '{ref}'
-step_remove_volume: Hapus volume '{name}'
-step_remove_config: Hapus konfigurasi '{path}'
-scan_containers: Mencari kontainer yatim... {count} ditemukan
-scan_images: Mencari image usang... {count} ditemukan
-scan_volumes: Mencari volume yatim... {count} ditemukan
-scan_configs: Mencari sisa konfigurasi... {count} ditemukan
-port_free: Port {port} tersedia.
-port_occupied: Port {port} sedang dipakai.
-port_invalid: Port harus antara {min} dan {max}.
-port_set: Port disetel ke {port}.
-port_restarting: Port diubah. Memulai ulang {app}...
-port_changed: Port diubah menjadi {port}.
-internal_port_unknown: 'Port internal tidak dikenal: {name}.'
-internal_port_set: Port internal {name} disetel ke {port}.
-internal_port_rebuilding: Port internal diubah. Membangun ulang image (ini bisa memakan beberapa menit)...
-internal_port_changed: Port internal {name} diubah menjadi {port}.
-internal_port_confirm: Mengubah port internal memerlukan pembangunan ulang image Docker (2-5 menit). Lanjutkan?
-no_free_port: Tidak ada port yang tersedia.
-free_port_found: 'Port tersedia ditemukan: {port}.'
-docker_unavailable: Docker tidak tersedia (belum dijalankan).
-docker_not_installed: Docker belum terpasang (docker tidak ada di PATH).
-docker_no_response: Docker tidak merespons.
-docker_running: Docker berjalan.
-docker_stopped: Docker belum dijalankan.
-compose_not_found: 'Berkas compose tidak ditemukan: {path}'
+app_logs: Log aplikasi
+app_logs_empty: Aplikasi belum menghasilkan keluaran log.
+app_logs_failed: 'Gagal mengambil log aplikasi: {detail}'
+app_logs_follow_stop: Hentikan log
+app_requirement_missing: Aplikasi ini memerlukan {component} {required} atau lebih baru, tetapi {component} tidak terdeteksi. Pasang atau perbarui Docker untuk memenuhinya.
+app_requirement_too_old: Aplikasi ini memerlukan {component} {required} atau lebih baru, tetapi yang terpasang {found}. Perbarui Docker untuk memenuhinya.
+apply: Terapkan
+apply_port: Terapkan port
+background_iconified: Berjalan di latar belakang. Pulihkan jendela dari taskbar.
+background_tray: Berjalan di system tray. Klik dua kali ikon tray untuk memulihkan.
+build_cancelled: Pembangunan dibatalkan.
+build_context_not_found: 'Direktori konteks build tidak ditemukan: {path}. Periksa build_context di konfigurasi launcher.'
 build_failed: 'Pembangunan Docker gagal:
 
   {detail}'
+build_failed_network: 'Build tidak dapat menjangkau jaringan untuk mengunduh image: {detail}. Periksa koneksi internet atau proxy Anda, lalu coba lagi.'
 build_timeout: Pembangunan Docker melebihi batas waktu.
-build_cancelled: Pembangunan dibatalkan.
+building: Membangun image (mungkin perlu beberapa menit saat pertama kali)...
+buildx_missing: 'Build Docker Compose mendelegasikan ke buildx dan memerlukan buildx {required} atau lebih baru, tetapi plugin buildx tidak ditemukan. Pasang buildx: unduh biner untuk platform Anda dari rilis docker/buildx, letakkan di {path}, lalu buat dapat dieksekusi dengan ''chmod +x {path}''. Paket distribusi terbukti tidak dapat diandalkan untuk ini.'
+buildx_too_old: 'Build Docker Compose mendelegasikan ke buildx dan memerlukan buildx {required} atau lebih baru, tetapi yang terpasang buildx {found}. Pasang buildx yang lebih baru: unduh biner untuk platform Anda dari rilis docker/buildx, letakkan di {path}, lalu buat dapat dieksekusi dengan ''chmod +x {path}''. Paket distribusi terbukti tidak dapat diandalkan untuk ini.'
+checking_context: Memeriksa Docker context '{context}' ({endpoint})…
+checking_docker: Memeriksa Docker...
+checking_health: Memeriksa kesiapan...
+cleanup: Bersihkan
+cleanup_done: 'Pembersihan selesai: {count} artefak dihapus, {freed} dibebaskan.'
+cleanup_found: 'Sisa pemasangan sebelumnya ditemukan:'
+cleanup_none: Tidak ada sisa instalasi yang ditemukan.
+cleanup_now: Bersihkan sekarang
+cleanup_partial: Pembersihan sebagian gagal ({count} langkah).
+cleanup_running: Membersihkan...
+cleanup_scanning: Memindai sisa instalasi...
+cleanup_skipped: Pembersihan dilewati.
+closed_minimized: Aplikasi tetap berjalan; jendela diminimalkan.
+compose_base_unresolved: Berkas compose tidak ditemukan di {path}. install_dir tidak diatur, jadi dicari relatif terhadap direktori saat ini, yang tidak dapat diandalkan saat launcher dijalankan dari pintasan menu, Snap, atau pengelola berkas. Atur install_dir di konfigurasi launcher ke direktori yang berisi berkas compose.
+compose_missing: 'Docker Compose tidak tersedia. Pasang plugin Compose v2 — Ubuntu/Debian: ''sudo apt install docker-compose-plugin'' (atau perbarui Docker) — lalu mulai ulang launcher. Aplikasi single-service dapat memakai deployment_mode ''dockerfile'' sebagai alternatif (tanpa Compose).'
+compose_not_found: 'Berkas compose tidak ditemukan: {path}'
+compose_unreadable: 'Berkas compose ditemukan tetapi tidak terbaca: {path} ({error}).'
+compose_v1_incompatible: 'Hanya docker-compose v1 lama yang ditemukan dan tidak bisa membaca berkas compose aplikasi ini ({path}). Pasang plugin Compose v2: ''sudo apt install docker-compose-plugin'', lalu mulai ulang launcher.'
+confirm_uninstall: 'Apakah Anda ingin menghapus pemasangan {app}?
+
+  Data Anda tetap tersimpan.'
+container_not_running: Kontainer dibangun tetapi tidak berjalan.
+container_started: Kontainer dimulai ✓
+data_preserved: Data Anda tetap tersimpan.
+disk_low: 'Ruang disk untuk build sedikit: hanya {free} bebas di {path}, di bawah {needed} yang kemungkinan dibutuhkan sebuah build. Kosongkan ruang, atau setel min_build_disk_bytes ke 0 untuk melewati pemeriksaan ini.'
+docker_desktop_waiting: Docker Desktop sedang dimulai - ini bisa memakan waktu sejenak (boot VM)…
+docker_group_added: Grup 'docker' ditambahkan. Keluar lalu masuk lagi (atau mulai ulang) agar perubahan berlaku - Docker belum dapat digunakan di sesi ini.
+docker_group_cancelled: 'Dibatalkan - tidak ada perubahan. Manual: jalankan ''sudo usermod -aG docker $USER'', lalu keluar dan masuk lagi.'
+docker_group_confirm: Akun Anda akan ditambahkan ke grup 'docker'. Ini praktis memberikan hak root pada sistem ini (praktik standar Docker). Lanjutkan?
+docker_group_failed: 'Gagal menambahkan ke grup ''docker'': {error}. Manual: jalankan ''sudo usermod -aG docker $USER'', lalu keluar dan masuk lagi.'
+docker_no_path: Docker Desktop terpasang tetapi tidak ada di PATH.
+docker_no_permission: 'Docker sedang berjalan, tetapi pengguna Anda tidak punya izin (bukan anggota grup ''docker''). Jalankan ''sudo usermod -aG docker $USER'' DAN setelah itu keluar lalu masuk lagi (atau mulai ulang) - perubahan grup hanya aktif di sesi login baru. Hanya untuk terminal saat ini: ''newgrp docker''.'
+docker_no_response: Docker tidak merespons.
+docker_not_installed: Docker belum terpasang (docker tidak ada di PATH).
+docker_not_running: Docker terpasang tetapi belum dijalankan.
+docker_not_running_detail: 'Docker tidak berjalan. Context yang diperiksa ''{context}'' ({endpoint}): {error}'
+docker_ok: Docker berjalan ✓
+docker_permission_non_root_socket: Docker menolak koneksi di endpoint ini, yang bukan socket root klasik, sehingga grup 'docker' tidak berlaku di sini. Untuk Docker rootless, atur DOCKER_HOST ke $XDG_RUNTIME_DIR/docker.sock; untuk endpoint jarak jauh periksa aturan aksesnya; untuk Docker Desktop pastikan sedang berjalan.
+docker_running: Docker berjalan.
+docker_running_other_context: Docker berjalan melalui context '{context}' - context aktif tidak dapat dijangkau, launcher terhubung secara otomatis.
+docker_stopped: Docker belum dijalankan.
+docker_unavailable: Docker tidak tersedia (belum dijalankan).
+dockerfile_base_unresolved: Dockerfile tidak ditemukan di {path}. install_dir tidak diatur, jadi dicari relatif terhadap direktori saat ini, yang tidak dapat diandalkan saat launcher dijalankan dari pintasan menu, Snap, atau pengelola berkas. Atur install_dir di konfigurasi launcher ke direktori build.
+dockerfile_mode_needs_dockerpy: Mode dockerfile memerlukan paket Python docker (docker-py), yang tidak tersedia di instalasi ini.
+dockerfile_not_found: 'Dockerfile tidak ditemukan: {path}. Periksa pengaturan deployment_mode/Dockerfile di konfigurasi launcher.'
+dockerfile_unreadable: 'Dockerfile ditemukan tetapi tidak terbaca: {path} ({error}).'
+error: 'Kesalahan: {msg}'
+error_word: Kesalahan
+fix_docker_permission: Siapkan akses Docker…
+free_port_found: 'Port tersedia ditemukan: {port}.'
+health_ok: Kesiapan dikonfirmasi ✓
+image_acquire_failed: 'Unduhan image aplikasi gagal: {detail}'
+image_acquiring: Mengunduh image aplikasi (pertama kali bisa beberapa menit)...
+image_archive_base_unresolved: Arsip image tidak ditemukan di {path}. install_dir tidak disetel, sehingga pencarian dilakukan relatif terhadap direktori saat ini, yang tidak andal saat launcher dijalankan dari pintasan menu, Snap, atau pengelola berkas. Setel install_dir dalam konfigurasi launcher ke direktori yang berisi arsip.
+image_archive_unreadable: 'Arsip image yang dikonfigurasi tidak dapat dibaca: {path} (dicari di {base})'
+image_built: Image dibangun ✓
+image_mode_needs_dockerpy: Mode image memerlukan paket Python docker (docker-py), yang tidak tersedia di instalasi ini.
+image_mode_needs_reference: 'Mode image memerlukan sumber image: setel image_reference (tag atau digest) atau image_archive di konfigurasi.'
+image_needs_network: Image aplikasi belum ada di mesin ini - mengunduhnya memerlukan koneksi internet. Setelah itu, aplikasi berjalan offline.
+install: Pasang
+install_needs_network: Pemasangan membutuhkan koneksi internet sekarang untuk mengunduh image dasar. Aplikasinya sendiri berjalan luring setelah terpasang.
+installing: '{app} sedang disiapkan...'
+internal_port_changed: Port internal {name} diubah menjadi {port}.
+internal_port_confirm: Mengubah port internal memerlukan pembangunan ulang image Docker (2-5 menit). Lanjutkan?
+internal_port_field: 'Port {name} (internal):'
+internal_port_rebuilding: Port internal diubah. Membangun ulang image (ini bisa memakan beberapa menit)...
+internal_port_set: Port internal {name} disetel ke {port}.
+internal_port_unknown: 'Port internal tidak dikenal: {name}.'
+log_copied: Tersalin!
+log_copy: Salin log
+no_containers: Tidak ada kontainer ditemukan ✓
+no_docker: Docker belum dijalankan.
+no_free_port: Tidak ada port yang tersedia.
+not_installed: '{app} belum terpasang.'
+not_reachable: 'Terpasang, tetapi {app} tidak dapat dijangkau: {detail}'
+not_reachable_after: '{app} tidak dapat dijangkau setelah {timeout}d ({detail}).'
+nothing_to_uninstall: Tidak ada yang perlu dihapus (tidak ada kontainer).
+open_browser: Buka di browser
+open_install_guide: Buka panduan instalasi
+port_changed: Port diubah menjadi {port}.
+port_free: Port {port} tersedia.
+port_invalid: Port harus antara {min} dan {max}.
+port_mismatch_rendered: Launcher mengharapkan port {expected}, tetapi berkas compose akan memublikasikan {published}. Periksa env_port_key ({port_key}) terhadap variabel port compose dan nilai .env.
+port_occupied: Port {port} sedang dipakai.
+port_restarting: Port diubah. Memulai ulang {app}...
+port_set: Port disetel ke {port}.
+ready: Pemasangan selesai. {app} siap.
+repo_url_not_cloned: 'Catatan: repo_url ({url}) hanya untuk tautan/pemeriksaan pembaruan - launcher tidak meng-clone-nya. install_dir harus menunjuk ke checkout lokal.'
+restore_defaults: Pulihkan default
+retry: Periksa lagi
+run_in_background: Di latar belakang
+running: '{app} berjalan di port {port}.'
+scan_configs: Mencari sisa konfigurasi... {count} ditemukan
+scan_containers: Mencari kontainer yatim... {count} ditemukan
+scan_images: Mencari image usang... {count} ditemukan
+scan_volumes: Mencari volume yatim... {count} ditemukan
+skip: Lewati
+start: Mulai
+start_docker: Jalankan Docker
+start_done: '{app} dimulai.'
 start_failed: 'Gagal memulai:
 
   {detail}'
-start_timeout: Memulai melebihi batas waktu.
-not_reachable: 'Terpasang, tetapi {app} tidak dapat dijangkau: {detail}'
-container_not_running: Kontainer dibangun tetapi tidak berjalan.
 start_no_container: Perintah mulai dijalankan, tetapi tidak ada kontainer yang berjalan.
+start_timeout: Memulai melebihi batas waktu.
+starting: Memulai kontainer...
+step_remove_config: Hapus konfigurasi '{path}'
+step_remove_container: Hapus kontainer '{name}'
+step_remove_image: Hapus image '{ref}'
+step_remove_volume: Hapus volume '{name}'
+step_skip_volume: Volume '{name}' dilewati (tidak dipilih).
+step_skip_volume_active: Volume '{name}' dilewati (proyek aktif).
+step_stop_container: Hentikan kontainer '{name}'
+stop: Hentikan
+stop_done: '{app} dihentikan.'
 stop_failed: 'Gagal menghentikan: {detail}'
 stop_not_verified: Kontainer masih berjalan setelah perintah hentikan.
+stopped: '{app} terpasang tetapi dihentikan.'
+tooltip_already_installed: Sudah terpasang
+tooltip_already_running: Sudah berjalan
+tooltip_needs_docker: Docker tidak berjalan
+tooltip_no_log: Belum ada log untuk disalin
+tooltip_not_installed: Aplikasi belum terpasang
+tooltip_not_running: Aplikasi tidak berjalan
+tooltip_only_running: Hanya tersedia saat aplikasi berjalan
+tray_open: Buka
+tray_quit: Keluar
+uninstall: Hapus pemasangan
+uninstall_done: Penghapusan pemasangan selesai. Data Anda tetap tersimpan.
 uninstall_partial: 'Sebagian dihapus: {count} kontainer tidak dapat dihapus.'
-not_reachable_after: '{app} tidak dapat dijangkau setelah {timeout}d ({detail}).'
-error: 'Kesalahan: {msg}'
-error_word: Kesalahan
+uninstalling: Penghapusan pemasangan dimulai...
 update_available: 'Pembaruan tersedia: {tag} - {url}'
-step_skip_volume: "Volume '{name}' dilewati (tidak dipilih)."
-step_skip_volume_active: "Volume '{name}' dilewati (proyek aktif)."
-docker_not_running: "Docker terpasang tetapi belum dijalankan."
-docker_no_permission: "Docker sedang berjalan, tetapi pengguna Anda tidak punya izin (bukan anggota grup 'docker'). Jalankan 'sudo usermod -aG docker $USER' DAN setelah itu keluar lalu masuk lagi (atau mulai ulang) - perubahan grup hanya aktif di sesi login baru. Hanya untuk terminal saat ini: 'newgrp docker'."
-docker_no_path: "Docker Desktop terpasang tetapi tidak ada di PATH."
-start_docker: "Jalankan Docker"
-open_install_guide: "Buka panduan instalasi"
-log_copy: "Salin log"
-log_copied: "Tersalin!"
-cleanup_scanning: "Memindai sisa instalasi..."
-cleanup_none: "Tidak ada sisa instalasi yang ditemukan."
-tooltip_needs_docker: "Docker tidak berjalan"
-tooltip_already_installed: "Sudah terpasang"
-tooltip_already_running: "Sudah berjalan"
-tooltip_not_installed: "Aplikasi belum terpasang"
-tooltip_not_running: "Aplikasi tidak berjalan"
-tooltip_only_running: "Hanya tersedia saat aplikasi berjalan"
-tooltip_no_log: "Belum ada log untuk disalin"
-docker_not_running_detail: 'Docker tidak berjalan. Context yang diperiksa ''{context}'' ({endpoint}): {error}'
-docker_running_other_context: 'Docker berjalan melalui context ''{context}'' - context aktif tidak dapat dijangkau, launcher terhubung secara otomatis.'
-fix_docker_permission: "Siapkan akses Docker…"
-docker_group_confirm: "Akun Anda akan ditambahkan ke grup 'docker'. Ini praktis memberikan hak root pada sistem ini (praktik standar Docker). Lanjutkan?"
-docker_group_added: "Grup 'docker' ditambahkan. Keluar lalu masuk lagi (atau mulai ulang) agar perubahan berlaku - Docker belum dapat digunakan di sesi ini."
-docker_group_cancelled: "Dibatalkan - tidak ada perubahan. Manual: jalankan 'sudo usermod -aG docker $USER', lalu keluar dan masuk lagi."
-docker_group_failed: "Gagal menambahkan ke grup 'docker': {error}. Manual: jalankan 'sudo usermod -aG docker $USER', lalu keluar dan masuk lagi."
-docker_desktop_waiting: "Docker Desktop sedang dimulai - ini bisa memakan waktu sejenak (boot VM)…"
-about: "Tentang…"
-about_open_issues: "Laporkan masalah - buka issue tracker di browser?"
-checking_context: "Memeriksa Docker context '{context}' ({endpoint})…"
-cleanup_now: "Bersihkan sekarang"
-app_logs: "Log aplikasi"
-app_logs_failed: "Gagal mengambil log aplikasi: {detail}"
-app_logs_empty: "Aplikasi belum menghasilkan keluaran log."
-compose_missing: "Docker Compose tidak tersedia. Pasang plugin Compose v2 — Ubuntu/Debian: 'sudo apt install docker-compose-plugin' (atau perbarui Docker) — lalu mulai ulang launcher. Aplikasi single-service dapat memakai deployment_mode 'dockerfile' sebagai alternatif (tanpa Compose)."
-compose_v1_incompatible: "Hanya docker-compose v1 lama yang ditemukan dan tidak bisa membaca berkas compose aplikasi ini ({path}). Pasang plugin Compose v2: 'sudo apt install docker-compose-plugin', lalu mulai ulang launcher."
-dockerfile_not_found: "Dockerfile tidak ditemukan: {path}. Periksa pengaturan deployment_mode/Dockerfile di konfigurasi launcher."
-dockerfile_mode_needs_dockerpy: "Mode dockerfile memerlukan paket Python docker (docker-py), yang tidak tersedia di instalasi ini."
-
-# --- build readiness / capability gate (#54) ---
-buildx_too_old: "Build Docker Compose mendelegasikan ke buildx dan memerlukan buildx {required} atau lebih baru, tetapi yang terpasang buildx {found}. Pasang buildx yang lebih baru: unduh biner untuk platform Anda dari rilis docker/buildx, letakkan di {path}, lalu buat dapat dieksekusi dengan 'chmod +x {path}'. Paket distribusi terbukti tidak dapat diandalkan untuk ini."
-buildx_missing: "Build Docker Compose mendelegasikan ke buildx dan memerlukan buildx {required} atau lebih baru, tetapi plugin buildx tidak ditemukan. Pasang buildx: unduh biner untuk platform Anda dari rilis docker/buildx, letakkan di {path}, lalu buat dapat dieksekusi dengan 'chmod +x {path}'. Paket distribusi terbukti tidak dapat diandalkan untuk ini."
-app_requirement_too_old: "Aplikasi ini memerlukan {component} {required} atau lebih baru, tetapi yang terpasang {found}. Perbarui Docker untuk memenuhinya."
-app_requirement_missing: "Aplikasi ini memerlukan {component} {required} atau lebih baru, tetapi {component} tidak terdeteksi. Pasang atau perbarui Docker untuk memenuhinya."
-compose_unreadable: "Berkas compose ditemukan tetapi tidak terbaca: {path} ({error})."
-dockerfile_unreadable: "Dockerfile ditemukan tetapi tidak terbaca: {path} ({error})."
-build_context_not_found: "Direktori konteks build tidak ditemukan: {path}. Periksa build_context di konfigurasi launcher."
-docker_permission_non_root_socket: "Docker menolak koneksi di endpoint ini, yang bukan socket root klasik, sehingga grup 'docker' tidak berlaku di sini. Untuk Docker rootless, atur DOCKER_HOST ke $XDG_RUNTIME_DIR/docker.sock; untuk endpoint jarak jauh periksa aturan aksesnya; untuk Docker Desktop pastikan sedang berjalan."
-compose_base_unresolved: "Berkas compose tidak ditemukan di {path}. install_dir tidak diatur, jadi dicari relatif terhadap direktori saat ini, yang tidak dapat diandalkan saat launcher dijalankan dari pintasan menu, Snap, atau pengelola berkas. Atur install_dir di konfigurasi launcher ke direktori yang berisi berkas compose."
-dockerfile_base_unresolved: "Dockerfile tidak ditemukan di {path}. install_dir tidak diatur, jadi dicari relatif terhadap direktori saat ini, yang tidak dapat diandalkan saat launcher dijalankan dari pintasan menu, Snap, atau pengelola berkas. Atur install_dir di konfigurasi launcher ke direktori build."
-disk_low: "Ruang disk untuk build sedikit: hanya {free} bebas di {path}, di bawah {needed} yang kemungkinan dibutuhkan sebuah build. Kosongkan ruang, atau setel min_build_disk_bytes ke 0 untuk melewati pemeriksaan ini."
-install_needs_network: "Pemasangan membutuhkan koneksi internet sekarang untuk mengunduh image dasar. Aplikasinya sendiri berjalan luring setelah terpasang."
-build_failed_network: "Build tidak dapat menjangkau jaringan untuk mengunduh image: {detail}. Periksa koneksi internet atau proxy Anda, lalu coba lagi."
-port_mismatch_rendered: "Launcher mengharapkan port {expected}, tetapi berkas compose akan memublikasikan {published}. Periksa env_port_key ({port_key}) terhadap variabel port compose dan nilai .env."
-repo_url_not_cloned: 'Catatan: repo_url ({url}) hanya untuk tautan/pemeriksaan pembaruan - launcher tidak meng-clone-nya. install_dir harus menunjuk ke checkout lokal.'
-app_logs_follow_stop: Hentikan log
-image_acquiring: Mengunduh image aplikasi (pertama kali bisa beberapa menit)...
-image_acquire_failed: 'Unduhan image aplikasi gagal: {detail}'
-image_needs_network: Image aplikasi belum ada di mesin ini - mengunduhnya memerlukan koneksi internet. Setelah itu, aplikasi berjalan offline.
-image_mode_needs_reference: 'Mode image memerlukan sumber image: setel image_reference (tag atau digest) atau image_archive di konfigurasi.'
-image_archive_unreadable: 'Arsip image yang dikonfigurasi tidak dapat dibaca: {path}'
-image_mode_needs_dockerpy: Mode image memerlukan paket Python docker (docker-py), yang tidak tersedia di instalasi ini.
+updating: Memperbarui image (beberapa menit setelah perubahan kode, beberapa detik jika tidak)...
+verify_clean: 'Verifikasi: tidak ada kontainer ditemukan ✓'
+verify_remain: 'Verifikasi: {count} kontainer tersisa ✗'

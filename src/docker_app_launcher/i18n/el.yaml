@@ -1,163 +1,162 @@
-not_installed: 'Το {app} δεν είναι εγκατεστημένο.'
-running: 'Το {app} εκτελείται στη θύρα {port}.'
-stopped: 'Το {app} είναι εγκατεστημένο αλλά σταματημένο.'
-no_docker: Το Docker δεν έχει ξεκινήσει.
-install: Εγκατάσταση
-start: Έναρξη
-stop: Διακοπή
-uninstall: Απεγκατάσταση
-open_browser: Άνοιγμα στο πρόγραμμα περιήγησης
-run_in_background: Στο παρασκήνιο
-background_tray: Εκτελείται στην περιοχή ειδοποιήσεων. Κάντε διπλό κλικ στο εικονίδιο για επαναφορά.
-background_iconified: Εκτελείται στο παρασκήνιο. Επαναφέρετε το παράθυρο από τη γραμμή εργασιών.
-closed_minimized: Η εφαρμογή συνεχίζει να εκτελείται. Το παράθυρο ελαχιστοποιήθηκε.
-apply_port: Εφαρμογή θύρας
-apply: Εφαρμογή
+about: Σχετικά…
+about_open_issues: Αναφορά προβλήματος - άνοιγμα του issue tracker στον περιηγητή;
 advanced_settings: Σύνθετες ρυθμίσεις (για ειδικούς)
 advanced_warning: Αλλάξτε τα μόνο αν ξέρετε τι κάνετε. Μια αλλαγή απαιτεί επανακατασκευή (2-5 λεπτά).
-restore_defaults: Επαναφορά προεπιλογών
-internal_port_field: 'Θύρα {name} (εσωτερική):'
-retry: Έλεγχος ξανά
-cleanup: Εκκαθάριση
-skip: Παράλειψη
-tray_open: Άνοιγμα
-tray_quit: Έξοδος
-checking_docker: Έλεγχος Docker...
-docker_ok: Το Docker εκτελείται ✓
-installing: 'Το {app} ρυθμίζεται...'
-building: Κατασκευή image (μπορεί να διαρκέσει μερικά λεπτά την πρώτη φορά)...
-image_built: Το image κατασκευάστηκε ✓
-starting: Εκκίνηση container...
-container_started: Το container ξεκίνησε ✓
-updating: Ενημέρωση image (μερικά λεπτά μετά από αλλαγές κώδικα, αλλιώς δευτερόλεπτα)...
-checking_health: Έλεγχος ετοιμότητας...
-health_ok: Η ετοιμότητα επιβεβαιώθηκε ✓
-uninstalling: Η απεγκατάσταση ξεκίνησε...
-no_containers: Δεν βρέθηκαν containers ✓
-verify_clean: 'Επαλήθευση: δεν βρέθηκαν containers ✓'
-verify_remain: 'Επαλήθευση: {count} container(s) απομένουν ✗'
-ready: Η εγκατάσταση ολοκληρώθηκε. Το {app} είναι έτοιμο.
-already_installed: 'Το {app} είναι ήδη εγκατεστημένο και εκτελείται.'
-already_running: 'Το {app} εκτελείται ήδη.'
-start_done: 'Το {app} ξεκίνησε.'
-stop_done: 'Το {app} σταμάτησε.'
-already_stopped: 'Το {app} είχε ήδη σταματήσει.'
-uninstall_done: Η απεγκατάσταση ολοκληρώθηκε. Τα δεδομένα σας διατηρούνται.
-nothing_to_uninstall: Δεν υπάρχει τίποτα για απεγκατάσταση (δεν υπάρχει container).
-confirm_uninstall: 'Θέλετε να απεγκαταστήσετε το {app};
-
-  Τα δεδομένα σας διατηρούνται.'
-cleanup_found: 'Βρέθηκαν υπολείμματα προηγούμενης εγκατάστασης:'
-cleanup_running: Εκκαθάριση...
-cleanup_done: 'Η εκκαθάριση ολοκληρώθηκε: {count} αντικείμενο(α) αφαιρέθηκαν, {freed} ελευθερώθηκαν.'
-cleanup_partial: Η εκκαθάριση απέτυχε εν μέρει ({count} βήμα(τα)).
-cleanup_skipped: Η εκκαθάριση παραλείφθηκε.
-data_preserved: Τα δεδομένα σας διατηρήθηκαν.
-step_stop_container: Διακοπή container '{name}'
-step_remove_container: Αφαίρεση container '{name}'
-step_remove_image: Αφαίρεση image '{ref}'
-step_remove_volume: Αφαίρεση volume '{name}'
-step_remove_config: Αφαίρεση ρύθμισης '{path}'
-scan_containers: Αναζήτηση ορφανών containers... {count} βρέθηκαν
-scan_images: Αναζήτηση παρωχημένων images... {count} βρέθηκαν
-scan_volumes: Αναζήτηση ορφανών volumes... {count} βρέθηκαν
-scan_configs: Αναζήτηση υπολειμμάτων ρυθμίσεων... {count} βρέθηκαν
-port_free: Η θύρα {port} είναι ελεύθερη.
-port_occupied: Η θύρα {port} είναι κατειλημμένη.
-port_invalid: Η θύρα πρέπει να είναι μεταξύ {min} και {max}.
-port_set: Η θύρα ορίστηκε σε {port}.
-port_restarting: Η θύρα άλλαξε. Επανεκκίνηση {app}...
-port_changed: Η θύρα άλλαξε σε {port}.
-internal_port_unknown: 'Άγνωστη εσωτερική θύρα: {name}.'
-internal_port_set: Η εσωτερική θύρα {name} ορίστηκε σε {port}.
-internal_port_rebuilding: Η εσωτερική θύρα άλλαξε. Επανακατασκευή των images (μπορεί να διαρκέσει μερικά λεπτά)...
-internal_port_changed: Η εσωτερική θύρα {name} άλλαξε σε {port}.
-internal_port_confirm: Η αλλαγή μιας εσωτερικής θύρας απαιτεί επανακατασκευή των Docker images (2-5 λεπτά). Συνέχεια;
-no_free_port: Δεν βρέθηκε ελεύθερη θύρα.
-free_port_found: 'Βρέθηκε ελεύθερη θύρα: {port}.'
-docker_unavailable: Το Docker δεν είναι διαθέσιμο (δεν έχει ξεκινήσει).
-docker_not_installed: Το Docker δεν είναι εγκατεστημένο (το docker δεν είναι στο PATH).
-docker_no_response: Το Docker δεν αποκρίνεται.
-docker_running: Το Docker εκτελείται.
-docker_stopped: Το Docker δεν έχει ξεκινήσει.
-compose_not_found: 'Το αρχείο Compose δεν βρέθηκε: {path}'
+already_installed: Το {app} είναι ήδη εγκατεστημένο και εκτελείται.
+already_running: Το {app} εκτελείται ήδη.
+already_stopped: Το {app} είχε ήδη σταματήσει.
+app_logs: Αρχεία καταγραφής εφαρμογής
+app_logs_empty: Η εφαρμογή δεν έχει παραγάγει ακόμη καταγραφές.
+app_logs_failed: 'Αδυναμία λήψης αρχείων καταγραφής: {detail}'
+app_logs_follow_stop: Διακοπή καταγραφών
+app_requirement_missing: Αυτή η εφαρμογή απαιτεί {component} {required} ή νεότερο, αλλά δεν ήταν δυνατός ο εντοπισμός του {component}. Εγκαταστήστε ή ενημερώστε το Docker.
+app_requirement_too_old: Αυτή η εφαρμογή απαιτεί {component} {required} ή νεότερο, αλλά είναι εγκατεστημένο {found}. Ενημερώστε το Docker για να το καλύψετε.
+apply: Εφαρμογή
+apply_port: Εφαρμογή θύρας
+background_iconified: Εκτελείται στο παρασκήνιο. Επαναφέρετε το παράθυρο από τη γραμμή εργασιών.
+background_tray: Εκτελείται στην περιοχή ειδοποιήσεων. Κάντε διπλό κλικ στο εικονίδιο για επαναφορά.
+build_cancelled: Η κατασκευή ακυρώθηκε.
+build_context_not_found: 'Ο κατάλογος build context δεν βρέθηκε: {path}. Ελέγξτε το build_context στη διαμόρφωση του launcher.'
 build_failed: 'Η κατασκευή Docker απέτυχε:
 
   {detail}'
+build_failed_network: 'Το build δεν μπόρεσε να προσεγγίσει το δίκτυο για να κατεβάσει εικόνες: {detail}. Ελέγξτε τη σύνδεσή σας στο διαδίκτυο ή τον proxy και δοκιμάστε ξανά.'
 build_timeout: Η κατασκευή Docker υπερέβη το χρονικό όριο.
-build_cancelled: Η κατασκευή ακυρώθηκε.
+building: Κατασκευή image (μπορεί να διαρκέσει μερικά λεπτά την πρώτη φορά)...
+buildx_missing: 'Η κατασκευή του Docker Compose ανατίθεται στο buildx και χρειάζεται buildx {required} ή νεότερο, αλλά δεν βρέθηκε πρόσθετο buildx. Εγκαταστήστε buildx: κατεβάστε το εκτελέσιμο για την πλατφόρμα σας από τα docker/buildx releases, τοποθετήστε το στο {path} και κάντε το εκτελέσιμο με ''chmod +x {path}''. Τα πακέτα διανομής αποδείχθηκαν αναξιόπιστα γι'' αυτό.'
+buildx_too_old: 'Η κατασκευή του Docker Compose ανατίθεται στο buildx και χρειάζεται buildx {required} ή νεότερο, αλλά είναι εγκατεστημένο buildx {found}. Εγκαταστήστε νεότερο buildx: κατεβάστε το εκτελέσιμο για την πλατφόρμα σας από τα docker/buildx releases, τοποθετήστε το στο {path} και κάντε το εκτελέσιμο με ''chmod +x {path}''. Τα πακέτα διανομής αποδείχθηκαν αναξιόπιστα γι'' αυτό.'
+checking_context: Έλεγχος του Docker context '{context}' ({endpoint})…
+checking_docker: Έλεγχος Docker...
+checking_health: Έλεγχος ετοιμότητας...
+cleanup: Εκκαθάριση
+cleanup_done: 'Η εκκαθάριση ολοκληρώθηκε: {count} αντικείμενο(α) αφαιρέθηκαν, {freed} ελευθερώθηκαν.'
+cleanup_found: 'Βρέθηκαν υπολείμματα προηγούμενης εγκατάστασης:'
+cleanup_none: Δεν βρέθηκαν υπολείμματα εγκατάστασης.
+cleanup_now: Εκκαθάριση τώρα
+cleanup_partial: Η εκκαθάριση απέτυχε εν μέρει ({count} βήμα(τα)).
+cleanup_running: Εκκαθάριση...
+cleanup_scanning: Αναζήτηση υπολειμμάτων εγκατάστασης...
+cleanup_skipped: Η εκκαθάριση παραλείφθηκε.
+closed_minimized: Η εφαρμογή συνεχίζει να εκτελείται. Το παράθυρο ελαχιστοποιήθηκε.
+compose_base_unresolved: Το αρχείο compose δεν βρέθηκε στο {path}. Το install_dir δεν έχει οριστεί, οπότε αναζητήθηκε σε σχέση με τον τρέχοντα κατάλογο, κάτι που είναι αναξιόπιστο όταν ο launcher ξεκινά από συντόμευση μενού, Snap ή διαχειριστή αρχείων. Ορίστε το install_dir στη διαμόρφωση του launcher στον κατάλογο που περιέχει το αρχείο compose.
+compose_missing: 'Το Docker Compose δεν είναι διαθέσιμο. Εγκαταστήστε το πρόσθετο Compose v2 — Ubuntu/Debian: ''sudo apt install docker-compose-plugin'' (ή ενημερώστε το Docker) — και επανεκκινήστε τον launcher. Οι εφαρμογές ενός service μπορούν εναλλακτικά να χρησιμοποιήσουν deployment_mode ''dockerfile'' (χωρίς Compose).'
+compose_not_found: 'Το αρχείο Compose δεν βρέθηκε: {path}'
+compose_unreadable: 'Το αρχείο compose βρέθηκε αλλά δεν είναι αναγνώσιμο: {path} ({error}).'
+compose_v1_incompatible: 'Βρέθηκε μόνο το παλιό docker-compose v1 και δεν μπορεί να διαβάσει το αρχείο compose της εφαρμογής ({path}). Εγκαταστήστε το πρόσθετο Compose v2: ''sudo apt install docker-compose-plugin'' και επανεκκινήστε τον launcher.'
+confirm_uninstall: 'Θέλετε να απεγκαταστήσετε το {app};
+
+  Τα δεδομένα σας διατηρούνται.'
+container_not_running: Το container κατασκευάστηκε αλλά δεν εκτελείται.
+container_started: Το container ξεκίνησε ✓
+data_preserved: Τα δεδομένα σας διατηρήθηκαν.
+disk_low: 'Λίγος χώρος στον δίσκο για το build: μόνο {free} ελεύθερα στο {path}, κάτω από τα {needed} που πιθανότατα θα χρειαστεί ένα build. Ελευθερώστε χώρο ή ορίστε το min_build_disk_bytes σε 0 για να παραλείψετε αυτόν τον έλεγχο.'
+docker_desktop_waiting: Το Docker Desktop ξεκινά - μπορεί να πάρει λίγη ώρα (εκκίνηση VM)…
+docker_group_added: Η ομάδα 'docker' προστέθηκε. Αποσυνδέσου και συνδέσου ξανά (ή κάνε επανεκκίνηση) για να ισχύσει η αλλαγή - το Docker δεν είναι ακόμη διαθέσιμο σε αυτή τη συνεδρία.
+docker_group_cancelled: 'Ακυρώθηκε - δεν έγινε καμία αλλαγή. Χειροκίνητα: εκτέλεσε ''sudo usermod -aG docker $USER'' και μετά αποσυνδέσου και συνδέσου ξανά.'
+docker_group_confirm: Ο λογαριασμός σου θα προστεθεί στην ομάδα 'docker'. Αυτό δίνει πρακτικά δικαιώματα root σε αυτό το σύστημα (συνηθισμένη πρακτική με το Docker). Συνέχεια;
+docker_group_failed: 'Αδυναμία προσθήκης στην ομάδα ''docker'': {error}. Χειροκίνητα: εκτέλεσε ''sudo usermod -aG docker $USER'' και μετά αποσυνδέσου και συνδέσου ξανά.'
+docker_no_path: Το Docker Desktop είναι εγκατεστημένο αλλά όχι στο PATH.
+docker_no_permission: 'Το Docker εκτελείται, αλλά ο χρήστης σου δεν έχει δικαίωμα (δεν ανήκει στην ομάδα ''docker''). Εκτέλεσε ''sudo usermod -aG docker $USER'' ΚΑΙ μετά αποσυνδέσου και συνδέσου ξανά (ή κάνε επανεκκίνηση) - η αλλαγή ομάδας ενεργοποιείται μόνο σε νέα συνεδρία. Μόνο για το τρέχον τερματικό: ''newgrp docker''.'
+docker_no_response: Το Docker δεν αποκρίνεται.
+docker_not_installed: Το Docker δεν είναι εγκατεστημένο (το docker δεν είναι στο PATH).
+docker_not_running: Το Docker είναι εγκατεστημένο αλλά δεν έχει ξεκινήσει.
+docker_not_running_detail: 'Το Docker δεν εκτελείται. Ελεγμένο context ''{context}'' ({endpoint}): {error}'
+docker_ok: Το Docker εκτελείται ✓
+docker_permission_non_root_socket: Το Docker απέρριψε τη σύνδεση σε αυτό το endpoint, το οποίο δεν είναι το κλασικό root socket, οπότε η ομάδα 'docker' δεν ισχύει εδώ. Για rootless Docker ορίστε το DOCKER_HOST στο $XDG_RUNTIME_DIR/docker.sock; για απομακρυσμένο endpoint ελέγξτε τους κανόνες πρόσβασής του; για το Docker Desktop βεβαιωθείτε ότι εκτελείται.
+docker_running: Το Docker εκτελείται.
+docker_running_other_context: Το Docker εκτελείται μέσω του context '{context}' - το ενεργό context δεν ήταν προσβάσιμο, ο launcher συνδέθηκε αυτόματα.
+docker_stopped: Το Docker δεν έχει ξεκινήσει.
+docker_unavailable: Το Docker δεν είναι διαθέσιμο (δεν έχει ξεκινήσει).
+dockerfile_base_unresolved: Το Dockerfile δεν βρέθηκε στο {path}. Το install_dir δεν έχει οριστεί, οπότε αναζητήθηκε σε σχέση με τον τρέχοντα κατάλογο, κάτι που είναι αναξιόπιστο όταν ο launcher ξεκινά από συντόμευση μενού, Snap ή διαχειριστή αρχείων. Ορίστε το install_dir στη διαμόρφωση του launcher στον κατάλογο build.
+dockerfile_mode_needs_dockerpy: Η λειτουργία dockerfile χρειάζεται το πακέτο Python docker (docker-py), το οποίο δεν είναι διαθέσιμο σε αυτήν την εγκατάσταση.
+dockerfile_not_found: 'Το Dockerfile δεν βρέθηκε: {path}. Ελέγξτε τις ρυθμίσεις deployment_mode/Dockerfile στη διαμόρφωση του launcher.'
+dockerfile_unreadable: 'Το Dockerfile βρέθηκε αλλά δεν είναι αναγνώσιμο: {path} ({error}).'
+error: 'Σφάλμα: {msg}'
+error_word: Σφάλμα
+fix_docker_permission: Ρύθμιση πρόσβασης Docker…
+free_port_found: 'Βρέθηκε ελεύθερη θύρα: {port}.'
+health_ok: Η ετοιμότητα επιβεβαιώθηκε ✓
+image_acquire_failed: 'Η λήψη της εικόνας της εφαρμογής απέτυχε: {detail}'
+image_acquiring: Λήψη της εικόνας της εφαρμογής (μπορεί να διαρκέσει μερικά λεπτά την πρώτη φορά)...
+image_archive_base_unresolved: Το αρχείο εικόνας δεν βρέθηκε στο {path}. Το install_dir δεν έχει οριστεί, οπότε η αναζήτηση έγινε σχετικά με τον τρέχοντα κατάλογο, κάτι αναξιόπιστο όταν ο launcher ξεκινά από συντόμευση μενού, Snap ή διαχειριστή αρχείων. Ορίστε το install_dir στη ρύθμιση του launcher στον κατάλογο που περιέχει το αρχείο.
+image_archive_unreadable: 'Το ρυθμισμένο αρχείο εικόνας δεν είναι αναγνώσιμο: {path} (αναζητήθηκε στο {base})'
+image_built: Το image κατασκευάστηκε ✓
+image_mode_needs_dockerpy: Η λειτουργία image χρειάζεται το πακέτο Python docker (docker-py), το οποίο δεν είναι διαθέσιμο σε αυτήν την εγκατάσταση.
+image_mode_needs_reference: 'Η λειτουργία image χρειάζεται πηγή εικόνας: ορίστε image_reference (tag ή digest) ή image_archive στη διαμόρφωση.'
+image_needs_network: Η εικόνα της εφαρμογής δεν υπάρχει ακόμη σε αυτό το μηχάνημα - για τη λήψη χρειάζεται σύνδεση στο διαδίκτυο. Μετά, η εφαρμογή λειτουργεί εκτός σύνδεσης.
+install: Εγκατάσταση
+install_needs_network: Η εγκατάσταση χρειάζεται τώρα σύνδεση στο διαδίκτυο για να κατεβάσει τις βασικές εικόνες. Η ίδια η εφαρμογή λειτουργεί εκτός σύνδεσης μετά την εγκατάσταση.
+installing: Το {app} ρυθμίζεται...
+internal_port_changed: Η εσωτερική θύρα {name} άλλαξε σε {port}.
+internal_port_confirm: Η αλλαγή μιας εσωτερικής θύρας απαιτεί επανακατασκευή των Docker images (2-5 λεπτά). Συνέχεια;
+internal_port_field: 'Θύρα {name} (εσωτερική):'
+internal_port_rebuilding: Η εσωτερική θύρα άλλαξε. Επανακατασκευή των images (μπορεί να διαρκέσει μερικά λεπτά)...
+internal_port_set: Η εσωτερική θύρα {name} ορίστηκε σε {port}.
+internal_port_unknown: 'Άγνωστη εσωτερική θύρα: {name}.'
+log_copied: Αντιγράφηκε!
+log_copy: Αντιγραφή καταγραφής
+no_containers: Δεν βρέθηκαν containers ✓
+no_docker: Το Docker δεν έχει ξεκινήσει.
+no_free_port: Δεν βρέθηκε ελεύθερη θύρα.
+not_installed: Το {app} δεν είναι εγκατεστημένο.
+not_reachable: 'Εγκαταστάθηκε, αλλά το {app} δεν είναι προσβάσιμο: {detail}'
+not_reachable_after: Το {app} δεν είναι προσβάσιμο μετά από {timeout}s ({detail}).
+nothing_to_uninstall: Δεν υπάρχει τίποτα για απεγκατάσταση (δεν υπάρχει container).
+open_browser: Άνοιγμα στο πρόγραμμα περιήγησης
+open_install_guide: Άνοιγμα οδηγού εγκατάστασης
+port_changed: Η θύρα άλλαξε σε {port}.
+port_free: Η θύρα {port} είναι ελεύθερη.
+port_invalid: Η θύρα πρέπει να είναι μεταξύ {min} και {max}.
+port_mismatch_rendered: Ο launcher αναμένει τη θύρα {expected}, αλλά το αρχείο compose θα δημοσιεύσει {published}. Ελέγξτε το env_port_key ({port_key}) σε σχέση με τη μεταβλητή θύρας του compose και τις τιμές .env.
+port_occupied: Η θύρα {port} είναι κατειλημμένη.
+port_restarting: Η θύρα άλλαξε. Επανεκκίνηση {app}...
+port_set: Η θύρα ορίστηκε σε {port}.
+ready: Η εγκατάσταση ολοκληρώθηκε. Το {app} είναι έτοιμο.
+repo_url_not_cloned: 'Σημείωση: το repo_url ({url}) χρησιμοποιείται μόνο για συνδέσμους/ελέγχους ενημερώσεων - ο launcher δεν το κλωνοποιεί. Το install_dir πρέπει να δείχνει σε τοπικό checkout.'
+restore_defaults: Επαναφορά προεπιλογών
+retry: Έλεγχος ξανά
+run_in_background: Στο παρασκήνιο
+running: Το {app} εκτελείται στη θύρα {port}.
+scan_configs: Αναζήτηση υπολειμμάτων ρυθμίσεων... {count} βρέθηκαν
+scan_containers: Αναζήτηση ορφανών containers... {count} βρέθηκαν
+scan_images: Αναζήτηση παρωχημένων images... {count} βρέθηκαν
+scan_volumes: Αναζήτηση ορφανών volumes... {count} βρέθηκαν
+skip: Παράλειψη
+start: Έναρξη
+start_docker: Εκκίνηση Docker
+start_done: Το {app} ξεκίνησε.
 start_failed: 'Η έναρξη απέτυχε:
 
   {detail}'
-start_timeout: Η έναρξη υπερέβη το χρονικό όριο.
-not_reachable: 'Εγκαταστάθηκε, αλλά το {app} δεν είναι προσβάσιμο: {detail}'
-container_not_running: Το container κατασκευάστηκε αλλά δεν εκτελείται.
 start_no_container: Η εντολή έναρξης εκτελέστηκε, αλλά κανένα container δεν εκτελείται.
+start_timeout: Η έναρξη υπερέβη το χρονικό όριο.
+starting: Εκκίνηση container...
+step_remove_config: Αφαίρεση ρύθμισης '{path}'
+step_remove_container: Αφαίρεση container '{name}'
+step_remove_image: Αφαίρεση image '{ref}'
+step_remove_volume: Αφαίρεση volume '{name}'
+step_skip_volume: Ο τόμος '{name}' παραλείφθηκε (δεν επιλέχθηκε).
+step_skip_volume_active: Ο τόμος '{name}' παραλείφθηκε (ενεργό έργο).
+step_stop_container: Διακοπή container '{name}'
+stop: Διακοπή
+stop_done: Το {app} σταμάτησε.
 stop_failed: 'Η διακοπή απέτυχε: {detail}'
 stop_not_verified: Το container εξακολουθεί να εκτελείται μετά την εντολή διακοπής.
+stopped: Το {app} είναι εγκατεστημένο αλλά σταματημένο.
+tooltip_already_installed: Έχει ήδη εγκατασταθεί
+tooltip_already_running: Εκτελείται ήδη
+tooltip_needs_docker: Το Docker δεν εκτελείται
+tooltip_no_log: Δεν υπάρχει ακόμη αρχείο καταγραφής για αντιγραφή
+tooltip_not_installed: Η εφαρμογή δεν έχει εγκατασταθεί ακόμη
+tooltip_not_running: Η εφαρμογή δεν εκτελείται
+tooltip_only_running: Διαθέσιμο μόνο όταν εκτελείται η εφαρμογή
+tray_open: Άνοιγμα
+tray_quit: Έξοδος
+uninstall: Απεγκατάσταση
+uninstall_done: Η απεγκατάσταση ολοκληρώθηκε. Τα δεδομένα σας διατηρούνται.
 uninstall_partial: 'Αφαιρέθηκε εν μέρει: {count} container(s) δεν μπόρεσαν να αφαιρεθούν.'
-not_reachable_after: 'Το {app} δεν είναι προσβάσιμο μετά από {timeout}s ({detail}).'
-error: 'Σφάλμα: {msg}'
-error_word: Σφάλμα
+uninstalling: Η απεγκατάσταση ξεκίνησε...
 update_available: 'Διαθέσιμη ενημέρωση: {tag} - {url}'
-step_skip_volume: "Ο τόμος '{name}' παραλείφθηκε (δεν επιλέχθηκε)."
-step_skip_volume_active: "Ο τόμος '{name}' παραλείφθηκε (ενεργό έργο)."
-docker_not_running: "Το Docker είναι εγκατεστημένο αλλά δεν έχει ξεκινήσει."
-docker_no_permission: "Το Docker εκτελείται, αλλά ο χρήστης σου δεν έχει δικαίωμα (δεν ανήκει στην ομάδα 'docker'). Εκτέλεσε 'sudo usermod -aG docker $USER' ΚΑΙ μετά αποσυνδέσου και συνδέσου ξανά (ή κάνε επανεκκίνηση) - η αλλαγή ομάδας ενεργοποιείται μόνο σε νέα συνεδρία. Μόνο για το τρέχον τερματικό: 'newgrp docker'."
-docker_no_path: "Το Docker Desktop είναι εγκατεστημένο αλλά όχι στο PATH."
-start_docker: "Εκκίνηση Docker"
-open_install_guide: "Άνοιγμα οδηγού εγκατάστασης"
-log_copy: "Αντιγραφή καταγραφής"
-log_copied: "Αντιγράφηκε!"
-cleanup_scanning: "Αναζήτηση υπολειμμάτων εγκατάστασης..."
-cleanup_none: "Δεν βρέθηκαν υπολείμματα εγκατάστασης."
-tooltip_needs_docker: "Το Docker δεν εκτελείται"
-tooltip_already_installed: "Έχει ήδη εγκατασταθεί"
-tooltip_already_running: "Εκτελείται ήδη"
-tooltip_not_installed: "Η εφαρμογή δεν έχει εγκατασταθεί ακόμη"
-tooltip_not_running: "Η εφαρμογή δεν εκτελείται"
-tooltip_only_running: "Διαθέσιμο μόνο όταν εκτελείται η εφαρμογή"
-tooltip_no_log: "Δεν υπάρχει ακόμη αρχείο καταγραφής για αντιγραφή"
-docker_not_running_detail: 'Το Docker δεν εκτελείται. Ελεγμένο context ''{context}'' ({endpoint}): {error}'
-docker_running_other_context: 'Το Docker εκτελείται μέσω του context ''{context}'' - το ενεργό context δεν ήταν προσβάσιμο, ο launcher συνδέθηκε αυτόματα.'
-fix_docker_permission: "Ρύθμιση πρόσβασης Docker…"
-docker_group_confirm: "Ο λογαριασμός σου θα προστεθεί στην ομάδα 'docker'. Αυτό δίνει πρακτικά δικαιώματα root σε αυτό το σύστημα (συνηθισμένη πρακτική με το Docker). Συνέχεια;"
-docker_group_added: "Η ομάδα 'docker' προστέθηκε. Αποσυνδέσου και συνδέσου ξανά (ή κάνε επανεκκίνηση) για να ισχύσει η αλλαγή - το Docker δεν είναι ακόμη διαθέσιμο σε αυτή τη συνεδρία."
-docker_group_cancelled: "Ακυρώθηκε - δεν έγινε καμία αλλαγή. Χειροκίνητα: εκτέλεσε 'sudo usermod -aG docker $USER' και μετά αποσυνδέσου και συνδέσου ξανά."
-docker_group_failed: "Αδυναμία προσθήκης στην ομάδα 'docker': {error}. Χειροκίνητα: εκτέλεσε 'sudo usermod -aG docker $USER' και μετά αποσυνδέσου και συνδέσου ξανά."
-docker_desktop_waiting: "Το Docker Desktop ξεκινά - μπορεί να πάρει λίγη ώρα (εκκίνηση VM)…"
-about: "Σχετικά…"
-about_open_issues: "Αναφορά προβλήματος - άνοιγμα του issue tracker στον περιηγητή;"
-checking_context: "Έλεγχος του Docker context '{context}' ({endpoint})…"
-cleanup_now: "Εκκαθάριση τώρα"
-app_logs: "Αρχεία καταγραφής εφαρμογής"
-app_logs_failed: "Αδυναμία λήψης αρχείων καταγραφής: {detail}"
-app_logs_empty: "Η εφαρμογή δεν έχει παραγάγει ακόμη καταγραφές."
-compose_missing: "Το Docker Compose δεν είναι διαθέσιμο. Εγκαταστήστε το πρόσθετο Compose v2 — Ubuntu/Debian: 'sudo apt install docker-compose-plugin' (ή ενημερώστε το Docker) — και επανεκκινήστε τον launcher. Οι εφαρμογές ενός service μπορούν εναλλακτικά να χρησιμοποιήσουν deployment_mode 'dockerfile' (χωρίς Compose)."
-compose_v1_incompatible: "Βρέθηκε μόνο το παλιό docker-compose v1 και δεν μπορεί να διαβάσει το αρχείο compose της εφαρμογής ({path}). Εγκαταστήστε το πρόσθετο Compose v2: 'sudo apt install docker-compose-plugin' και επανεκκινήστε τον launcher."
-dockerfile_not_found: "Το Dockerfile δεν βρέθηκε: {path}. Ελέγξτε τις ρυθμίσεις deployment_mode/Dockerfile στη διαμόρφωση του launcher."
-dockerfile_mode_needs_dockerpy: "Η λειτουργία dockerfile χρειάζεται το πακέτο Python docker (docker-py), το οποίο δεν είναι διαθέσιμο σε αυτήν την εγκατάσταση."
-
-# --- build readiness / capability gate (#54) ---
-buildx_too_old: "Η κατασκευή του Docker Compose ανατίθεται στο buildx και χρειάζεται buildx {required} ή νεότερο, αλλά είναι εγκατεστημένο buildx {found}. Εγκαταστήστε νεότερο buildx: κατεβάστε το εκτελέσιμο για την πλατφόρμα σας από τα docker/buildx releases, τοποθετήστε το στο {path} και κάντε το εκτελέσιμο με 'chmod +x {path}'. Τα πακέτα διανομής αποδείχθηκαν αναξιόπιστα γι' αυτό."
-buildx_missing: "Η κατασκευή του Docker Compose ανατίθεται στο buildx και χρειάζεται buildx {required} ή νεότερο, αλλά δεν βρέθηκε πρόσθετο buildx. Εγκαταστήστε buildx: κατεβάστε το εκτελέσιμο για την πλατφόρμα σας από τα docker/buildx releases, τοποθετήστε το στο {path} και κάντε το εκτελέσιμο με 'chmod +x {path}'. Τα πακέτα διανομής αποδείχθηκαν αναξιόπιστα γι' αυτό."
-app_requirement_too_old: "Αυτή η εφαρμογή απαιτεί {component} {required} ή νεότερο, αλλά είναι εγκατεστημένο {found}. Ενημερώστε το Docker για να το καλύψετε."
-app_requirement_missing: "Αυτή η εφαρμογή απαιτεί {component} {required} ή νεότερο, αλλά δεν ήταν δυνατός ο εντοπισμός του {component}. Εγκαταστήστε ή ενημερώστε το Docker."
-compose_unreadable: "Το αρχείο compose βρέθηκε αλλά δεν είναι αναγνώσιμο: {path} ({error})."
-dockerfile_unreadable: "Το Dockerfile βρέθηκε αλλά δεν είναι αναγνώσιμο: {path} ({error})."
-build_context_not_found: "Ο κατάλογος build context δεν βρέθηκε: {path}. Ελέγξτε το build_context στη διαμόρφωση του launcher."
-docker_permission_non_root_socket: "Το Docker απέρριψε τη σύνδεση σε αυτό το endpoint, το οποίο δεν είναι το κλασικό root socket, οπότε η ομάδα 'docker' δεν ισχύει εδώ. Για rootless Docker ορίστε το DOCKER_HOST στο $XDG_RUNTIME_DIR/docker.sock; για απομακρυσμένο endpoint ελέγξτε τους κανόνες πρόσβασής του; για το Docker Desktop βεβαιωθείτε ότι εκτελείται."
-compose_base_unresolved: "Το αρχείο compose δεν βρέθηκε στο {path}. Το install_dir δεν έχει οριστεί, οπότε αναζητήθηκε σε σχέση με τον τρέχοντα κατάλογο, κάτι που είναι αναξιόπιστο όταν ο launcher ξεκινά από συντόμευση μενού, Snap ή διαχειριστή αρχείων. Ορίστε το install_dir στη διαμόρφωση του launcher στον κατάλογο που περιέχει το αρχείο compose."
-dockerfile_base_unresolved: "Το Dockerfile δεν βρέθηκε στο {path}. Το install_dir δεν έχει οριστεί, οπότε αναζητήθηκε σε σχέση με τον τρέχοντα κατάλογο, κάτι που είναι αναξιόπιστο όταν ο launcher ξεκινά από συντόμευση μενού, Snap ή διαχειριστή αρχείων. Ορίστε το install_dir στη διαμόρφωση του launcher στον κατάλογο build."
-disk_low: "Λίγος χώρος στον δίσκο για το build: μόνο {free} ελεύθερα στο {path}, κάτω από τα {needed} που πιθανότατα θα χρειαστεί ένα build. Ελευθερώστε χώρο ή ορίστε το min_build_disk_bytes σε 0 για να παραλείψετε αυτόν τον έλεγχο."
-install_needs_network: "Η εγκατάσταση χρειάζεται τώρα σύνδεση στο διαδίκτυο για να κατεβάσει τις βασικές εικόνες. Η ίδια η εφαρμογή λειτουργεί εκτός σύνδεσης μετά την εγκατάσταση."
-build_failed_network: "Το build δεν μπόρεσε να προσεγγίσει το δίκτυο για να κατεβάσει εικόνες: {detail}. Ελέγξτε τη σύνδεσή σας στο διαδίκτυο ή τον proxy και δοκιμάστε ξανά."
-port_mismatch_rendered: "Ο launcher αναμένει τη θύρα {expected}, αλλά το αρχείο compose θα δημοσιεύσει {published}. Ελέγξτε το env_port_key ({port_key}) σε σχέση με τη μεταβλητή θύρας του compose και τις τιμές .env."
-repo_url_not_cloned: 'Σημείωση: το repo_url ({url}) χρησιμοποιείται μόνο για συνδέσμους/ελέγχους ενημερώσεων - ο launcher δεν το κλωνοποιεί. Το install_dir πρέπει να δείχνει σε τοπικό checkout.'
-app_logs_follow_stop: Διακοπή καταγραφών
-image_acquiring: Λήψη της εικόνας της εφαρμογής (μπορεί να διαρκέσει μερικά λεπτά την πρώτη φορά)...
-image_acquire_failed: 'Η λήψη της εικόνας της εφαρμογής απέτυχε: {detail}'
-image_needs_network: Η εικόνα της εφαρμογής δεν υπάρχει ακόμη σε αυτό το μηχάνημα - για τη λήψη χρειάζεται σύνδεση στο διαδίκτυο. Μετά, η εφαρμογή λειτουργεί εκτός σύνδεσης.
-image_mode_needs_reference: 'Η λειτουργία image χρειάζεται πηγή εικόνας: ορίστε image_reference (tag ή digest) ή image_archive στη διαμόρφωση.'
-image_archive_unreadable: 'Το ρυθμισμένο αρχείο εικόνας δεν είναι αναγνώσιμο: {path}'
-image_mode_needs_dockerpy: Η λειτουργία image χρειάζεται το πακέτο Python docker (docker-py), το οποίο δεν είναι διαθέσιμο σε αυτήν την εγκατάσταση.
+updating: Ενημέρωση image (μερικά λεπτά μετά από αλλαγές κώδικα, αλλιώς δευτερόλεπτα)...
+verify_clean: 'Επαλήθευση: δεν βρέθηκαν containers ✓'
+verify_remain: 'Επαλήθευση: {count} container(s) απομένουν ✗'

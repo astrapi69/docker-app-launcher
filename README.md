@@ -156,11 +156,17 @@ fields:
   (`ghcr.io/owner/my-app@sha256:…`) — pin a digest when you want
   immutability guarantees. A missing `image_reference` is a hard error at
   config load.
-- `image_archive` (optional) is a `docker save` archive, relative to
-  `install_dir` (absolute paths work too). **When the file exists it wins**
-  — the image is loaded from it and the registry is never contacted (the
-  registry-free path). When it is configured but absent, the launcher
-  falls back to pulling and the readiness gate flags the unreadable file.
+- `image_archive` (optional) is a `docker save` archive. **When the file
+  exists it wins** — the image is loaded from it and the registry is never
+  contacted (the registry-free path). When it is configured but absent,
+  the launcher falls back to pulling and the readiness gate flags the
+  unreadable file, naming the directory it searched.
+- A relative `image_archive` resolves against the **same base as every
+  other consumer path**: `install_dir` — which, for configs loaded from a
+  file, defaults to the config file's own directory. It never resolves
+  against a frozen binary's unpack directory. Absolute paths are used
+  as-is. Without any base, the readiness gate says so and advises setting
+  `install_dir`.
 - Ports, volumes, env, and `restart_policy` behave exactly as in
   dockerfile mode.
 - The image is fetched on **install and explicit start only** — never

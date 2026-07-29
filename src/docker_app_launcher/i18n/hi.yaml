@@ -1,163 +1,162 @@
-not_installed: '{app} इंस्टॉल नहीं है।'
-running: '{app} पोर्ट {port} पर चल रहा है।'
-stopped: '{app} इंस्टॉल है, लेकिन रुका हुआ है।'
-no_docker: Docker शुरू नहीं हुआ है।
-install: इंस्टॉल करें
-start: शुरू करें
-stop: रोकें
-uninstall: अनइंस्टॉल करें
-open_browser: ब्राउज़र में खोलें
-run_in_background: बैकग्राउंड में
-background_tray: सिस्टम ट्रे में चल रहा है। विंडो को पुनर्स्थापित करने के लिए ट्रे आइकन पर डबल-क्लिक करें।
-background_iconified: बैकग्राउंड में चल रहा है। टास्कबार से विंडो पुनर्स्थापित करें।
-closed_minimized: ऐप चलता रहता है; विंडो छोटी की गई।
-apply_port: पोर्ट लागू करें
-apply: लागू करें
+about: जानकारी…
+about_open_issues: समस्या रिपोर्ट करें - ब्राउज़र में issue tracker खोलें?
 advanced_settings: उन्नत सेटिंग्स (विशेषज्ञ)
 advanced_warning: इन्हें तभी बदलें जब आप जानते हों कि आप क्या कर रहे हैं। बदलाव के लिए रीबिल्ड आवश्यक है (2-5 मिनट)।
-restore_defaults: डिफ़ॉल्ट पुनर्स्थापित करें
-internal_port_field: '{name} पोर्ट (आंतरिक):'
-retry: फिर से जाँचें
-cleanup: साफ़ करें
-skip: छोड़ें
-tray_open: खोलें
-tray_quit: बंद करें
-checking_docker: Docker की जाँच हो रही है...
-docker_ok: Docker चल रहा है ✓
-installing: '{app} सेट किया जा रहा है...'
-building: इमेज बनाई जा रही है (पहली बार कुछ मिनट लग सकते हैं)...
-image_built: इमेज बन गई ✓
-starting: कंटेनर शुरू हो रहा है...
-container_started: कंटेनर शुरू हुआ ✓
-updating: इमेज अपडेट हो रही है (कोड बदलाव के बाद कुछ मिनट, अन्यथा कुछ सेकंड)...
-checking_health: तैयारी की जाँच हो रही है...
-health_ok: तैयारी की पुष्टि हुई ✓
-uninstalling: अनइंस्टॉल शुरू हुआ...
-no_containers: कोई कंटेनर नहीं मिला ✓
-verify_clean: 'सत्यापन: कोई कंटेनर नहीं मिला ✓'
-verify_remain: 'सत्यापन: {count} कंटेनर शेष हैं ✗'
-ready: इंस्टॉलेशन पूरा हुआ। {app} तैयार है।
 already_installed: '{app} पहले से इंस्टॉल है और चल रहा है।'
 already_running: '{app} पहले से चल रहा है।'
-start_done: '{app} शुरू हुआ।'
-stop_done: '{app} रोका गया।'
 already_stopped: '{app} पहले से रुका हुआ था।'
-uninstall_done: अनइंस्टॉल पूरा हुआ। आपका डेटा सुरक्षित है।
-nothing_to_uninstall: अनइंस्टॉल करने के लिए कुछ नहीं (कोई कंटेनर मौजूद नहीं)।
-confirm_uninstall: 'क्या आप {app} को अनइंस्टॉल करना चाहते हैं?
-
-  आपका डेटा सुरक्षित रहेगा।'
-cleanup_found: 'पिछले इंस्टॉलेशन के अवशेष मिले:'
-cleanup_running: साफ़ किया जा रहा है...
-cleanup_done: 'सफ़ाई पूरी हुई: {count} आर्टिफैक्ट हटाए गए, {freed} खाली हुआ।'
-cleanup_partial: सफ़ाई आंशिक रूप से विफल रही ({count} चरण)।
-cleanup_skipped: सफ़ाई छोड़ी गई।
-data_preserved: आपका डेटा सुरक्षित रखा गया।
-step_stop_container: कंटेनर '{name}' रोकें
-step_remove_container: कंटेनर '{name}' हटाएँ
-step_remove_image: इमेज '{ref}' हटाएँ
-step_remove_volume: वॉल्यूम '{name}' हटाएँ
-step_remove_config: कॉन्फ़िग '{path}' हटाएँ
-scan_containers: अनाथ कंटेनर खोजे जा रहे हैं... {count} मिले
-scan_images: पुरानी इमेज खोजी जा रही हैं... {count} मिलीं
-scan_volumes: अनाथ वॉल्यूम खोजे जा रहे हैं... {count} मिले
-scan_configs: कॉन्फ़िग अवशेष खोजे जा रहे हैं... {count} मिले
-port_free: पोर्ट {port} खाली है।
-port_occupied: पोर्ट {port} व्यस्त है।
-port_invalid: पोर्ट {min} और {max} के बीच होना चाहिए।
-port_set: पोर्ट {port} पर सेट किया गया।
-port_restarting: पोर्ट बदला गया। {app} फिर से शुरू हो रहा है...
-port_changed: पोर्ट {port} पर बदला गया।
-internal_port_unknown: 'अज्ञात आंतरिक पोर्ट: {name}।'
-internal_port_set: आंतरिक पोर्ट {name} {port} पर सेट किया गया।
-internal_port_rebuilding: आंतरिक पोर्ट बदला गया। इमेज फिर से बनाई जा रही हैं (इसमें कुछ मिनट लग सकते हैं)...
-internal_port_changed: आंतरिक पोर्ट {name} {port} पर बदला गया।
-internal_port_confirm: आंतरिक पोर्ट बदलने के लिए Docker इमेज को फिर से बनाना आवश्यक है (2-5 मिनट)। जारी रखें?
-no_free_port: कोई खाली पोर्ट नहीं मिला।
-free_port_found: 'खाली पोर्ट मिला: {port}।'
-docker_unavailable: Docker उपलब्ध नहीं है (शुरू नहीं हुआ)।
-docker_not_installed: Docker इंस्टॉल नहीं है (docker PATH में नहीं है)।
-docker_no_response: Docker प्रतिक्रिया नहीं दे रहा।
-docker_running: Docker चल रहा है।
-docker_stopped: Docker शुरू नहीं हुआ है।
-compose_not_found: 'Compose फ़ाइल नहीं मिली: {path}'
+app_logs: ऐप लॉग
+app_logs_empty: ऐप ने अभी तक कोई लॉग आउटपुट नहीं दिया है।
+app_logs_failed: 'ऐप लॉग प्राप्त नहीं हो सके: {detail}'
+app_logs_follow_stop: लॉग रोकें
+app_requirement_missing: यह ऐप {component} {required} या नया माँगता है, लेकिन {component} का पता नहीं चला। इसे पूरा करने के लिए Docker इंस्टॉल या अपडेट करें।
+app_requirement_too_old: यह ऐप {component} {required} या नया माँगता है, लेकिन {found} इंस्टॉल है। इसे पूरा करने के लिए Docker अपडेट करें।
+apply: लागू करें
+apply_port: पोर्ट लागू करें
+background_iconified: बैकग्राउंड में चल रहा है। टास्कबार से विंडो पुनर्स्थापित करें।
+background_tray: सिस्टम ट्रे में चल रहा है। विंडो को पुनर्स्थापित करने के लिए ट्रे आइकन पर डबल-क्लिक करें।
+build_cancelled: बिल्ड रद्द कर दिया गया।
+build_context_not_found: 'बिल्ड कॉन्टेक्स्ट डायरेक्टरी नहीं मिली: {path}. launcher config में build_context जाँचें।'
 build_failed: 'Docker बिल्ड विफल रहा:
 
   {detail}'
+build_failed_network: 'बिल्ड इमेज डाउनलोड करने के लिए नेटवर्क तक नहीं पहुँच सका: {detail}. अपना इंटरनेट कनेक्शन या प्रॉक्सी जाँचें, फिर दोबारा कोशिश करें।'
 build_timeout: Docker बिल्ड का समय समाप्त हो गया।
-build_cancelled: बिल्ड रद्द कर दिया गया।
+building: इमेज बनाई जा रही है (पहली बार कुछ मिनट लग सकते हैं)...
+buildx_missing: 'Docker Compose बिल्ड buildx को सौंपता है और buildx {required} या नया चाहिए, लेकिन कोई buildx प्लगइन नहीं मिला। buildx इंस्टॉल करें: अपने प्लेटफ़ॉर्म के लिए बाइनरी docker/buildx releases से डाउनलोड करें, उसे {path} पर रखें, फिर ''chmod +x {path}'' से executable बनाएं। इसके लिए डिस्ट्रीब्यूशन पैकेज अविश्वसनीय साबित हुए हैं।'
+buildx_too_old: 'Docker Compose बिल्ड buildx को सौंपता है और buildx {required} या नया चाहिए, लेकिन buildx {found} इंस्टॉल है। नया buildx इंस्टॉल करें: अपने प्लेटफ़ॉर्म के लिए बाइनरी docker/buildx releases से डाउनलोड करें, उसे {path} पर रखें, फिर ''chmod +x {path}'' से executable बनाएं। इसके लिए डिस्ट्रीब्यूशन पैकेज अविश्वसनीय साबित हुए हैं।'
+checking_context: Docker context '{context}' ({endpoint}) की जाँच हो रही है…
+checking_docker: Docker की जाँच हो रही है...
+checking_health: तैयारी की जाँच हो रही है...
+cleanup: साफ़ करें
+cleanup_done: 'सफ़ाई पूरी हुई: {count} आर्टिफैक्ट हटाए गए, {freed} खाली हुआ।'
+cleanup_found: 'पिछले इंस्टॉलेशन के अवशेष मिले:'
+cleanup_none: कोई इंस्टॉलेशन अवशेष नहीं मिला।
+cleanup_now: अभी साफ़ करें
+cleanup_partial: सफ़ाई आंशिक रूप से विफल रही ({count} चरण)।
+cleanup_running: साफ़ किया जा रहा है...
+cleanup_scanning: इंस्टॉलेशन अवशेष खोजे जा रहे हैं...
+cleanup_skipped: सफ़ाई छोड़ी गई।
+closed_minimized: ऐप चलता रहता है; विंडो छोटी की गई।
+compose_base_unresolved: Compose फ़ाइल {path} पर नहीं मिली। install_dir सेट नहीं है, इसलिए इसे वर्तमान डायरेक्टरी के सापेक्ष खोजा गया, जो तब अविश्वसनीय है जब launcher मेनू शॉर्टकट, Snap या फ़ाइल मैनेजर से शुरू होता है। launcher config में install_dir को उस डायरेक्टरी पर सेट करें जिसमें compose फ़ाइल है।
+compose_missing: 'Docker Compose उपलब्ध नहीं है। Compose v2 प्लगइन इंस्टॉल करें — Ubuntu/Debian: ''sudo apt install docker-compose-plugin'' (या Docker अपडेट करें) — फिर launcher फिर से शुरू करें। सिंगल-सर्विस ऐप्स वैकल्पिक रूप से deployment_mode ''dockerfile'' उपयोग कर सकते हैं (Compose की आवश्यकता नहीं)।'
+compose_not_found: 'Compose फ़ाइल नहीं मिली: {path}'
+compose_unreadable: 'Compose फ़ाइल मिली पर पढ़ी नहीं जा सकी: {path} ({error})।'
+compose_v1_incompatible: 'केवल पुराना docker-compose v1 मिला और वह इस ऐप की compose फ़ाइल ({path}) नहीं पढ़ सकता। Compose v2 प्लगइन इंस्टॉल करें: ''sudo apt install docker-compose-plugin'', फिर launcher फिर से शुरू करें।'
+confirm_uninstall: 'क्या आप {app} को अनइंस्टॉल करना चाहते हैं?
+
+  आपका डेटा सुरक्षित रहेगा।'
+container_not_running: कंटेनर बन गया लेकिन चल नहीं रहा।
+container_started: कंटेनर शुरू हुआ ✓
+data_preserved: आपका डेटा सुरक्षित रखा गया।
+disk_low: 'बिल्ड के लिए कम डिस्क स्थान: {path} पर केवल {free} खाली है, जो {needed} से कम है जिसकी बिल्ड को संभवतः आवश्यकता होगी। स्थान खाली करें, या इस जाँच को छोड़ने के लिए min_build_disk_bytes को 0 पर सेट करें।'
+docker_desktop_waiting: Docker Desktop शुरू हो रहा है - इसमें थोड़ा समय लग सकता है (VM बूट)…
+docker_group_added: '''docker'' समूह जोड़ा गया। परिवर्तन लागू करने के लिए लॉग आउट करके फिर से लॉग इन करें (या रीस्टार्ट करें) - इस सत्र में Docker अभी उपयोग योग्य नहीं है।'
+docker_group_cancelled: 'रद्द किया गया - कुछ नहीं बदला। मैन्युअल: ''sudo usermod -aG docker $USER'' चलाएँ, फिर लॉग आउट करके फिर से लॉग इन करें।'
+docker_group_confirm: आपका खाता 'docker' समूह में जोड़ा जाएगा। इससे व्यावहारिक रूप से इस सिस्टम पर root अधिकार मिलते हैं (Docker में सामान्य प्रथा)। जारी रखें?
+docker_group_failed: '''docker'' समूह में जोड़ा नहीं जा सका: {error}। मैन्युअल: ''sudo usermod -aG docker $USER'' चलाएँ, फिर लॉग आउट करके फिर से लॉग इन करें।'
+docker_no_path: Docker Desktop इंस्टॉल है लेकिन PATH में नहीं है।
+docker_no_permission: 'Docker चल रहा है, लेकिन आपके उपयोगकर्ता के पास अनुमति नहीं है (''docker'' समूह में नहीं)। ''sudo usermod -aG docker $USER'' चलाएँ और उसके बाद लॉग आउट करके फिर से लॉग इन करें (या रीस्टार्ट करें) - समूह परिवर्तन केवल नए लॉगिन सत्र में सक्रिय होता है। केवल वर्तमान टर्मिनल के लिए: ''newgrp docker''।'
+docker_no_response: Docker प्रतिक्रिया नहीं दे रहा।
+docker_not_installed: Docker इंस्टॉल नहीं है (docker PATH में नहीं है)।
+docker_not_running: Docker इंस्टॉल है लेकिन शुरू नहीं हुआ।
+docker_not_running_detail: 'Docker नहीं चल रहा है। जाँचा गया context ''{context}'' ({endpoint}): {error}'
+docker_ok: Docker चल रहा है ✓
+docker_permission_non_root_socket: Docker ने इस एंडपॉइंट पर कनेक्शन अस्वीकार किया। यह क्लासिक root सॉकेट नहीं है, इसलिए 'docker' समूह यहाँ लागू नहीं होता। rootless Docker के लिए DOCKER_HOST को $XDG_RUNTIME_DIR/docker.sock पर सेट करें; रिमोट एंडपॉइंट के लिए उसके एक्सेस नियम जाँचें; Docker Desktop के लिए सुनिश्चित करें कि वह चल रहा है।
+docker_running: Docker चल रहा है।
+docker_running_other_context: Docker context '{context}' के माध्यम से चल रहा है - सक्रिय context पहुँच योग्य नहीं था, launcher स्वचालित रूप से जुड़ गया।
+docker_stopped: Docker शुरू नहीं हुआ है।
+docker_unavailable: Docker उपलब्ध नहीं है (शुरू नहीं हुआ)।
+dockerfile_base_unresolved: Dockerfile {path} पर नहीं मिली। install_dir सेट नहीं है, इसलिए इसे वर्तमान डायरेक्टरी के सापेक्ष खोजा गया, जो तब अविश्वसनीय है जब launcher मेनू शॉर्टकट, Snap या फ़ाइल मैनेजर से शुरू होता है। launcher config में install_dir को build डायरेक्टरी पर सेट करें।
+dockerfile_mode_needs_dockerpy: dockerfile मोड को Python पैकेज docker (docker-py) चाहिए, जो इस इंस्टॉलेशन में उपलब्ध नहीं है।
+dockerfile_not_found: 'Dockerfile नहीं मिला: {path}। launcher कॉन्फ़िगरेशन में deployment_mode/Dockerfile सेटिंग जाँचें।'
+dockerfile_unreadable: 'Dockerfile मिली पर पढ़ी नहीं जा सकी: {path} ({error})।'
+error: 'त्रुटि: {msg}'
+error_word: त्रुटि
+fix_docker_permission: Docker पहुँच सेट करें…
+free_port_found: 'खाली पोर्ट मिला: {port}।'
+health_ok: तैयारी की पुष्टि हुई ✓
+image_acquire_failed: 'ऐप इमेज डाउनलोड विफल: {detail}'
+image_acquiring: ऐप इमेज डाउनलोड हो रही है (पहली बार कुछ मिनट लग सकते हैं)...
+image_archive_base_unresolved: '{path} पर इमेज आर्काइव नहीं मिला। install_dir सेट नहीं है, इसलिए वर्तमान डायरेक्टरी के सापेक्ष खोजा गया, जो मेनू शॉर्टकट, Snap या फ़ाइल मैनेजर से लॉन्चर शुरू होने पर अविश्वसनीय है। लॉन्चर कॉन्फ़िगरेशन में install_dir को उस डायरेक्टरी पर सेट करें जिसमें आर्काइव है।'
+image_archive_unreadable: 'कॉन्फ़िगर किया गया इमेज आर्काइव पढ़ा नहीं जा सकता: {path} ({base} में खोजा गया)'
+image_built: इमेज बन गई ✓
+image_mode_needs_dockerpy: Image मोड को Python पैकेज docker (docker-py) चाहिए, जो इस इंस्टॉलेशन में उपलब्ध नहीं है।
+image_mode_needs_reference: 'Image मोड को इमेज स्रोत चाहिए: कॉन्फ़िग में image_reference (टैग या digest) या image_archive सेट करें।'
+image_needs_network: ऐप इमेज अभी इस मशीन पर नहीं है - डाउनलोड के लिए इंटरनेट कनेक्शन चाहिए। उसके बाद ऐप ऑफ़लाइन चलती है।
+install: इंस्टॉल करें
+install_needs_network: इंस्टॉलेशन को बेस इमेज डाउनलोड करने के लिए अभी इंटरनेट कनेक्शन चाहिए। इंस्टॉल होने के बाद ऐप स्वयं ऑफ़लाइन चलता है।
+installing: '{app} सेट किया जा रहा है...'
+internal_port_changed: आंतरिक पोर्ट {name} {port} पर बदला गया।
+internal_port_confirm: आंतरिक पोर्ट बदलने के लिए Docker इमेज को फिर से बनाना आवश्यक है (2-5 मिनट)। जारी रखें?
+internal_port_field: '{name} पोर्ट (आंतरिक):'
+internal_port_rebuilding: आंतरिक पोर्ट बदला गया। इमेज फिर से बनाई जा रही हैं (इसमें कुछ मिनट लग सकते हैं)...
+internal_port_set: आंतरिक पोर्ट {name} {port} पर सेट किया गया।
+internal_port_unknown: 'अज्ञात आंतरिक पोर्ट: {name}।'
+log_copied: कॉपी किया गया!
+log_copy: लॉग कॉपी करें
+no_containers: कोई कंटेनर नहीं मिला ✓
+no_docker: Docker शुरू नहीं हुआ है।
+no_free_port: कोई खाली पोर्ट नहीं मिला।
+not_installed: '{app} इंस्टॉल नहीं है।'
+not_reachable: 'इंस्टॉल हो गया, लेकिन {app} तक नहीं पहुँचा जा सका: {detail}'
+not_reachable_after: '{timeout}s के बाद {app} तक नहीं पहुँचा जा सका ({detail})।'
+nothing_to_uninstall: अनइंस्टॉल करने के लिए कुछ नहीं (कोई कंटेनर मौजूद नहीं)।
+open_browser: ब्राउज़र में खोलें
+open_install_guide: इंस्टॉलेशन गाइड खोलें
+port_changed: पोर्ट {port} पर बदला गया।
+port_free: पोर्ट {port} खाली है।
+port_invalid: पोर्ट {min} और {max} के बीच होना चाहिए।
+port_mismatch_rendered: Launcher को पोर्ट {expected} अपेक्षित है, लेकिन compose फ़ाइल {published} प्रकाशित करेगी। env_port_key ({port_key}) को compose की पोर्ट वेरिएबल और .env मानों से जाँचें।
+port_occupied: पोर्ट {port} व्यस्त है।
+port_restarting: पोर्ट बदला गया। {app} फिर से शुरू हो रहा है...
+port_set: पोर्ट {port} पर सेट किया गया।
+ready: इंस्टॉलेशन पूरा हुआ। {app} तैयार है।
+repo_url_not_cloned: 'नोट: repo_url ({url}) केवल लिंक/अपडेट जाँच के लिए है - launcher इसे clone नहीं करता। install_dir को स्थानीय checkout पर इंगित करना होगा।'
+restore_defaults: डिफ़ॉल्ट पुनर्स्थापित करें
+retry: फिर से जाँचें
+run_in_background: बैकग्राउंड में
+running: '{app} पोर्ट {port} पर चल रहा है।'
+scan_configs: कॉन्फ़िग अवशेष खोजे जा रहे हैं... {count} मिले
+scan_containers: अनाथ कंटेनर खोजे जा रहे हैं... {count} मिले
+scan_images: पुरानी इमेज खोजी जा रही हैं... {count} मिलीं
+scan_volumes: अनाथ वॉल्यूम खोजे जा रहे हैं... {count} मिले
+skip: छोड़ें
+start: शुरू करें
+start_docker: Docker शुरू करें
+start_done: '{app} शुरू हुआ।'
 start_failed: 'शुरू करना विफल रहा:
 
   {detail}'
-start_timeout: शुरू करने का समय समाप्त हो गया।
-not_reachable: 'इंस्टॉल हो गया, लेकिन {app} तक नहीं पहुँचा जा सका: {detail}'
-container_not_running: कंटेनर बन गया लेकिन चल नहीं रहा।
 start_no_container: शुरू कमांड चली, लेकिन कोई कंटेनर नहीं चल रहा।
+start_timeout: शुरू करने का समय समाप्त हो गया।
+starting: कंटेनर शुरू हो रहा है...
+step_remove_config: कॉन्फ़िग '{path}' हटाएँ
+step_remove_container: कंटेनर '{name}' हटाएँ
+step_remove_image: इमेज '{ref}' हटाएँ
+step_remove_volume: वॉल्यूम '{name}' हटाएँ
+step_skip_volume: वॉल्यूम '{name}' छोड़ा गया (चयनित नहीं).
+step_skip_volume_active: वॉल्यूम '{name}' छोड़ा गया (सक्रिय प्रोजेक्ट).
+step_stop_container: कंटेनर '{name}' रोकें
+stop: रोकें
+stop_done: '{app} रोका गया।'
 stop_failed: 'रोकना विफल रहा: {detail}'
 stop_not_verified: स्टॉप कमांड के बाद भी कंटेनर चल रहा है।
+stopped: '{app} इंस्टॉल है, लेकिन रुका हुआ है।'
+tooltip_already_installed: पहले से इंस्टॉल है
+tooltip_already_running: पहले से चल रहा है
+tooltip_needs_docker: Docker नहीं चल रहा है
+tooltip_no_log: कॉपी करने के लिए अभी कोई लॉग नहीं
+tooltip_not_installed: ऐप अभी तक इंस्टॉल नहीं है
+tooltip_not_running: ऐप नहीं चल रहा है
+tooltip_only_running: केवल तभी उपलब्ध जब ऐप चल रहा हो
+tray_open: खोलें
+tray_quit: बंद करें
+uninstall: अनइंस्टॉल करें
+uninstall_done: अनइंस्टॉल पूरा हुआ। आपका डेटा सुरक्षित है।
 uninstall_partial: 'आंशिक रूप से हटाया गया: {count} कंटेनर नहीं हटाए जा सके।'
-not_reachable_after: '{timeout}s के बाद {app} तक नहीं पहुँचा जा सका ({detail})।'
-error: 'त्रुटि: {msg}'
-error_word: त्रुटि
+uninstalling: अनइंस्टॉल शुरू हुआ...
 update_available: 'अपडेट उपलब्ध: {tag} - {url}'
-step_skip_volume: "वॉल्यूम '{name}' छोड़ा गया (चयनित नहीं)."
-step_skip_volume_active: "वॉल्यूम '{name}' छोड़ा गया (सक्रिय प्रोजेक्ट)."
-docker_not_running: "Docker इंस्टॉल है लेकिन शुरू नहीं हुआ।"
-docker_no_permission: "Docker चल रहा है, लेकिन आपके उपयोगकर्ता के पास अनुमति नहीं है ('docker' समूह में नहीं)। 'sudo usermod -aG docker $USER' चलाएँ और उसके बाद लॉग आउट करके फिर से लॉग इन करें (या रीस्टार्ट करें) - समूह परिवर्तन केवल नए लॉगिन सत्र में सक्रिय होता है। केवल वर्तमान टर्मिनल के लिए: 'newgrp docker'।"
-docker_no_path: "Docker Desktop इंस्टॉल है लेकिन PATH में नहीं है।"
-start_docker: "Docker शुरू करें"
-open_install_guide: "इंस्टॉलेशन गाइड खोलें"
-log_copy: "लॉग कॉपी करें"
-log_copied: "कॉपी किया गया!"
-cleanup_scanning: "इंस्टॉलेशन अवशेष खोजे जा रहे हैं..."
-cleanup_none: "कोई इंस्टॉलेशन अवशेष नहीं मिला।"
-tooltip_needs_docker: "Docker नहीं चल रहा है"
-tooltip_already_installed: "पहले से इंस्टॉल है"
-tooltip_already_running: "पहले से चल रहा है"
-tooltip_not_installed: "ऐप अभी तक इंस्टॉल नहीं है"
-tooltip_not_running: "ऐप नहीं चल रहा है"
-tooltip_only_running: "केवल तभी उपलब्ध जब ऐप चल रहा हो"
-tooltip_no_log: "कॉपी करने के लिए अभी कोई लॉग नहीं"
-docker_not_running_detail: 'Docker नहीं चल रहा है। जाँचा गया context ''{context}'' ({endpoint}): {error}'
-docker_running_other_context: 'Docker context ''{context}'' के माध्यम से चल रहा है - सक्रिय context पहुँच योग्य नहीं था, launcher स्वचालित रूप से जुड़ गया।'
-fix_docker_permission: "Docker पहुँच सेट करें…"
-docker_group_confirm: "आपका खाता 'docker' समूह में जोड़ा जाएगा। इससे व्यावहारिक रूप से इस सिस्टम पर root अधिकार मिलते हैं (Docker में सामान्य प्रथा)। जारी रखें?"
-docker_group_added: "'docker' समूह जोड़ा गया। परिवर्तन लागू करने के लिए लॉग आउट करके फिर से लॉग इन करें (या रीस्टार्ट करें) - इस सत्र में Docker अभी उपयोग योग्य नहीं है।"
-docker_group_cancelled: "रद्द किया गया - कुछ नहीं बदला। मैन्युअल: 'sudo usermod -aG docker $USER' चलाएँ, फिर लॉग आउट करके फिर से लॉग इन करें।"
-docker_group_failed: "'docker' समूह में जोड़ा नहीं जा सका: {error}। मैन्युअल: 'sudo usermod -aG docker $USER' चलाएँ, फिर लॉग आउट करके फिर से लॉग इन करें।"
-docker_desktop_waiting: "Docker Desktop शुरू हो रहा है - इसमें थोड़ा समय लग सकता है (VM बूट)…"
-about: "जानकारी…"
-about_open_issues: "समस्या रिपोर्ट करें - ब्राउज़र में issue tracker खोलें?"
-checking_context: "Docker context '{context}' ({endpoint}) की जाँच हो रही है…"
-cleanup_now: "अभी साफ़ करें"
-app_logs: "ऐप लॉग"
-app_logs_failed: "ऐप लॉग प्राप्त नहीं हो सके: {detail}"
-app_logs_empty: "ऐप ने अभी तक कोई लॉग आउटपुट नहीं दिया है।"
-compose_missing: "Docker Compose उपलब्ध नहीं है। Compose v2 प्लगइन इंस्टॉल करें — Ubuntu/Debian: 'sudo apt install docker-compose-plugin' (या Docker अपडेट करें) — फिर launcher फिर से शुरू करें। सिंगल-सर्विस ऐप्स वैकल्पिक रूप से deployment_mode 'dockerfile' उपयोग कर सकते हैं (Compose की आवश्यकता नहीं)।"
-compose_v1_incompatible: "केवल पुराना docker-compose v1 मिला और वह इस ऐप की compose फ़ाइल ({path}) नहीं पढ़ सकता। Compose v2 प्लगइन इंस्टॉल करें: 'sudo apt install docker-compose-plugin', फिर launcher फिर से शुरू करें।"
-dockerfile_not_found: "Dockerfile नहीं मिला: {path}। launcher कॉन्फ़िगरेशन में deployment_mode/Dockerfile सेटिंग जाँचें।"
-dockerfile_mode_needs_dockerpy: "dockerfile मोड को Python पैकेज docker (docker-py) चाहिए, जो इस इंस्टॉलेशन में उपलब्ध नहीं है।"
-
-# --- build readiness / capability gate (#54) ---
-buildx_too_old: "Docker Compose बिल्ड buildx को सौंपता है और buildx {required} या नया चाहिए, लेकिन buildx {found} इंस्टॉल है। नया buildx इंस्टॉल करें: अपने प्लेटफ़ॉर्म के लिए बाइनरी docker/buildx releases से डाउनलोड करें, उसे {path} पर रखें, फिर 'chmod +x {path}' से executable बनाएं। इसके लिए डिस्ट्रीब्यूशन पैकेज अविश्वसनीय साबित हुए हैं।"
-buildx_missing: "Docker Compose बिल्ड buildx को सौंपता है और buildx {required} या नया चाहिए, लेकिन कोई buildx प्लगइन नहीं मिला। buildx इंस्टॉल करें: अपने प्लेटफ़ॉर्म के लिए बाइनरी docker/buildx releases से डाउनलोड करें, उसे {path} पर रखें, फिर 'chmod +x {path}' से executable बनाएं। इसके लिए डिस्ट्रीब्यूशन पैकेज अविश्वसनीय साबित हुए हैं।"
-app_requirement_too_old: "यह ऐप {component} {required} या नया माँगता है, लेकिन {found} इंस्टॉल है। इसे पूरा करने के लिए Docker अपडेट करें।"
-app_requirement_missing: "यह ऐप {component} {required} या नया माँगता है, लेकिन {component} का पता नहीं चला। इसे पूरा करने के लिए Docker इंस्टॉल या अपडेट करें।"
-compose_unreadable: "Compose फ़ाइल मिली पर पढ़ी नहीं जा सकी: {path} ({error})।"
-dockerfile_unreadable: "Dockerfile मिली पर पढ़ी नहीं जा सकी: {path} ({error})।"
-build_context_not_found: "बिल्ड कॉन्टेक्स्ट डायरेक्टरी नहीं मिली: {path}. launcher config में build_context जाँचें।"
-docker_permission_non_root_socket: "Docker ने इस एंडपॉइंट पर कनेक्शन अस्वीकार किया। यह क्लासिक root सॉकेट नहीं है, इसलिए 'docker' समूह यहाँ लागू नहीं होता। rootless Docker के लिए DOCKER_HOST को $XDG_RUNTIME_DIR/docker.sock पर सेट करें; रिमोट एंडपॉइंट के लिए उसके एक्सेस नियम जाँचें; Docker Desktop के लिए सुनिश्चित करें कि वह चल रहा है।"
-compose_base_unresolved: "Compose फ़ाइल {path} पर नहीं मिली। install_dir सेट नहीं है, इसलिए इसे वर्तमान डायरेक्टरी के सापेक्ष खोजा गया, जो तब अविश्वसनीय है जब launcher मेनू शॉर्टकट, Snap या फ़ाइल मैनेजर से शुरू होता है। launcher config में install_dir को उस डायरेक्टरी पर सेट करें जिसमें compose फ़ाइल है।"
-dockerfile_base_unresolved: "Dockerfile {path} पर नहीं मिली। install_dir सेट नहीं है, इसलिए इसे वर्तमान डायरेक्टरी के सापेक्ष खोजा गया, जो तब अविश्वसनीय है जब launcher मेनू शॉर्टकट, Snap या फ़ाइल मैनेजर से शुरू होता है। launcher config में install_dir को build डायरेक्टरी पर सेट करें।"
-disk_low: "बिल्ड के लिए कम डिस्क स्थान: {path} पर केवल {free} खाली है, जो {needed} से कम है जिसकी बिल्ड को संभवतः आवश्यकता होगी। स्थान खाली करें, या इस जाँच को छोड़ने के लिए min_build_disk_bytes को 0 पर सेट करें।"
-install_needs_network: "इंस्टॉलेशन को बेस इमेज डाउनलोड करने के लिए अभी इंटरनेट कनेक्शन चाहिए। इंस्टॉल होने के बाद ऐप स्वयं ऑफ़लाइन चलता है।"
-build_failed_network: "बिल्ड इमेज डाउनलोड करने के लिए नेटवर्क तक नहीं पहुँच सका: {detail}. अपना इंटरनेट कनेक्शन या प्रॉक्सी जाँचें, फिर दोबारा कोशिश करें।"
-port_mismatch_rendered: "Launcher को पोर्ट {expected} अपेक्षित है, लेकिन compose फ़ाइल {published} प्रकाशित करेगी। env_port_key ({port_key}) को compose की पोर्ट वेरिएबल और .env मानों से जाँचें।"
-repo_url_not_cloned: 'नोट: repo_url ({url}) केवल लिंक/अपडेट जाँच के लिए है - launcher इसे clone नहीं करता। install_dir को स्थानीय checkout पर इंगित करना होगा।'
-app_logs_follow_stop: लॉग रोकें
-image_acquiring: ऐप इमेज डाउनलोड हो रही है (पहली बार कुछ मिनट लग सकते हैं)...
-image_acquire_failed: 'ऐप इमेज डाउनलोड विफल: {detail}'
-image_needs_network: ऐप इमेज अभी इस मशीन पर नहीं है - डाउनलोड के लिए इंटरनेट कनेक्शन चाहिए। उसके बाद ऐप ऑफ़लाइन चलती है।
-image_mode_needs_reference: 'Image मोड को इमेज स्रोत चाहिए: कॉन्फ़िग में image_reference (टैग या digest) या image_archive सेट करें।'
-image_archive_unreadable: 'कॉन्फ़िगर किया गया इमेज आर्काइव पढ़ा नहीं जा सकता: {path}'
-image_mode_needs_dockerpy: Image मोड को Python पैकेज docker (docker-py) चाहिए, जो इस इंस्टॉलेशन में उपलब्ध नहीं है।
+updating: इमेज अपडेट हो रही है (कोड बदलाव के बाद कुछ मिनट, अन्यथा कुछ सेकंड)...
+verify_clean: 'सत्यापन: कोई कंटेनर नहीं मिला ✓'
+verify_remain: 'सत्यापन: {count} कंटेनर शेष हैं ✗'

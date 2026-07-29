@@ -274,3 +274,38 @@ class TestLifecycleImageDispatch:
         monkeypatch.setattr(dockerfile_backend, "tail_logs", lambda c, *, lines: (True, "pulled ready"))
         ok, text = lifecycle.app_logs(pcfg)
         assert ok is True and text == "pulled ready"
+
+
+class TestArchiveBlockerNamesTheBase:
+    """#83: the gate states WHERE it searched for the archive."""
+
+    def test_unreadable_archive_names_the_searched_directory(self, pcfg, monkeypatch, tmp_path) -> None:
+        monkeypatch.setattr(py_client, "available", lambda: True)
+        pcfg.image_archive = "sub/missing.tar"
+        blockers = build_readiness.image_blockers(pcfg)
+        assert len(blockers) == 1
+        assert "missing.tar" in blockers[0]
+        assert str(tmp_path / "sub") in blockers[0], "the searched directory must be named"
+
+    def test_cwd_fallback_relative_archive_names_the_missing_base(self, monkeypatch, tmp_path) -> None:
+        monkeypatch.setattr(py_client, "available", lambda: True)
+        monkeypatch.chdir(tmp_path)
+        cfg = LauncherConfig(
+            app_name="Image App",
+            deployment_mode="image",
+            image_reference="ghcr.io/owner/app:2.0.0",
+            image_archive="missing.tar",
+            locale="en",
+        ).resolve()
+        blockers = build_readiness.image_blockers(cfg)
+        assert len(blockers) == 1
+        assert "install_dir" in blockers[0], "the missing base is the actionable fact, not the file"
+
+    def test_absolute_archive_never_blames_the_base(self, pcfg, monkeypatch, tmp_path) -> None:
+        monkeypatch.setattr(py_client, "available", lambda: True)
+        pcfg.install_dir = ""
+        pcfg.image_archive = str(tmp_path / "abs-missing.tar")
+        blockers = build_readiness.image_blockers(pcfg)
+        assert len(blockers) == 1
+        assert "install_dir" not in blockers[0]
+        assert str(tmp_path) in blockers[0]

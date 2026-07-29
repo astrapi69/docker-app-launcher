@@ -331,14 +331,21 @@ class LauncherConfig:
 
     @property
     def image_archive_path(self) -> Path | None:
-        """Absolute path of the optional image-mode archive, or None."""
+        """Absolute path of the optional image-mode archive, or None.
+
+        A relative ``image_archive`` resolves against the SAME base as every
+        other consumer path (compose file, build context): ``_base_dir()`` -
+        an explicit ``install_dir``, which ``from_json`` anchors to the config
+        file's own directory (#64, #83). One rule, so a frozen binary never
+        silently resolves against its unpack directory; the cwd fallback is
+        flagged and the readiness gate names it.
+        """
         if not self.image_archive:
             return None
         archive = Path(self.image_archive).expanduser()
         if archive.is_absolute():
             return archive
-        base = Path(self.install_dir).expanduser() if self.install_dir else Path.cwd()
-        return base / archive
+        return self._base_dir()[0] / archive
 
     @property
     def dockerfile_path(self) -> Path:

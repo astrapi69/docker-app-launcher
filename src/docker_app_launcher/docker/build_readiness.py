@@ -298,7 +298,15 @@ def image_blockers(config: LauncherConfig) -> list[str]:
             with archive.open("rb"):
                 pass
         except OSError:
-            blockers.append(_t(config, "image_archive_unreadable", path=archive))
+            # State WHERE was searched (#83): a relative archive on the cwd
+            # fallback is the #64/#2120 class (frozen binary resolves against
+            # its unpack dir) - name the missing base; otherwise name the
+            # directory that was actually searched.
+            relative = not Path(config.image_archive).expanduser().is_absolute()
+            if relative and config.base_is_cwd_fallback:
+                blockers.append(_t(config, "image_archive_base_unresolved", path=archive))
+            else:
+                blockers.append(_t(config, "image_archive_unreadable", path=archive, base=archive.parent))
     tv = detect_tool_versions(config)
     for component, declared_raw, found in (
         ("engine", config.min_engine_version, tv.engine),

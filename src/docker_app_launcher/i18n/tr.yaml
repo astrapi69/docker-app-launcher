@@ -1,163 +1,162 @@
-not_installed: '{app} kurulu değil.'
-running: '{app} {port} numaralı bağlantı noktasında çalışıyor.'
-stopped: '{app} kurulu ancak durdurulmuş.'
-no_docker: Docker başlatılmadı.
-install: Kur
-start: Başlat
-stop: Durdur
-uninstall: Kaldır
-open_browser: Tarayıcıda aç
-run_in_background: Arka planda
-background_tray: Sistem tepsisinde çalışıyor. Pencereyi geri yüklemek için tepsi simgesine çift tıklayın.
-background_iconified: Arka planda çalışıyor. Pencereyi görev çubuğundan geri yükleyin.
-closed_minimized: Uygulama çalışmaya devam ediyor; pencere küçültüldü.
-apply_port: Bağlantı noktasını uygula
-apply: Uygula
+about: Hakkında…
+about_open_issues: Sorun bildir - issue tracker tarayıcıda açılsın mı?
 advanced_settings: Gelişmiş ayarlar (uzmanlar)
 advanced_warning: Bunları yalnızca ne yaptığınızı biliyorsanız değiştirin. Bir değişiklik yeniden derleme gerektirir (2-5 dakika).
-restore_defaults: Varsayılanları geri yükle
-internal_port_field: '{name} bağlantı noktası (dahili):'
-retry: Tekrar kontrol et
-cleanup: Temizle
-skip: Atla
-tray_open: Aç
-tray_quit: Çık
-checking_docker: Docker kontrol ediliyor...
-docker_ok: Docker çalışıyor ✓
-installing: '{app} kuruluyor...'
-building: İmaj derleniyor (ilk seferde birkaç dakika sürebilir)...
-image_built: İmaj derlendi ✓
-starting: Konteyner başlatılıyor...
-container_started: Konteyner başlatıldı ✓
-updating: İmaj güncelleniyor (kod değişikliklerinden sonra birkaç dakika, aksi halde saniyeler)...
-checking_health: Hazırlık kontrol ediliyor...
-health_ok: Hazırlık doğrulandı ✓
-uninstalling: Kaldırma işlemi başlatıldı...
-no_containers: Konteyner bulunamadı ✓
-verify_clean: 'Doğrulama: konteyner bulunamadı ✓'
-verify_remain: 'Doğrulama: {count} konteyner kaldı ✗'
-ready: Kurulum tamamlandı. {app} hazır.
 already_installed: '{app} zaten kurulu ve çalışıyor.'
 already_running: '{app} zaten çalışıyor.'
-start_done: '{app} başlatıldı.'
-stop_done: '{app} durduruldu.'
 already_stopped: '{app} zaten durdurulmuştu.'
-uninstall_done: Kaldırma tamamlandı. Verileriniz korunur.
-nothing_to_uninstall: Kaldırılacak bir şey yok (konteyner mevcut değil).
-confirm_uninstall: '{app} uygulamasını kaldırmak istiyor musunuz?
-
-  Verileriniz korunur.'
-cleanup_found: 'Önceki kurulum kalıntıları bulundu:'
-cleanup_running: Temizleniyor...
-cleanup_done: 'Temizlik tamamlandı: {count} yapıt kaldırıldı, {freed} boşaltıldı.'
-cleanup_partial: Temizlik kısmen başarısız oldu ({count} adım).
-cleanup_skipped: Temizlik atlandı.
-data_preserved: Verileriniz korundu.
-step_stop_container: '''{name}'' konteynerini durdur'
-step_remove_container: '''{name}'' konteynerini kaldır'
-step_remove_image: '''{ref}'' imajını kaldır'
-step_remove_volume: '''{name}'' birimini kaldır'
-step_remove_config: '''{path}'' yapılandırmasını kaldır'
-scan_containers: Sahipsiz konteynerler aranıyor... {count} bulundu
-scan_images: Eski imajlar aranıyor... {count} bulundu
-scan_volumes: Sahipsiz birimler aranıyor... {count} bulundu
-scan_configs: Yapılandırma kalıntıları aranıyor... {count} bulundu
-port_free: '{port} bağlantı noktası boş.'
-port_occupied: '{port} bağlantı noktası dolu.'
-port_invalid: Bağlantı noktası {min} ile {max} arasında olmalıdır.
-port_set: Bağlantı noktası {port} olarak ayarlandı.
-port_restarting: Bağlantı noktası değiştirildi. {app} yeniden başlatılıyor...
-port_changed: Bağlantı noktası {port} olarak değiştirildi.
-internal_port_unknown: 'Bilinmeyen dahili bağlantı noktası: {name}.'
-internal_port_set: '{name} dahili bağlantı noktası {port} olarak ayarlandı.'
-internal_port_rebuilding: Dahili bağlantı noktası değiştirildi. İmajlar yeniden derleniyor (bu birkaç dakika sürebilir)...
-internal_port_changed: '{name} dahili bağlantı noktası {port} olarak değiştirildi.'
-internal_port_confirm: Dahili bir bağlantı noktasını değiştirmek Docker imajlarının yeniden derlenmesini gerektirir (2-5 dakika). Devam edilsin mi?
-no_free_port: Boş bağlantı noktası bulunamadı.
-free_port_found: 'Boş bağlantı noktası bulundu: {port}.'
-docker_unavailable: Docker kullanılamıyor (başlatılmadı).
-docker_not_installed: Docker kurulu değil (docker PATH içinde yok).
-docker_no_response: Docker yanıt vermiyor.
-docker_running: Docker çalışıyor.
-docker_stopped: Docker başlatılmadı.
-compose_not_found: 'Compose dosyası bulunamadı: {path}'
+app_logs: Uygulama günlükleri
+app_logs_empty: Uygulama henüz günlük çıktısı üretmedi.
+app_logs_failed: 'Uygulama günlükleri alınamadı: {detail}'
+app_logs_follow_stop: Günlükleri durdur
+app_requirement_missing: Bu uygulama {component} {required} veya sonrasını gerektirir, ancak {component} algılanamadı. Karşılamak için Docker'ı kurun veya güncelleyin.
+app_requirement_too_old: Bu uygulama {component} {required} veya sonrasını gerektirir, ancak {found} kurulu. Karşılamak için Docker'ı güncelleyin.
+apply: Uygula
+apply_port: Bağlantı noktasını uygula
+background_iconified: Arka planda çalışıyor. Pencereyi görev çubuğundan geri yükleyin.
+background_tray: Sistem tepsisinde çalışıyor. Pencereyi geri yüklemek için tepsi simgesine çift tıklayın.
+build_cancelled: Derleme iptal edildi.
+build_context_not_found: 'Derleme bağlamı dizini bulunamadı: {path}. Launcher yapılandırmasındaki build_context''i kontrol edin.'
 build_failed: 'Docker derlemesi başarısız oldu:
 
   {detail}'
+build_failed_network: 'Derleme, imgeleri indirmek için ağa erişemedi: {detail}. İnternet bağlantınızı veya proxy''yi kontrol edip yeniden deneyin.'
 build_timeout: Docker derlemesi zaman aşımına uğradı.
-build_cancelled: Derleme iptal edildi.
+building: İmaj derleniyor (ilk seferde birkaç dakika sürebilir)...
+buildx_missing: 'Docker Compose derlemesi buildx''e devreder ve buildx {required} veya sonrasını gerektirir, ancak buildx eklentisi bulunamadı. buildx kurun: platformunuz için ikili dosyayı docker/buildx sürümlerinden indirin, {path} konumuna koyun ve ''chmod +x {path}'' ile çalıştırılabilir yapın. Dağıtım paketleri bunun için güvenilmez çıktı.'
+buildx_too_old: 'Docker Compose derlemesi buildx''e devreder ve buildx {required} veya sonrasını gerektirir, ancak buildx {found} kurulu. Daha yeni bir buildx kurun: platformunuz için ikili dosyayı docker/buildx sürümlerinden indirin, {path} konumuna koyun ve ''chmod +x {path}'' ile çalıştırılabilir yapın. Dağıtım paketleri bunun için güvenilmez çıktı.'
+checking_context: Docker context '{context}' ({endpoint}) denetleniyor…
+checking_docker: Docker kontrol ediliyor...
+checking_health: Hazırlık kontrol ediliyor...
+cleanup: Temizle
+cleanup_done: 'Temizlik tamamlandı: {count} yapıt kaldırıldı, {freed} boşaltıldı.'
+cleanup_found: 'Önceki kurulum kalıntıları bulundu:'
+cleanup_none: Kurulum kalıntısı bulunamadı.
+cleanup_now: Şimdi temizle
+cleanup_partial: Temizlik kısmen başarısız oldu ({count} adım).
+cleanup_running: Temizleniyor...
+cleanup_scanning: Kurulum kalıntıları taranıyor...
+cleanup_skipped: Temizlik atlandı.
+closed_minimized: Uygulama çalışmaya devam ediyor; pencere küçültüldü.
+compose_base_unresolved: Compose dosyası {path} konumunda bulunamadı. install_dir ayarlı değil, bu yüzden geçerli dizine göre arandı; bu, launcher bir menü kısayolundan, bir Snap'ten veya dosya yöneticisinden başlatıldığında güvenilmez. Launcher yapılandırmasında install_dir'i compose dosyasını içeren dizine ayarlayın.
+compose_missing: 'Docker Compose kullanılamıyor. Compose v2 eklentisini kurun — Ubuntu/Debian: ''sudo apt install docker-compose-plugin'' (veya Docker''ı güncelleyin) — ardından launcher''ı yeniden başlatın. Tek servisli uygulamalar alternatif olarak deployment_mode ''dockerfile'' kullanabilir (Compose gerekmez).'
+compose_not_found: 'Compose dosyası bulunamadı: {path}'
+compose_unreadable: 'Compose dosyası bulundu ama okunamıyor: {path} ({error}).'
+compose_v1_incompatible: 'Yalnızca eski docker-compose v1 bulundu ve bu uygulamanın compose dosyasını ({path}) okuyamıyor. Compose v2 eklentisini kurun: ''sudo apt install docker-compose-plugin'', ardından launcher''ı yeniden başlatın.'
+confirm_uninstall: '{app} uygulamasını kaldırmak istiyor musunuz?
+
+  Verileriniz korunur.'
+container_not_running: Konteyner derlendi ancak çalışmıyor.
+container_started: Konteyner başlatıldı ✓
+data_preserved: Verileriniz korundu.
+disk_low: 'Derleme için disk alanı az: {path} üzerinde yalnızca {free} boş, bir derlemenin muhtemelen ihtiyaç duyacağı {needed} altında. Yer açın veya bu kontrolü atlamak için min_build_disk_bytes değerini 0 yapın.'
+docker_desktop_waiting: Docker Desktop başlatılıyor - bu biraz sürebilir (VM önyüklemesi)…
+docker_group_added: '''docker'' grubu eklendi. Değişikliğin etkinleşmesi için oturumu kapatıp yeniden aç (veya yeniden başlat) - bu oturumda Docker henüz kullanılamaz.'
+docker_group_cancelled: 'İptal edildi - hiçbir şey değişmedi. Elle: ''sudo usermod -aG docker $USER'' çalıştır, sonra oturumu kapatıp yeniden aç.'
+docker_group_confirm: Hesabın 'docker' grubuna eklenecek. Bu, pratikte bu sistemde root yetkisi vermek demektir (Docker'da standart uygulama). Devam edilsin mi?
+docker_group_failed: '''docker'' grubuna eklenemedi: {error}. Elle: ''sudo usermod -aG docker $USER'' çalıştır, sonra oturumu kapatıp yeniden aç.'
+docker_no_path: Docker Desktop kurulu ama PATH'te değil.
+docker_no_permission: 'Docker çalışıyor ama kullanıcının izni yok (''docker'' grubunda değil). ''sudo usermod -aG docker $USER'' komutunu çalıştır VE ardından oturumu kapatıp yeniden aç (veya yeniden başlat) - grup değişikliği yalnızca yeni bir oturumda etkinleşir. Yalnızca geçerli terminal için: ''newgrp docker''.'
+docker_no_response: Docker yanıt vermiyor.
+docker_not_installed: Docker kurulu değil (docker PATH içinde yok).
+docker_not_running: Docker kurulu ama başlatılmadı.
+docker_not_running_detail: 'Docker çalışmıyor. Denetlenen context ''{context}'' ({endpoint}): {error}'
+docker_ok: Docker çalışıyor ✓
+docker_permission_non_root_socket: Docker bu uç noktada bağlantıyı reddetti. Bu klasik root soketi değil, bu yüzden 'docker' grubu burada geçerli değil. rootless Docker için DOCKER_HOST'u $XDG_RUNTIME_DIR/docker.sock olarak ayarlayın; uzak bir uç nokta için erişim kurallarını kontrol edin; Docker Desktop için çalıştığından emin olun.
+docker_running: Docker çalışıyor.
+docker_running_other_context: Docker '{context}' context'i üzerinden çalışıyor - etkin context erişilebilir değildi, başlatıcı otomatik olarak bağlandı.
+docker_stopped: Docker başlatılmadı.
+docker_unavailable: Docker kullanılamıyor (başlatılmadı).
+dockerfile_base_unresolved: Dockerfile {path} konumunda bulunamadı. install_dir ayarlı değil, bu yüzden geçerli dizine göre arandı; bu, launcher bir menü kısayolundan, bir Snap'ten veya dosya yöneticisinden başlatıldığında güvenilmez. Launcher yapılandırmasında install_dir'i derleme dizinine ayarlayın.
+dockerfile_mode_needs_dockerpy: dockerfile modu, bu kurulumda kullanılamayan Python docker paketine (docker-py) ihtiyaç duyar.
+dockerfile_not_found: 'Dockerfile bulunamadı: {path}. Launcher yapılandırmasında deployment_mode/Dockerfile ayarlarını kontrol edin.'
+dockerfile_unreadable: 'Dockerfile bulundu ama okunamıyor: {path} ({error}).'
+error: 'Hata: {msg}'
+error_word: Hata
+fix_docker_permission: Docker erişimini ayarla…
+free_port_found: 'Boş bağlantı noktası bulundu: {port}.'
+health_ok: Hazırlık doğrulandı ✓
+image_acquire_failed: 'Uygulama imajı indirme başarısız: {detail}'
+image_acquiring: Uygulama imajı indiriliyor (ilk seferde birkaç dakika sürebilir)...
+image_archive_base_unresolved: '{path} konumunda imaj arşivi bulunamadı. install_dir ayarlı olmadığından arama geçerli dizine göre yapıldı; launcher bir menü kısayolundan, Snap''ten veya dosya yöneticisinden başlatıldığında bu güvenilir değildir. Launcher yapılandırmasında install_dir değerini arşivin bulunduğu dizine ayarlayın.'
+image_archive_unreadable: 'Yapılandırılan imaj arşivi okunamıyor: {path} ({base} içinde arandı)'
+image_built: İmaj derlendi ✓
+image_mode_needs_dockerpy: Image modu, bu kurulumda kullanılamayan Python docker paketine (docker-py) ihtiyaç duyar.
+image_mode_needs_reference: 'Image modu bir imaj kaynağı gerektirir: yapılandırmada image_reference (tag veya digest) veya image_archive ayarlayın.'
+image_needs_network: Uygulama imajı henüz bu makinede yok - indirmek için internet bağlantısı gerekir. İndirildikten sonra uygulama çevrimdışı çalışır.
+install: Kur
+install_needs_network: Kurulum, temel imgeleri indirmek için şimdi internet bağlantısına ihtiyaç duyuyor. Uygulamanın kendisi kurulduktan sonra çevrimdışı çalışır.
+installing: '{app} kuruluyor...'
+internal_port_changed: '{name} dahili bağlantı noktası {port} olarak değiştirildi.'
+internal_port_confirm: Dahili bir bağlantı noktasını değiştirmek Docker imajlarının yeniden derlenmesini gerektirir (2-5 dakika). Devam edilsin mi?
+internal_port_field: '{name} bağlantı noktası (dahili):'
+internal_port_rebuilding: Dahili bağlantı noktası değiştirildi. İmajlar yeniden derleniyor (bu birkaç dakika sürebilir)...
+internal_port_set: '{name} dahili bağlantı noktası {port} olarak ayarlandı.'
+internal_port_unknown: 'Bilinmeyen dahili bağlantı noktası: {name}.'
+log_copied: Kopyalandı!
+log_copy: Günlüğü kopyala
+no_containers: Konteyner bulunamadı ✓
+no_docker: Docker başlatılmadı.
+no_free_port: Boş bağlantı noktası bulunamadı.
+not_installed: '{app} kurulu değil.'
+not_reachable: 'Kuruldu, ancak {app} erişilebilir değil: {detail}'
+not_reachable_after: '{app} {timeout}sn sonra erişilebilir değil ({detail}).'
+nothing_to_uninstall: Kaldırılacak bir şey yok (konteyner mevcut değil).
+open_browser: Tarayıcıda aç
+open_install_guide: Kurulum kılavuzunu aç
+port_changed: Bağlantı noktası {port} olarak değiştirildi.
+port_free: '{port} bağlantı noktası boş.'
+port_invalid: Bağlantı noktası {min} ile {max} arasında olmalıdır.
+port_mismatch_rendered: Launcher {expected} portunu bekliyor, ancak compose dosyası {published} yayınlayacak. env_port_key ({port_key}) değerini compose dosyasının port değişkeni ve .env değerleriyle karşılaştırın.
+port_occupied: '{port} bağlantı noktası dolu.'
+port_restarting: Bağlantı noktası değiştirildi. {app} yeniden başlatılıyor...
+port_set: Bağlantı noktası {port} olarak ayarlandı.
+ready: Kurulum tamamlandı. {app} hazır.
+repo_url_not_cloned: 'Not: repo_url ({url}) yalnızca bağlantılar/güncelleme denetimleri içindir - launcher onu klonlamaz. install_dir yerel bir checkout''u göstermelidir.'
+restore_defaults: Varsayılanları geri yükle
+retry: Tekrar kontrol et
+run_in_background: Arka planda
+running: '{app} {port} numaralı bağlantı noktasında çalışıyor.'
+scan_configs: Yapılandırma kalıntıları aranıyor... {count} bulundu
+scan_containers: Sahipsiz konteynerler aranıyor... {count} bulundu
+scan_images: Eski imajlar aranıyor... {count} bulundu
+scan_volumes: Sahipsiz birimler aranıyor... {count} bulundu
+skip: Atla
+start: Başlat
+start_docker: Docker'ı başlat
+start_done: '{app} başlatıldı.'
 start_failed: 'Başlatma başarısız oldu:
 
   {detail}'
-start_timeout: Başlatma zaman aşımına uğradı.
-not_reachable: 'Kuruldu, ancak {app} erişilebilir değil: {detail}'
-container_not_running: Konteyner derlendi ancak çalışmıyor.
 start_no_container: Başlatma komutu çalıştı, ancak hiçbir konteyner çalışmıyor.
+start_timeout: Başlatma zaman aşımına uğradı.
+starting: Konteyner başlatılıyor...
+step_remove_config: '''{path}'' yapılandırmasını kaldır'
+step_remove_container: '''{name}'' konteynerini kaldır'
+step_remove_image: '''{ref}'' imajını kaldır'
+step_remove_volume: '''{name}'' birimini kaldır'
+step_skip_volume: '''{name}'' birimi atlandı (seçilmedi).'
+step_skip_volume_active: '''{name}'' birimi atlandı (etkin proje).'
+step_stop_container: '''{name}'' konteynerini durdur'
+stop: Durdur
+stop_done: '{app} durduruldu.'
 stop_failed: 'Durdurma başarısız oldu: {detail}'
 stop_not_verified: Durdurma komutundan sonra konteyner hâlâ çalışıyor.
+stopped: '{app} kurulu ancak durdurulmuş.'
+tooltip_already_installed: Zaten yüklü
+tooltip_already_running: Zaten çalışıyor
+tooltip_needs_docker: Docker çalışmıyor
+tooltip_no_log: Henüz kopyalanacak günlük yok
+tooltip_not_installed: Uygulama henüz yüklü değil
+tooltip_not_running: Uygulama çalışmıyor
+tooltip_only_running: Yalnızca uygulama çalışırken kullanılabilir
+tray_open: Aç
+tray_quit: Çık
+uninstall: Kaldır
+uninstall_done: Kaldırma tamamlandı. Verileriniz korunur.
 uninstall_partial: 'Kısmen kaldırıldı: {count} konteyner kaldırılamadı.'
-not_reachable_after: '{app} {timeout}sn sonra erişilebilir değil ({detail}).'
-error: 'Hata: {msg}'
-error_word: Hata
+uninstalling: Kaldırma işlemi başlatıldı...
 update_available: 'Güncelleme mevcut: {tag} - {url}'
-step_skip_volume: "'{name}' birimi atlandı (seçilmedi)."
-step_skip_volume_active: "'{name}' birimi atlandı (etkin proje)."
-docker_not_running: "Docker kurulu ama başlatılmadı."
-docker_no_permission: "Docker çalışıyor ama kullanıcının izni yok ('docker' grubunda değil). 'sudo usermod -aG docker $USER' komutunu çalıştır VE ardından oturumu kapatıp yeniden aç (veya yeniden başlat) - grup değişikliği yalnızca yeni bir oturumda etkinleşir. Yalnızca geçerli terminal için: 'newgrp docker'."
-docker_no_path: "Docker Desktop kurulu ama PATH'te değil."
-start_docker: "Docker'ı başlat"
-open_install_guide: "Kurulum kılavuzunu aç"
-log_copy: "Günlüğü kopyala"
-log_copied: "Kopyalandı!"
-cleanup_scanning: "Kurulum kalıntıları taranıyor..."
-cleanup_none: "Kurulum kalıntısı bulunamadı."
-tooltip_needs_docker: "Docker çalışmıyor"
-tooltip_already_installed: "Zaten yüklü"
-tooltip_already_running: "Zaten çalışıyor"
-tooltip_not_installed: "Uygulama henüz yüklü değil"
-tooltip_not_running: "Uygulama çalışmıyor"
-tooltip_only_running: "Yalnızca uygulama çalışırken kullanılabilir"
-tooltip_no_log: "Henüz kopyalanacak günlük yok"
-docker_not_running_detail: 'Docker çalışmıyor. Denetlenen context ''{context}'' ({endpoint}): {error}'
-docker_running_other_context: 'Docker ''{context}'' context''i üzerinden çalışıyor - etkin context erişilebilir değildi, başlatıcı otomatik olarak bağlandı.'
-fix_docker_permission: "Docker erişimini ayarla…"
-docker_group_confirm: "Hesabın 'docker' grubuna eklenecek. Bu, pratikte bu sistemde root yetkisi vermek demektir (Docker'da standart uygulama). Devam edilsin mi?"
-docker_group_added: "'docker' grubu eklendi. Değişikliğin etkinleşmesi için oturumu kapatıp yeniden aç (veya yeniden başlat) - bu oturumda Docker henüz kullanılamaz."
-docker_group_cancelled: "İptal edildi - hiçbir şey değişmedi. Elle: 'sudo usermod -aG docker $USER' çalıştır, sonra oturumu kapatıp yeniden aç."
-docker_group_failed: "'docker' grubuna eklenemedi: {error}. Elle: 'sudo usermod -aG docker $USER' çalıştır, sonra oturumu kapatıp yeniden aç."
-docker_desktop_waiting: "Docker Desktop başlatılıyor - bu biraz sürebilir (VM önyüklemesi)…"
-about: "Hakkında…"
-about_open_issues: "Sorun bildir - issue tracker tarayıcıda açılsın mı?"
-checking_context: "Docker context '{context}' ({endpoint}) denetleniyor…"
-cleanup_now: "Şimdi temizle"
-app_logs: "Uygulama günlükleri"
-app_logs_failed: "Uygulama günlükleri alınamadı: {detail}"
-app_logs_empty: "Uygulama henüz günlük çıktısı üretmedi."
-compose_missing: "Docker Compose kullanılamıyor. Compose v2 eklentisini kurun — Ubuntu/Debian: 'sudo apt install docker-compose-plugin' (veya Docker'ı güncelleyin) — ardından launcher'ı yeniden başlatın. Tek servisli uygulamalar alternatif olarak deployment_mode 'dockerfile' kullanabilir (Compose gerekmez)."
-compose_v1_incompatible: "Yalnızca eski docker-compose v1 bulundu ve bu uygulamanın compose dosyasını ({path}) okuyamıyor. Compose v2 eklentisini kurun: 'sudo apt install docker-compose-plugin', ardından launcher'ı yeniden başlatın."
-dockerfile_not_found: "Dockerfile bulunamadı: {path}. Launcher yapılandırmasında deployment_mode/Dockerfile ayarlarını kontrol edin."
-dockerfile_mode_needs_dockerpy: "dockerfile modu, bu kurulumda kullanılamayan Python docker paketine (docker-py) ihtiyaç duyar."
-
-# --- build readiness / capability gate (#54) ---
-buildx_too_old: "Docker Compose derlemesi buildx'e devreder ve buildx {required} veya sonrasını gerektirir, ancak buildx {found} kurulu. Daha yeni bir buildx kurun: platformunuz için ikili dosyayı docker/buildx sürümlerinden indirin, {path} konumuna koyun ve 'chmod +x {path}' ile çalıştırılabilir yapın. Dağıtım paketleri bunun için güvenilmez çıktı."
-buildx_missing: "Docker Compose derlemesi buildx'e devreder ve buildx {required} veya sonrasını gerektirir, ancak buildx eklentisi bulunamadı. buildx kurun: platformunuz için ikili dosyayı docker/buildx sürümlerinden indirin, {path} konumuna koyun ve 'chmod +x {path}' ile çalıştırılabilir yapın. Dağıtım paketleri bunun için güvenilmez çıktı."
-app_requirement_too_old: "Bu uygulama {component} {required} veya sonrasını gerektirir, ancak {found} kurulu. Karşılamak için Docker'ı güncelleyin."
-app_requirement_missing: "Bu uygulama {component} {required} veya sonrasını gerektirir, ancak {component} algılanamadı. Karşılamak için Docker'ı kurun veya güncelleyin."
-compose_unreadable: "Compose dosyası bulundu ama okunamıyor: {path} ({error})."
-dockerfile_unreadable: "Dockerfile bulundu ama okunamıyor: {path} ({error})."
-build_context_not_found: "Derleme bağlamı dizini bulunamadı: {path}. Launcher yapılandırmasındaki build_context'i kontrol edin."
-docker_permission_non_root_socket: "Docker bu uç noktada bağlantıyı reddetti. Bu klasik root soketi değil, bu yüzden 'docker' grubu burada geçerli değil. rootless Docker için DOCKER_HOST'u $XDG_RUNTIME_DIR/docker.sock olarak ayarlayın; uzak bir uç nokta için erişim kurallarını kontrol edin; Docker Desktop için çalıştığından emin olun."
-compose_base_unresolved: "Compose dosyası {path} konumunda bulunamadı. install_dir ayarlı değil, bu yüzden geçerli dizine göre arandı; bu, launcher bir menü kısayolundan, bir Snap'ten veya dosya yöneticisinden başlatıldığında güvenilmez. Launcher yapılandırmasında install_dir'i compose dosyasını içeren dizine ayarlayın."
-dockerfile_base_unresolved: "Dockerfile {path} konumunda bulunamadı. install_dir ayarlı değil, bu yüzden geçerli dizine göre arandı; bu, launcher bir menü kısayolundan, bir Snap'ten veya dosya yöneticisinden başlatıldığında güvenilmez. Launcher yapılandırmasında install_dir'i derleme dizinine ayarlayın."
-disk_low: "Derleme için disk alanı az: {path} üzerinde yalnızca {free} boş, bir derlemenin muhtemelen ihtiyaç duyacağı {needed} altında. Yer açın veya bu kontrolü atlamak için min_build_disk_bytes değerini 0 yapın."
-install_needs_network: "Kurulum, temel imgeleri indirmek için şimdi internet bağlantısına ihtiyaç duyuyor. Uygulamanın kendisi kurulduktan sonra çevrimdışı çalışır."
-build_failed_network: "Derleme, imgeleri indirmek için ağa erişemedi: {detail}. İnternet bağlantınızı veya proxy'yi kontrol edip yeniden deneyin."
-port_mismatch_rendered: "Launcher {expected} portunu bekliyor, ancak compose dosyası {published} yayınlayacak. env_port_key ({port_key}) değerini compose dosyasının port değişkeni ve .env değerleriyle karşılaştırın."
-repo_url_not_cloned: 'Not: repo_url ({url}) yalnızca bağlantılar/güncelleme denetimleri içindir - launcher onu klonlamaz. install_dir yerel bir checkout''u göstermelidir.'
-app_logs_follow_stop: Günlükleri durdur
-image_acquiring: Uygulama imajı indiriliyor (ilk seferde birkaç dakika sürebilir)...
-image_acquire_failed: 'Uygulama imajı indirme başarısız: {detail}'
-image_needs_network: Uygulama imajı henüz bu makinede yok - indirmek için internet bağlantısı gerekir. İndirildikten sonra uygulama çevrimdışı çalışır.
-image_mode_needs_reference: 'Image modu bir imaj kaynağı gerektirir: yapılandırmada image_reference (tag veya digest) veya image_archive ayarlayın.'
-image_archive_unreadable: 'Yapılandırılan imaj arşivi okunamıyor: {path}'
-image_mode_needs_dockerpy: Image modu, bu kurulumda kullanılamayan Python docker paketine (docker-py) ihtiyaç duyar.
+updating: İmaj güncelleniyor (kod değişikliklerinden sonra birkaç dakika, aksi halde saniyeler)...
+verify_clean: 'Doğrulama: konteyner bulunamadı ✓'
+verify_remain: 'Doğrulama: {count} konteyner kaldı ✗'

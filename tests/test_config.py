@@ -451,3 +451,50 @@ class TestImageModeConfig:
         cfg = LauncherConfig(app_name="P", install_dir=str(tmp_path)).resolve()
         assert cfg.effective_deployment_mode == "compose"
         assert cfg.image_reference == "" and cfg.image_archive_path is None
+
+
+class TestImageArchiveResolutionBase:
+    """#83: a relative image_archive uses the SAME base rule as every other
+    consumer path (_base_dir), never silently the process cwd of a frozen
+    binary. Each test proves it established the base it claims."""
+
+    def test_file_loaded_config_anchors_to_the_config_dir(self, tmp_path, monkeypatch) -> None:
+        # The frozen-wrapper case: config ships next to its assets; the
+        # process cwd is somewhere else entirely (proven via chdir).
+        cfg_dir = tmp_path / "bundle"
+        (cfg_dir / "appdir").mkdir(parents=True)
+        cfg_file = cfg_dir / "launcher.json"
+        LauncherConfig(
+            app_name="P",
+            deployment_mode="image",
+            image_reference="ghcr.io/o/a:1",
+            install_dir="appdir",
+            image_archive="img.tar",
+        ).to_json(cfg_file)
+        elsewhere = tmp_path / "elsewhere"
+        elsewhere.mkdir()
+        monkeypatch.chdir(elsewhere)
+        loaded = LauncherConfig.from_json(cfg_file).resolve()
+        assert loaded.image_archive_path == cfg_dir / "appdir" / "img.tar"
+        assert loaded.base_is_cwd_fallback is False
+
+    def test_no_install_dir_falls_back_to_cwd_and_flags_it(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.chdir(tmp_path)
+        cfg = LauncherConfig(
+            app_name="P", deployment_mode="image", image_reference="ghcr.io/o/a:1", image_archive="img.tar"
+        ).resolve()
+        assert cfg.image_archive_path == tmp_path / "img.tar"
+        assert cfg.base_is_cwd_fallback is True, "the fragile base must be FLAGGED, never silent"
+
+    def test_same_base_as_compose_path(self, tmp_path) -> None:
+        # One rule, not two: archive and compose file anchor identically.
+        cfg = LauncherConfig(
+            app_name="P",
+            deployment_mode="image",
+            image_reference="ghcr.io/o/a:1",
+            image_archive="img.tar",
+            install_dir=str(tmp_path),
+        ).resolve()
+        archive = cfg.image_archive_path
+        assert archive is not None
+        assert archive.parent == cfg.compose_path.parent == tmp_path

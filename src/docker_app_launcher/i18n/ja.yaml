@@ -1,163 +1,162 @@
-not_installed: '{app} はインストールされていません。'
-running: '{app} はポート {port} で実行中です。'
-stopped: '{app} はインストール済みですが停止しています。'
-no_docker: Docker が起動していません。
-install: インストール
-start: 開始
-stop: 停止
-uninstall: アンインストール
-open_browser: ブラウザで開く
-run_in_background: バックグラウンド
-background_tray: システムトレイで実行中です。トレイアイコンをダブルクリックするとウィンドウを復元できます。
-background_iconified: バックグラウンドで実行中です。タスクバーからウィンドウを復元してください。
-closed_minimized: アプリは実行を続けます。ウィンドウは最小化されました。
-apply_port: ポートを適用
-apply: 適用
+about: 情報…
+about_open_issues: 問題を報告 - ブラウザで issue tracker を開きますか？
 advanced_settings: 詳細設定（上級者向け）
 advanced_warning: 自分が何をしているか分かっている場合のみ変更してください。変更にはリビルドが必要です（2〜5分）。
-restore_defaults: 既定値に戻す
-internal_port_field: '{name} ポート（内部）:'
-retry: 再確認
-cleanup: クリーンアップ
-skip: スキップ
-tray_open: 開く
-tray_quit: 終了
-checking_docker: Docker を確認中...
-docker_ok: Docker は実行中です ✓
-installing: '{app} をセットアップしています...'
-building: イメージをビルド中（初回は数分かかる場合があります）...
-image_built: イメージをビルドしました ✓
-starting: コンテナを起動中...
-container_started: コンテナを起動しました ✓
-updating: イメージを更新中（コード変更後は数分、それ以外は数秒）...
-checking_health: 準備状態を確認中...
-health_ok: 準備が完了しました ✓
-uninstalling: アンインストールを開始しました...
-no_containers: コンテナは見つかりませんでした ✓
-verify_clean: '検証: コンテナは見つかりませんでした ✓'
-verify_remain: '検証: {count} 個のコンテナが残っています ✗'
-ready: インストールが完了しました。{app} の準備が整いました。
 already_installed: '{app} は既にインストールされ実行中です。'
 already_running: '{app} は既に実行中です。'
-start_done: '{app} を開始しました。'
-stop_done: '{app} を停止しました。'
 already_stopped: '{app} は既に停止していました。'
-uninstall_done: アンインストールが完了しました。データは保持されます。
-nothing_to_uninstall: アンインストールするものはありません（コンテナが存在しません）。
-confirm_uninstall: '{app} をアンインストールしますか？
-
-  データは保持されます。'
-cleanup_found: '以前のインストールの残骸が見つかりました:'
-cleanup_running: クリーンアップ中...
-cleanup_done: 'クリーンアップが完了しました: {count} 個のアーティファクトを削除し、{freed} を解放しました。'
-cleanup_partial: クリーンアップが一部失敗しました（{count} ステップ）。
-cleanup_skipped: クリーンアップをスキップしました。
-data_preserved: データは保持されました。
-step_stop_container: コンテナ '{name}' を停止
-step_remove_container: コンテナ '{name}' を削除
-step_remove_image: イメージ '{ref}' を削除
-step_remove_volume: ボリューム '{name}' を削除
-step_remove_config: 設定 '{path}' を削除
-scan_containers: 孤立したコンテナを検索中... {count} 個見つかりました
-scan_images: 古いイメージを検索中... {count} 個見つかりました
-scan_volumes: 孤立したボリュームを検索中... {count} 個見つかりました
-scan_configs: 設定の残骸を検索中... {count} 個見つかりました
-port_free: ポート {port} は空いています。
-port_occupied: ポート {port} は使用中です。
-port_invalid: ポートは {min} から {max} の間でなければなりません。
-port_set: ポートを {port} に設定しました。
-port_restarting: ポートを変更しました。{app} を再起動しています...
-port_changed: ポートを {port} に変更しました。
-internal_port_unknown: '不明な内部ポート: {name}。'
-internal_port_set: 内部ポート {name} を {port} に設定しました。
-internal_port_rebuilding: 内部ポートを変更しました。イメージを再ビルドしています（数分かかる場合があります）...
-internal_port_changed: 内部ポート {name} を {port} に変更しました。
-internal_port_confirm: 内部ポートの変更には Docker イメージの再ビルドが必要です（2〜5分）。続行しますか？
-no_free_port: 空きポートが見つかりません。
-free_port_found: '空きポートが見つかりました: {port}。'
-docker_unavailable: Docker は利用できません（起動していません）。
-docker_not_installed: Docker はインストールされていません（docker が PATH にありません）。
-docker_no_response: Docker が応答していません。
-docker_running: Docker は実行中です。
-docker_stopped: Docker が起動していません。
-compose_not_found: 'Compose ファイルが見つかりません: {path}'
+app_logs: アプリのログ
+app_logs_empty: アプリはまだログを出力していません。
+app_logs_failed: 'アプリのログを取得できませんでした: {detail}'
+app_logs_follow_stop: ログを停止
+app_requirement_missing: このアプリは {component} {required} 以降を必要としますが、{component} を検出できませんでした。Docker をインストールまたは更新してください。
+app_requirement_too_old: このアプリは {component} {required} 以降を必要としますが、インストールされているのは {found} です。Docker を更新してください。
+apply: 適用
+apply_port: ポートを適用
+background_iconified: バックグラウンドで実行中です。タスクバーからウィンドウを復元してください。
+background_tray: システムトレイで実行中です。トレイアイコンをダブルクリックするとウィンドウを復元できます。
+build_cancelled: ビルドがキャンセルされました。
+build_context_not_found: 'ビルドコンテキストのディレクトリが見つかりません: {path}。launcher 設定の build_context を確認してください。'
 build_failed: 'Docker ビルドに失敗しました:
 
   {detail}'
+build_failed_network: 'ビルドがイメージをダウンロードするためにネットワークへ到達できませんでした: {detail}。インターネット接続またはプロキシを確認して再試行してください。'
 build_timeout: Docker ビルドがタイムアウトしました。
-build_cancelled: ビルドがキャンセルされました。
+building: イメージをビルド中（初回は数分かかる場合があります）...
+buildx_missing: 'Docker Compose のビルドは buildx に委譲され、buildx {required} 以降が必要ですが、buildx プラグインが見つかりませんでした。buildx をインストールしてください: お使いのプラットフォーム向けバイナリを docker/buildx のリリースから入手し、{path} に配置して ''chmod +x {path}'' で実行可能にします。ディストリビューションのパッケージはこの用途では信頼できないことが分かっています。'
+buildx_too_old: 'Docker Compose のビルドは buildx に委譲され、buildx {required} 以降が必要ですが、インストールされているのは buildx {found} です。新しい buildx をインストールしてください: お使いのプラットフォーム向けバイナリを docker/buildx のリリースから入手し、{path} に配置して ''chmod +x {path}'' で実行可能にします。ディストリビューションのパッケージはこの用途では信頼できないことが分かっています。'
+checking_context: Docker コンテキスト '{context}'（{endpoint}）を確認中…
+checking_docker: Docker を確認中...
+checking_health: 準備状態を確認中...
+cleanup: クリーンアップ
+cleanup_done: 'クリーンアップが完了しました: {count} 個のアーティファクトを削除し、{freed} を解放しました。'
+cleanup_found: '以前のインストールの残骸が見つかりました:'
+cleanup_none: インストールの残存ファイルは見つかりませんでした。
+cleanup_now: 今すぐクリーンアップ
+cleanup_partial: クリーンアップが一部失敗しました（{count} ステップ）。
+cleanup_running: クリーンアップ中...
+cleanup_scanning: インストールの残存ファイルを検索しています...
+cleanup_skipped: クリーンアップをスキップしました。
+closed_minimized: アプリは実行を続けます。ウィンドウは最小化されました。
+compose_base_unresolved: Compose ファイルが {path} に見つかりません。install_dir が設定されていないため、現在のディレクトリを基準に探索されました。これはランチャーがメニューショートカット、Snap、ファイルマネージャーから起動された場合に不確実です。ランチャー設定の install_dir を compose ファイルのあるディレクトリに設定してください。
+compose_missing: 'Docker Compose が利用できません。Compose v2 プラグインをインストールしてください — Ubuntu/Debian: ''sudo apt install docker-compose-plugin''（または Docker を更新）— その後ランチャーを再起動してください。 シングルサービスのアプリは代わりに deployment_mode ''dockerfile'' を使えます（Compose 不要）。'
+compose_not_found: 'Compose ファイルが見つかりません: {path}'
+compose_unreadable: 'Compose ファイルは見つかりましたが読み取れません: {path} ({error})。'
+compose_v1_incompatible: '古い docker-compose v1 のみが見つかりましたが、このアプリの compose ファイル（{path}）を読み込めません。Compose v2 プラグインをインストールしてください: ''sudo apt install docker-compose-plugin''。その後ランチャーを再起動してください。'
+confirm_uninstall: '{app} をアンインストールしますか？
+
+  データは保持されます。'
+container_not_running: コンテナはビルドされましたが実行されていません。
+container_started: コンテナを起動しました ✓
+data_preserved: データは保持されました。
+disk_low: 'ビルド用のディスク空き容量が不足しています: {path} に {free} しか空きがなく、ビルドに必要とみられる {needed} を下回っています。空き容量を確保するか、min_build_disk_bytes を 0 に設定してこのチェックを省略してください。'
+docker_desktop_waiting: Docker Desktop を起動しています。しばらくかかることがあります（VM 起動）…
+docker_group_added: '''docker'' グループに追加しました。変更を有効にするにはログアウトして再ログイン（または再起動）してください。このセッションではまだ Docker は使えません。'
+docker_group_cancelled: 'キャンセルしました。変更はありません。手動での対処: ''sudo usermod -aG docker $USER'' を実行し、ログアウトして再ログインしてください。'
+docker_group_confirm: アカウントを 'docker' グループに追加します。これは実質的にこのシステムの root 権限を与えることになります（Docker では標準的な運用です）。続行しますか？
+docker_group_failed: '''docker'' グループへの追加に失敗しました: {error}。手動での対処: ''sudo usermod -aG docker $USER'' を実行し、ログアウトして再ログインしてください。'
+docker_no_path: Docker Desktop はインストールされていますが PATH にありません。
+docker_no_permission: Docker は起動していますが、ユーザーに権限がありません（'docker' グループに未所属）。'sudo usermod -aG docker $USER' を実行し、その後必ずログアウトして再ログイン（または再起動）してください。グループ変更は新しいログインセッションでのみ有効になります。現在のターミナルだけなら 'newgrp docker' も使えます。
+docker_no_response: Docker が応答していません。
+docker_not_installed: Docker はインストールされていません（docker が PATH にありません）。
+docker_not_running: Docker はインストールされていますが起動していません。
+docker_not_running_detail: 'Docker が実行されていません。確認したコンテキスト ''{context}'' ({endpoint}): {error}'
+docker_ok: Docker は実行中です ✓
+docker_permission_non_root_socket: Docker はこのエンドポイントで接続を拒否しました。これは従来の root ソケットではないため、'docker' グループはここでは関係ありません。rootless Docker では DOCKER_HOST を $XDG_RUNTIME_DIR/docker.sock に設定してください。リモートのエンドポイントではそのアクセス規則を確認し、Docker Desktop では起動していることを確認してください。
+docker_running: Docker は実行中です。
+docker_running_other_context: Docker はコンテキスト '{context}' 経由で実行中です - アクティブなコンテキストに接続できなかったため、ランチャーが自動的に接続しました。
+docker_stopped: Docker が起動していません。
+docker_unavailable: Docker は利用できません（起動していません）。
+dockerfile_base_unresolved: Dockerfile が {path} に見つかりません。install_dir が設定されていないため、現在のディレクトリを基準に探索されました。これはランチャーがメニューショートカット、Snap、ファイルマネージャーから起動された場合に不確実です。ランチャー設定の install_dir をビルドディレクトリに設定してください。
+dockerfile_mode_needs_dockerpy: dockerfile モードには Python パッケージ docker（docker-py）が必要ですが、このインストールでは利用できません。
+dockerfile_not_found: 'Dockerfile が見つかりません: {path}。launcher 設定の deployment_mode/Dockerfile を確認してください。'
+dockerfile_unreadable: 'Dockerfile は見つかりましたが読み取れません: {path} ({error})。'
+error: 'エラー: {msg}'
+error_word: エラー
+fix_docker_permission: Docker アクセスを設定…
+free_port_found: '空きポートが見つかりました: {port}。'
+health_ok: 準備が完了しました ✓
+image_acquire_failed: 'アプリイメージのダウンロードに失敗しました: {detail}'
+image_acquiring: アプリのイメージをダウンロード中（初回は数分かかることがあります）...
+image_archive_base_unresolved: '{path} にイメージアーカイブが見つかりません。install_dir が未設定のため現在のディレクトリを基準に検索しましたが、メニューショートカット・Snap・ファイルマネージャーから起動した場合は信頼できません。ランチャー設定の install_dir にアーカイブのあるディレクトリを設定してください。'
+image_archive_unreadable: '設定されたイメージアーカイブを読み取れません: {path}（{base} 内を検索）'
+image_built: イメージをビルドしました ✓
+image_mode_needs_dockerpy: image モードには Python パッケージ docker（docker-py）が必要ですが、このインストールでは利用できません。
+image_mode_needs_reference: image モードにはイメージのソースが必要です。設定に image_reference（タグまたはダイジェスト）か image_archive を設定してください。
+image_needs_network: アプリのイメージはまだこのマシンにありません。ダウンロードにはインターネット接続が必要です。ダウンロード後はオフラインで動作します。
+install: インストール
+install_needs_network: インストールにはベースイメージをダウンロードするためのインターネット接続が今必要です。アプリ自体はインストール後オフラインで動作します。
+installing: '{app} をセットアップしています...'
+internal_port_changed: 内部ポート {name} を {port} に変更しました。
+internal_port_confirm: 内部ポートの変更には Docker イメージの再ビルドが必要です（2〜5分）。続行しますか？
+internal_port_field: '{name} ポート（内部）:'
+internal_port_rebuilding: 内部ポートを変更しました。イメージを再ビルドしています（数分かかる場合があります）...
+internal_port_set: 内部ポート {name} を {port} に設定しました。
+internal_port_unknown: '不明な内部ポート: {name}。'
+log_copied: コピーしました!
+log_copy: ログをコピー
+no_containers: コンテナは見つかりませんでした ✓
+no_docker: Docker が起動していません。
+no_free_port: 空きポートが見つかりません。
+not_installed: '{app} はインストールされていません。'
+not_reachable: 'インストールされましたが、{app} に到達できません: {detail}'
+not_reachable_after: '{timeout}秒後も {app} に到達できません（{detail}）。'
+nothing_to_uninstall: アンインストールするものはありません（コンテナが存在しません）。
+open_browser: ブラウザで開く
+open_install_guide: インストールガイドを開く
+port_changed: ポートを {port} に変更しました。
+port_free: ポート {port} は空いています。
+port_invalid: ポートは {min} から {max} の間でなければなりません。
+port_mismatch_rendered: ランチャーはポート {expected} を想定していますが、compose ファイルは {published} を公開します。env_port_key（{port_key}）を compose のポート変数と .env の値に対して確認してください。
+port_occupied: ポート {port} は使用中です。
+port_restarting: ポートを変更しました。{app} を再起動しています...
+port_set: ポートを {port} に設定しました。
+ready: インストールが完了しました。{app} の準備が整いました。
+repo_url_not_cloned: '注: repo_url（{url}）はリンク/更新チェック専用で、ランチャーはクローンしません。install_dir はローカルのチェックアウトを指す必要があります。'
+restore_defaults: 既定値に戻す
+retry: 再確認
+run_in_background: バックグラウンド
+running: '{app} はポート {port} で実行中です。'
+scan_configs: 設定の残骸を検索中... {count} 個見つかりました
+scan_containers: 孤立したコンテナを検索中... {count} 個見つかりました
+scan_images: 古いイメージを検索中... {count} 個見つかりました
+scan_volumes: 孤立したボリュームを検索中... {count} 個見つかりました
+skip: スキップ
+start: 開始
+start_docker: Docker を起動
+start_done: '{app} を開始しました。'
 start_failed: '開始に失敗しました:
 
   {detail}'
-start_timeout: 開始がタイムアウトしました。
-not_reachable: 'インストールされましたが、{app} に到達できません: {detail}'
-container_not_running: コンテナはビルドされましたが実行されていません。
 start_no_container: 開始コマンドは実行されましたが、コンテナが実行されていません。
+start_timeout: 開始がタイムアウトしました。
+starting: コンテナを起動中...
+step_remove_config: 設定 '{path}' を削除
+step_remove_container: コンテナ '{name}' を削除
+step_remove_image: イメージ '{ref}' を削除
+step_remove_volume: ボリューム '{name}' を削除
+step_skip_volume: ボリューム '{name}' をスキップしました（未選択）。
+step_skip_volume_active: ボリューム '{name}' をスキップしました（アクティブなプロジェクト）。
+step_stop_container: コンテナ '{name}' を停止
+stop: 停止
+stop_done: '{app} を停止しました。'
 stop_failed: '停止に失敗しました: {detail}'
 stop_not_verified: 停止コマンドの後もコンテナがまだ実行中です。
+stopped: '{app} はインストール済みですが停止しています。'
+tooltip_already_installed: すでにインストール済みです
+tooltip_already_running: すでに実行中です
+tooltip_needs_docker: Docker が実行されていません
+tooltip_no_log: コピーするログがまだありません
+tooltip_not_installed: アプリはまだインストールされていません
+tooltip_not_running: アプリは実行されていません
+tooltip_only_running: アプリの実行中のみ利用できます
+tray_open: 開く
+tray_quit: 終了
+uninstall: アンインストール
+uninstall_done: アンインストールが完了しました。データは保持されます。
 uninstall_partial: '一部削除しました: {count} 個のコンテナを削除できませんでした。'
-not_reachable_after: '{timeout}秒後も {app} に到達できません（{detail}）。'
-error: 'エラー: {msg}'
-error_word: エラー
+uninstalling: アンインストールを開始しました...
 update_available: 'アップデートがあります: {tag} - {url}'
-step_skip_volume: "ボリューム '{name}' をスキップしました（未選択）。"
-step_skip_volume_active: "ボリューム '{name}' をスキップしました（アクティブなプロジェクト）。"
-docker_not_running: "Docker はインストールされていますが起動していません。"
-docker_no_permission: "Docker は起動していますが、ユーザーに権限がありません（'docker' グループに未所属）。'sudo usermod -aG docker $USER' を実行し、その後必ずログアウトして再ログイン（または再起動）してください。グループ変更は新しいログインセッションでのみ有効になります。現在のターミナルだけなら 'newgrp docker' も使えます。"
-docker_no_path: "Docker Desktop はインストールされていますが PATH にありません。"
-start_docker: "Docker を起動"
-open_install_guide: "インストールガイドを開く"
-log_copy: "ログをコピー"
-log_copied: "コピーしました!"
-cleanup_scanning: "インストールの残存ファイルを検索しています..."
-cleanup_none: "インストールの残存ファイルは見つかりませんでした。"
-tooltip_needs_docker: "Docker が実行されていません"
-tooltip_already_installed: "すでにインストール済みです"
-tooltip_already_running: "すでに実行中です"
-tooltip_not_installed: "アプリはまだインストールされていません"
-tooltip_not_running: "アプリは実行されていません"
-tooltip_only_running: "アプリの実行中のみ利用できます"
-tooltip_no_log: "コピーするログがまだありません"
-docker_not_running_detail: 'Docker が実行されていません。確認したコンテキスト ''{context}'' ({endpoint}): {error}'
-docker_running_other_context: 'Docker はコンテキスト ''{context}'' 経由で実行中です - アクティブなコンテキストに接続できなかったため、ランチャーが自動的に接続しました。'
-fix_docker_permission: "Docker アクセスを設定…"
-docker_group_confirm: "アカウントを 'docker' グループに追加します。これは実質的にこのシステムの root 権限を与えることになります（Docker では標準的な運用です）。続行しますか？"
-docker_group_added: "'docker' グループに追加しました。変更を有効にするにはログアウトして再ログイン（または再起動）してください。このセッションではまだ Docker は使えません。"
-docker_group_cancelled: "キャンセルしました。変更はありません。手動での対処: 'sudo usermod -aG docker $USER' を実行し、ログアウトして再ログインしてください。"
-docker_group_failed: "'docker' グループへの追加に失敗しました: {error}。手動での対処: 'sudo usermod -aG docker $USER' を実行し、ログアウトして再ログインしてください。"
-docker_desktop_waiting: "Docker Desktop を起動しています。しばらくかかることがあります（VM 起動）…"
-about: "情報…"
-about_open_issues: "問題を報告 - ブラウザで issue tracker を開きますか？"
-checking_context: "Docker コンテキスト '{context}'（{endpoint}）を確認中…"
-cleanup_now: "今すぐクリーンアップ"
-app_logs: "アプリのログ"
-app_logs_failed: "アプリのログを取得できませんでした: {detail}"
-app_logs_empty: "アプリはまだログを出力していません。"
-compose_missing: "Docker Compose が利用できません。Compose v2 プラグインをインストールしてください — Ubuntu/Debian: 'sudo apt install docker-compose-plugin'（または Docker を更新）— その後ランチャーを再起動してください。 シングルサービスのアプリは代わりに deployment_mode 'dockerfile' を使えます（Compose 不要）。"
-compose_v1_incompatible: "古い docker-compose v1 のみが見つかりましたが、このアプリの compose ファイル（{path}）を読み込めません。Compose v2 プラグインをインストールしてください: 'sudo apt install docker-compose-plugin'。その後ランチャーを再起動してください。"
-dockerfile_not_found: "Dockerfile が見つかりません: {path}。launcher 設定の deployment_mode/Dockerfile を確認してください。"
-dockerfile_mode_needs_dockerpy: "dockerfile モードには Python パッケージ docker（docker-py）が必要ですが、このインストールでは利用できません。"
-
-# --- build readiness / capability gate (#54) ---
-buildx_too_old: "Docker Compose のビルドは buildx に委譲され、buildx {required} 以降が必要ですが、インストールされているのは buildx {found} です。新しい buildx をインストールしてください: お使いのプラットフォーム向けバイナリを docker/buildx のリリースから入手し、{path} に配置して 'chmod +x {path}' で実行可能にします。ディストリビューションのパッケージはこの用途では信頼できないことが分かっています。"
-buildx_missing: "Docker Compose のビルドは buildx に委譲され、buildx {required} 以降が必要ですが、buildx プラグインが見つかりませんでした。buildx をインストールしてください: お使いのプラットフォーム向けバイナリを docker/buildx のリリースから入手し、{path} に配置して 'chmod +x {path}' で実行可能にします。ディストリビューションのパッケージはこの用途では信頼できないことが分かっています。"
-app_requirement_too_old: "このアプリは {component} {required} 以降を必要としますが、インストールされているのは {found} です。Docker を更新してください。"
-app_requirement_missing: "このアプリは {component} {required} 以降を必要としますが、{component} を検出できませんでした。Docker をインストールまたは更新してください。"
-compose_unreadable: "Compose ファイルは見つかりましたが読み取れません: {path} ({error})。"
-dockerfile_unreadable: "Dockerfile は見つかりましたが読み取れません: {path} ({error})。"
-build_context_not_found: "ビルドコンテキストのディレクトリが見つかりません: {path}。launcher 設定の build_context を確認してください。"
-docker_permission_non_root_socket: "Docker はこのエンドポイントで接続を拒否しました。これは従来の root ソケットではないため、'docker' グループはここでは関係ありません。rootless Docker では DOCKER_HOST を $XDG_RUNTIME_DIR/docker.sock に設定してください。リモートのエンドポイントではそのアクセス規則を確認し、Docker Desktop では起動していることを確認してください。"
-compose_base_unresolved: "Compose ファイルが {path} に見つかりません。install_dir が設定されていないため、現在のディレクトリを基準に探索されました。これはランチャーがメニューショートカット、Snap、ファイルマネージャーから起動された場合に不確実です。ランチャー設定の install_dir を compose ファイルのあるディレクトリに設定してください。"
-dockerfile_base_unresolved: "Dockerfile が {path} に見つかりません。install_dir が設定されていないため、現在のディレクトリを基準に探索されました。これはランチャーがメニューショートカット、Snap、ファイルマネージャーから起動された場合に不確実です。ランチャー設定の install_dir をビルドディレクトリに設定してください。"
-disk_low: "ビルド用のディスク空き容量が不足しています: {path} に {free} しか空きがなく、ビルドに必要とみられる {needed} を下回っています。空き容量を確保するか、min_build_disk_bytes を 0 に設定してこのチェックを省略してください。"
-install_needs_network: "インストールにはベースイメージをダウンロードするためのインターネット接続が今必要です。アプリ自体はインストール後オフラインで動作します。"
-build_failed_network: "ビルドがイメージをダウンロードするためにネットワークへ到達できませんでした: {detail}。インターネット接続またはプロキシを確認して再試行してください。"
-port_mismatch_rendered: "ランチャーはポート {expected} を想定していますが、compose ファイルは {published} を公開します。env_port_key（{port_key}）を compose のポート変数と .env の値に対して確認してください。"
-repo_url_not_cloned: '注: repo_url（{url}）はリンク/更新チェック専用で、ランチャーはクローンしません。install_dir はローカルのチェックアウトを指す必要があります。'
-app_logs_follow_stop: ログを停止
-image_acquiring: アプリのイメージをダウンロード中（初回は数分かかることがあります）...
-image_acquire_failed: 'アプリイメージのダウンロードに失敗しました: {detail}'
-image_needs_network: アプリのイメージはまだこのマシンにありません。ダウンロードにはインターネット接続が必要です。ダウンロード後はオフラインで動作します。
-image_mode_needs_reference: image モードにはイメージのソースが必要です。設定に image_reference（タグまたはダイジェスト）か image_archive を設定してください。
-image_archive_unreadable: '設定されたイメージアーカイブを読み取れません: {path}'
-image_mode_needs_dockerpy: image モードには Python パッケージ docker（docker-py）が必要ですが、このインストールでは利用できません。
+updating: イメージを更新中（コード変更後は数分、それ以外は数秒）...
+verify_clean: '検証: コンテナは見つかりませんでした ✓'
+verify_remain: '検証: {count} 個のコンテナが残っています ✗'

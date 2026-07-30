@@ -256,3 +256,15 @@ elsewhere inside the container - caches, scratch files, in-container
 logs - are discarded on every start. Measured 2026-07-30: an
 outside-volume file is gone after start(), the named-volume file
 survives.
+
+
+## The concurrency guard (0.25)
+
+The launcher refuses to run two operations against the same container at
+once (GUI and CLI alike). The guard's marker lives in `config_dir`
+(home-anchored by default, the same directory as `launcher.json` and the
+install manifest). Do not redirect `config_dir` to a read-only location
+in a frozen bundle: the launcher will still work (the guard opens
+deliberately and visibly), but users will see the "concurrency guard
+cannot work" note on every operation. The frozen render-probe contract
+checks this anchor on every CI push.

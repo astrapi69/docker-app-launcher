@@ -213,3 +213,16 @@ That gives the app's authors what they need to help you quickly.
   ship their own app with this launcher.
 - The project [README](../README.md), for the full configuration reference and
   the command-line interface.
+
+
+## Cancelling an installation or update
+
+While something is installing or updating you will see a **Cancel**
+button next to the progress bar. Cancelling is safe: parts that were
+already downloaded stay on your computer and make the next attempt
+faster. If you cancel an **update**, the app will be stopped afterwards
+(updating stops it first) — press **Start** to run the version you had
+before. If a cancelled step stops answering, the window frees itself
+after a few seconds and tells you; new operations wait until the old one
+reports back (at most 10 minutes), and restarting the launcher also
+clears this. Your data is kept in all of these cases.

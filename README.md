@@ -84,6 +84,21 @@ docker-app-launcher --config launcher.json --health --json
 **Exit codes** (contract): `0` success · `1` operation failed / doctor
 found blockers / health failed · `2` config or usage error.
 
+**Cancelling and the concurrency guard** (0.25): running installs,
+starts and updates show a Cancel control while they run. Cancel really
+ends the operation where that is technically true — a cancelled pull
+keeps already-downloaded layers cached (the next attempt is faster), a
+cancelled update leaves the app STOPPED and says that Start runs the
+previous version. Operations where a real abort is impossible show no
+control. If a cancelled operation stops answering, the window frees
+itself after 10 seconds with an honest note, and new operations are
+paused (GUI and CLI alike) until the stuck one reports back, at most 10
+minutes — restarting the launcher also clears this. Two notes you may
+see and what they mean: "never confirmed its end" = the previous
+operation's result is unknown, run Check system; "the concurrency guard
+cannot work" = its marker file is not writable — with default settings
+this should never appear.
+
 **Support bundle**: a human-readable document, never an opaque archive —
 it states first what it contains, so you can review it before sending.
 It carries versions, mode, state, port, health, the exact image identity
@@ -252,6 +267,15 @@ artifacts in one place.
 - DE/EN + 9 additional languages (YAML-based, extensible)
 - Actions architecture (testable without GUI)
 - CLI ↔ GUI parity
+- Installation assistant: "Check system" with a per-problem card
+  ("What does this mean?" / "What you can do"), copy diagnosis /
+  support bundle, collapsed details log (0.24)
+- One-step Update (button + `--update`) with rollback hint (0.24)
+- Machine-readable diagnostics: `--doctor/--status/--health/--support-bundle --json` (0.24)
+- Cancel for running operations with honest per-operation semantics,
+  and a defined idle state after success, failure and cancel (0.25)
+- Cross-process concurrency guard: no two operations on the same
+  container, with named exits - never a stuck state (0.25)
 
 ## Custom Icons
 

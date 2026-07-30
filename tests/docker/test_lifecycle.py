@@ -229,6 +229,27 @@ class TestStart:
         ok, msg = lifecycle.start(config)
         assert ok is True and "started" in msg
 
+    def test_compose_rebuild_forces_recreate(self, config, monkeypatch) -> None:
+        # --build alone rebuilds the image but compose may restart the OLD
+        # container on the OLD image (config-hash unchanged), so a code change
+        # never runs. start() must pass --force-recreate on the compose rebuild
+        # (measured: the #88 compose rebuild cell served stale content).
+        _make_repo(config)
+        states = iter(["stopped", "running"])
+        monkeypatch.setattr(lifecycle, "check_docker", lambda: (True, "ok"))
+        monkeypatch.setattr(lifecycle, "get_state", lambda c: next(states))
+        monkeypatch.setattr(lifecycle, "_run", lambda *a, **k: make_result(stdout=""))
+        captured: dict[str, tuple[str, ...]] = {}
+
+        def fake_stream(c, *a, **k):
+            captured["args"] = a
+            return (0, "")
+
+        monkeypatch.setattr(lifecycle, "_stream_compose", fake_stream)
+        ok, _ = lifecycle.start(config)
+        assert ok is True
+        assert captured["args"] == ("up", "--build", "-d", "--force-recreate")
+
     def test_already_running(self, config, monkeypatch) -> None:
         monkeypatch.setattr(lifecycle, "check_docker", lambda: (True, "ok"))
         monkeypatch.setattr(lifecycle, "get_state", lambda c: "running")

@@ -174,8 +174,11 @@ def change_internal_port(
 
     _notify(on_step, _t(config, "internal_port_rebuilding"))
     try:
+        # --force-recreate: an internal-port change only takes effect on a NEW
+        # container; compose would otherwise restart the old one (same reason as
+        # start(), where this was measured).
         rc, tail = _stream_compose(
-            config, "up", "--build", "-d", on_output=on_output, timeout=float(config.build_timeout)
+            config, "up", "--build", "-d", "--force-recreate", on_output=on_output, timeout=float(config.build_timeout)
         )
     except FileNotFoundError:
         return False, _t(config, "docker_unavailable")
@@ -555,12 +558,20 @@ def start(
     on_progress: ProgressPctFn | None = None,
     should_cancel: CancelFn | None = None,
 ) -> tuple[bool, str]:
-    """Start the stack via ``compose up --build -d``, then VERIFY it runs.
+    """Start the stack via ``compose up --build -d --force-recreate``, then
+    VERIFY it runs.
 
     Always passes ``--build`` so a code change is picked up on the next start;
-    Docker's layer cache makes an unchanged rebuild near-instant. ``up --build
-    -d`` also creates the containers if they do not exist yet, so it works from
-    both 'stopped' and a removed state.
+    Docker's layer cache makes an unchanged rebuild near-instant. ``--build``
+    alone was not enough: compose decides recreation from the service config
+    hash, not the image content, so a stopped container was RESTARTED on the
+    OLD image while the rebuilt image sat unused - the newly built code never
+    ran (measured: the #88 compose rebuild cell served stale content, and this
+    is the path :func:`update` re-acquires through). ``--force-recreate`` makes
+    the rebuilt image actually take effect, honoring this function's contract.
+    Named volumes survive a recreate, so data is preserved. ``up --build -d``
+    also creates the containers if they do not exist yet, so it works from both
+    'stopped' and a removed state.
     """
     _call(config, config.on_before_start)
     docker_ok, _ = check_docker()
@@ -604,6 +615,9 @@ def start(
                 "up",
                 "--build",
                 "-d",
+                # Recreate from the freshly built image (see docstring): without
+                # this compose may restart the old container on the old image.
+                "--force-recreate",
                 on_output=on_output,
                 on_progress=on_progress,
                 lo=5,

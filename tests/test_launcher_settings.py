@@ -268,7 +268,10 @@ class TestInternalPorts:
         assert settings.resolve_internal_port(iconfig, "backend") == 9001
 
     def test_change_running_rebuilds(self, iconfig, monkeypatch) -> None:
-        # An internal-port change MUST rebuild (up --build -d), not just restart.
+        # An internal-port change MUST rebuild AND recreate the container
+        # (up --build -d --force-recreate): the new internal port only takes
+        # effect on a new container, and compose would otherwise restart the
+        # old one on the old image.
         _make_repo(iconfig)
         captured: dict[str, tuple[str, ...]] = {}
         states = iter(["running", "running"])
@@ -285,7 +288,7 @@ class TestInternalPorts:
         monkeypatch.setattr(lifecycle, "_run", lambda *a, **k: make_result(stdout=""))
         ok, msg = lifecycle.change_internal_port(iconfig, "backend", 9001)
         assert ok is True and "9001" in msg
-        assert captured["args"] == ("up", "--build", "-d")
+        assert captured["args"] == ("up", "--build", "-d", "--force-recreate")
 
     def test_change_stop_failure_aborts(self, iconfig, monkeypatch) -> None:
         _make_repo(iconfig)  # the rebuild path now runs the build capability gate first (#54)

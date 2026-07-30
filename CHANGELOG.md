@@ -80,6 +80,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Compose rebuild now runs the freshly built image (`--force-recreate`).**
+  `docker compose up --build -d` rebuilt the image, but whether the
+  container was RECREATED onto it depended on the user's Compose
+  generation: newer Compose recreates on a changed image, older ones
+  decide from the service config-hash and restart the OLD container - a
+  code change built but never ran, while the launcher reported success
+  and the health check answered from the old container. `start()` and
+  `change_internal_port()` now pass `--force-recreate`, making the
+  documented contract ("a code change is picked up on the next start")
+  deterministic across Compose generations. Named volumes survive a
+  recreate; anything written INSIDE the container outside a named volume
+  is ephemeral on every start from now on (measured, see the
+  environment matrix). Surfaced by the #92 lifecycle-matrix runs on the
+  CI runner's Compose; locked by a mocked test.
 - **False "Port occupied" for up to a minute after a stop (#90).** The
   bind probe now sets SO_REUSEADDR on POSIX - TIME_WAIT remnants of a
   just-stopped app no longer read as occupied, matching how docker-proxy

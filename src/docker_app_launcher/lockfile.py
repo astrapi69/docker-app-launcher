@@ -31,7 +31,14 @@ def read_lock(path: Path) -> int | None:
         return None
     try:
         content = path.read_text(encoding="utf-8").strip()
-    except (OSError, UnicodeDecodeError):
+    except (OSError, UnicodeDecodeError) as exc:
+        # Deliberate, VISIBLE open (#103): failing closed on an unreadable
+        # lock would refuse every start over a full/read-only disk. The
+        # console+logfile note is the visibility channel here - no window
+        # exists yet at this point.
+        logger.warning(
+            "single-instance lock not readable (%s) - continuing WITHOUT the single-instance protection", exc
+        )
         return None
     if not content.isdigit():
         return None
@@ -156,8 +163,14 @@ def _pending_path(config: LauncherConfig) -> Path:
     return config.config_path / _PENDING_FILE
 
 
-def write_pending_operation(config: LauncherConfig, action: str) -> None:
-    """Best-effort, fail-open - the guard must not depend on a writable disk."""
+def write_pending_operation(config: LauncherConfig, action: str) -> str | None:
+    """Arm the guard; returns None on success, else the failure detail.
+
+    DELIBERATE fail-open (#103, the named exception to contract point 3):
+    the guard must not depend on a writable disk - but the CALLER must
+    surface the returned detail visibly, because a silently missing
+    protection is the worst case.
+    """
     import json as _json
     import time as _time
 
@@ -168,8 +181,10 @@ def write_pending_operation(config: LauncherConfig, action: str) -> None:
             _json.dumps({"action": action, "at": _time.time(), "pid": os.getpid()}),
             encoding="utf-8",
         )
+        return None
     except OSError as exc:
         logger.warning("could not write pending-operation marker: %s", exc)
+        return str(exc)
 
 
 def clear_pending_operation(config: LauncherConfig) -> None:
@@ -179,20 +194,44 @@ def clear_pending_operation(config: LauncherConfig) -> None:
         _pending_path(config).unlink(missing_ok=True)
 
 
-def read_pending_operation(config: LauncherConfig) -> dict[str, object] | None:
-    """The marker, or None when absent, malformed, or its owner pid is dead."""
+def read_pending_operation(config: LauncherConfig) -> tuple[dict[str, object] | None, str | None]:
+    """``(marker, degraded_detail)``.
+
+    ``(None, None)``   - no marker, or a VALIDLY void one (dead owner):
+                         the normal silent cases.
+    ``(marker, None)`` - an armed guard.
+    ``(None, detail)`` - the guard CANNOT work: file present but unreadable,
+                         or unparsable content (consumed so the note does not
+                         repeat forever). DELIBERATE fail-open (#103): the
+                         caller proceeds but must surface the detail - a
+                         silently missing protection is the worst case.
+    """
+    import contextlib as _contextlib
     import json as _json
 
+    path = _pending_path(config)
     try:
-        data = _json.loads(_pending_path(config).read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return None
+        raw = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return None, None
+    except OSError as exc:
+        return None, str(exc)
+    try:
+        data = _json.loads(raw)
+    except ValueError as exc:
+        with _contextlib.suppress(OSError):
+            path.unlink(missing_ok=True)
+        return None, f"unparsable marker content ({exc})"
     if not isinstance(data, dict):
-        return None
+        with _contextlib.suppress(OSError):
+            path.unlink(missing_ok=True)
+        return None, "unparsable marker content (not an object)"
     try:
         pid = int(str(data.get("pid", 0)))
     except ValueError:
-        return None
+        with _contextlib.suppress(OSError):
+            path.unlink(missing_ok=True)
+        return None, "unparsable marker content (bad pid)"
     if pid <= 0 or not pid_is_alive(pid):
-        return None
-    return data
+        return None, None  # dead owner: validly void, the marker self-voids
+    return data, None

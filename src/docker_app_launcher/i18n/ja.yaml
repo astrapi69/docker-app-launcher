@@ -98,6 +98,7 @@ error: 'エラー: {msg}'
 error_word: エラー
 fix_docker_permission: Docker アクセスを設定…
 free_port_found: '空きポートが見つかりました: {port}。'
+guard_unavailable: '注: 同時実行ガードは現在機能できません（マーカーファイルにアクセスできません: {detail}）。操作はこの保護なしで続行されます。前の操作が明確に終了するまで、二つ目の操作を開始しないでください。'
 health_ok: 準備が完了しました ✓
 hide_details: 詳細を隠す
 image_acquire_failed: 'アプリイメージのダウンロードに失敗しました: {detail}'

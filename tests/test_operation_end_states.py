@@ -192,7 +192,7 @@ class TestPendingBackgroundGuard:
 
         lockfile.write_pending_operation(app._cfg, "install")
         app._on_result("install", (False, "late failure"))
-        assert lockfile.read_pending_operation(app._cfg) is None
+        assert lockfile.read_pending_operation(app._cfg) == (None, None)
         assert app._pending_background_blocks("install") is False
 
     def test_ttl_release_carries_the_never_confirmed_note(self, app) -> None:
@@ -225,7 +225,8 @@ class TestPendingBackgroundGuard:
         from docker_app_launcher import lockfile
 
         app._on_cancel_unresponsive("update")
-        marker = lockfile.read_pending_operation(app._cfg)
+        marker, degraded = lockfile.read_pending_operation(app._cfg)
+        assert degraded is None
         assert marker is not None and marker["action"] == "update"
 
 

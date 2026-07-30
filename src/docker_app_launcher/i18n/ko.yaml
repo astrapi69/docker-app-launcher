@@ -98,6 +98,7 @@ error: '오류: {msg}'
 error_word: 오류
 fix_docker_permission: Docker 접근 설정…
 free_port_found: '사용 가능한 포트 발견: {port}.'
+guard_unavailable: '참고: 동시 실행 보호가 지금 작동할 수 없습니다(마커 파일에 접근할 수 없음: {detail}). 작업은 이 보호 없이 계속됩니다 - 이전 작업이 눈에 보이게 끝날 때까지 두 번째 작업을 시작하지 마세요.'
 health_ok: 준비가 확인되었습니다 ✓
 hide_details: 자세히 숨기기
 image_acquire_failed: '앱 이미지 다운로드 실패: {detail}'

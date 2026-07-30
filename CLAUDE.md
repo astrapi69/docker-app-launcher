@@ -179,6 +179,15 @@ sentence and one local precedent per point:
    check" is never "nothing to find". Precedent: the dind readiness
    loop fell through silently after 60 swallowed probes and the dead
    engine surfaced as an opaque exec error (#93, fixed in 0159d1e).
+   NAMED EXCEPTION (#103): this point INVERTS for protective guards
+   whose failure would prevent operation itself - failing closed on an
+   unreadable pending-operation marker or single-instance lock would
+   brick the launcher over a full or read-only disk. Those open
+   DELIBERATELY and VISIBLY (a note in the panel/console; a silent open
+   is the worst case, a protection missing unnoticed). Rule of thumb:
+   checks that JUDGE a result fail closed; guards that ENABLE operation
+   open visibly. Written here so nobody later reads the fail-open as a
+   violation and "fixes" it into locking users out.
 4. **It reports WHAT it measured** — an unchecked set reads as a clean
    one. Precedent: publish.yml's gate ran only `make ci` and uploaded
    while the tagged commit's old-engine job was red in ci.yml, outside

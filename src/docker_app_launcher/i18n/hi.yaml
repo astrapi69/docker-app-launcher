@@ -98,6 +98,7 @@ error: 'त्रुटि: {msg}'
 error_word: त्रुटि
 fix_docker_permission: Docker पहुँच सेट करें…
 free_port_found: 'खाली पोर्ट मिला: {port}।'
+guard_unavailable: 'नोट: समवर्ती-सुरक्षा अभी काम नहीं कर सकती (इसकी मार्कर फ़ाइल सुलभ नहीं है: {detail})। कार्य इस सुरक्षा के बिना जारी रहते हैं - पिछला कार्य स्पष्ट रूप से समाप्त होने तक दूसरा कार्य शुरू न करें।'
 health_ok: तैयारी की पुष्टि हुई ✓
 hide_details: विवरण छिपाएँ
 image_acquire_failed: 'ऐप इमेज डाउनलोड विफल: {detail}'

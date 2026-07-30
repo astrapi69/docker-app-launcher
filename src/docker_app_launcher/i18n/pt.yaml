@@ -98,6 +98,7 @@ error: 'Erro: {msg}'
 error_word: Erro
 fix_docker_permission: Configurar acesso ao Docker…
 free_port_found: 'Porta livre encontrada: {port}.'
+guard_unavailable: 'Nota: a proteção de concorrência não pode atuar agora (seu arquivo marcador não está acessível: {detail}). As operações continuam SEM essa proteção - evite iniciar uma segunda operação até a anterior terminar visivelmente.'
 health_ok: Prontidão confirmada ✓
 hide_details: Ocultar detalhes
 image_acquire_failed: 'O download da imagem do app falhou: {detail}'

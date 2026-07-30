@@ -98,6 +98,7 @@ error: 'Kesalahan: {msg}'
 error_word: Kesalahan
 fix_docker_permission: Siapkan akses Docker…
 free_port_found: 'Port tersedia ditemukan: {port}.'
+guard_unavailable: 'Catatan: pelindung konkurensi tidak dapat bekerja sekarang (berkas penandanya tidak dapat diakses: {detail}). Operasi berlanjut TANPA perlindungan ini - hindari memulai operasi kedua sampai yang sebelumnya terlihat selesai.'
 health_ok: Kesiapan dikonfirmasi ✓
 hide_details: Sembunyikan detail
 image_acquire_failed: 'Unduhan image aplikasi gagal: {detail}'

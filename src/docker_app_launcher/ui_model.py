@@ -578,7 +578,12 @@ def check_pending_operation(config: LauncherConfig, action_id: str) -> tuple[str
 
     if action_id not in LONG_RUNNING_ACTIONS:
         return None, None
-    marker = _lockfile.read_pending_operation(config)
+    marker, degraded = _lockfile.read_pending_operation(config)
+    if degraded is not None:
+        # DELIBERATE open with a visible note (#103): failing closed here
+        # would brick the launcher; opening silently would hide that a
+        # protection is missing.
+        return None, i18n.t("guard_unavailable", config, detail=degraded)
     if marker is None:
         return None, None
     try:

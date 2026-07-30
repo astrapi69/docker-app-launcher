@@ -98,6 +98,7 @@ error: 'Hata: {msg}'
 error_word: Hata
 fix_docker_permission: Docker erişimini ayarla…
 free_port_found: 'Boş bağlantı noktası bulundu: {port}.'
+guard_unavailable: 'Not: eşzamanlılık koruması şu anda çalışamıyor (işaret dosyasına erişilemiyor: {detail}). İşlemler bu koruma OLMADAN devam ediyor - önceki işlem görünür şekilde bitmeden ikinci bir işlem başlatmayın.'
 health_ok: Hazırlık doğrulandı ✓
 hide_details: Ayrıntıları gizle
 image_acquire_failed: 'Uygulama imajı indirme başarısız: {detail}'

@@ -98,6 +98,7 @@ error: 'Fehler: {msg}'
 error_word: Fehler
 fix_docker_permission: Docker-Zugriff einrichten…
 free_port_found: 'Freier Port gefunden: {port}.'
+guard_unavailable: 'Hinweis: der Nebenläufigkeits-Schutz kann gerade nicht wirken (seine Marker-Datei ist nicht zugreifbar: {detail}). Vorgänge laufen OHNE diesen Schutz weiter - starte keinen zweiten Vorgang, bevor der vorherige sichtbar beendet ist.'
 health_ok: Bereitschaft bestätigt ✓
 hide_details: Details ausblenden
 image_acquire_failed: 'Herunterladen des App-Images fehlgeschlagen: {detail}'

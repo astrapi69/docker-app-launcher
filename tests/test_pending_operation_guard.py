@@ -38,10 +38,11 @@ def _cfg_file(gconfig, tmp_path) -> str:
 class TestMarkerLifecycle:
     def test_write_read_clear(self, gconfig) -> None:
         lockfile.write_pending_operation(gconfig, "install")
-        marker = lockfile.read_pending_operation(gconfig)
+        marker, degraded = lockfile.read_pending_operation(gconfig)
+        assert degraded is None
         assert marker is not None and marker["action"] == "install" and int(str(marker["pid"])) == os.getpid()
         lockfile.clear_pending_operation(gconfig)
-        assert lockfile.read_pending_operation(gconfig) is None
+        assert lockfile.read_pending_operation(gconfig) == (None, None)
 
     def test_dead_pid_voids_the_marker(self, gconfig) -> None:
         lockfile.write_pending_operation(gconfig, "update")
@@ -49,15 +50,16 @@ class TestMarkerLifecycle:
         data = json.loads(path.read_text())
         data["pid"] = 999999900  # certainly dead
         path.write_text(json.dumps(data))
-        assert lockfile.read_pending_operation(gconfig) is None, (
+        assert lockfile.read_pending_operation(gconfig) == (None, None), (
             "a dead owner means the hung worker died with it - the marker is void"
         )
 
-    def test_malformed_marker_is_void_not_a_crash(self, gconfig) -> None:
+    def test_malformed_marker_is_degraded_not_a_crash(self, gconfig) -> None:
         path = gconfig.config_path / "pending-operation.json"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("{broken")
-        assert lockfile.read_pending_operation(gconfig) is None
+        marker, degraded = lockfile.read_pending_operation(gconfig)
+        assert marker is None and degraded is not None
 
 
 class TestSharedGate:
@@ -82,7 +84,7 @@ class TestSharedGate:
         assert note is not None and ("never confirmed" in note or "nie" in note), (
             "a release BY TIME must say the previous state was never confirmed - it is not an all-clear"
         )
-        assert lockfile.read_pending_operation(gconfig) is None, "expired marker is consumed"
+        assert lockfile.read_pending_operation(gconfig) == (None, None), "expired marker is consumed"
 
 
 class TestCliSeesTheGuard:
@@ -133,3 +135,52 @@ class TestGuardedSetSyncPin:
             "change_port",
             "change_internal_port",
         }
+
+
+class TestDeliberateOpenIsVisible:
+    """#103: the NAMED exception to contract point 3. This guard must not
+    fail closed - an unreadable marker would brick the launcher - but a
+    SILENT open is the worst case: a protection missing unnoticed. Both
+    degraded sides carry a visible note and the action proceeds."""
+
+    def test_unreadable_marker_opens_with_note(self, gconfig) -> None:
+        import os
+        import stat
+
+        path = gconfig.config_path / "pending-operation.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text('{"action": "install", "at": 9999999999, "pid": 1}')
+        os.chmod(path, 0)
+        try:
+            block, note = ui_model.check_pending_operation(gconfig, "install")
+            assert block is None, "the guard must not brick the launcher"
+            assert note is not None and ("guard" in note.lower() or "schutz" in note.lower()), (
+                "a silent open is the worst case - the missing protection must be named"
+            )
+        finally:
+            os.chmod(path, stat.S_IRUSR | stat.S_IWUSR)
+
+    def test_garbage_marker_opens_with_note_and_is_consumed(self, gconfig) -> None:
+        path = gconfig.config_path / "pending-operation.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("{broken")
+        block, note = ui_model.check_pending_operation(gconfig, "install")
+        assert block is None and note is not None
+        assert not path.exists(), "consumed, so the note does not repeat forever"
+
+    def test_unwritable_dir_reports_the_failed_arming(self, gconfig) -> None:
+        import os
+        import stat
+
+        gconfig.config_path.mkdir(parents=True, exist_ok=True)
+        os.chmod(gconfig.config_path, stat.S_IRUSR | stat.S_IXUSR)
+        try:
+            detail = lockfile.write_pending_operation(gconfig, "install")
+            assert detail is not None, "a failed arming must be reported, not just logged"
+        finally:
+            os.chmod(gconfig.config_path, 0o755)
+
+    def test_absent_marker_stays_silent(self, gconfig) -> None:
+        assert ui_model.check_pending_operation(gconfig, "install") == (None, None), (
+            "no marker is the NORMAL case - no note noise"
+        )

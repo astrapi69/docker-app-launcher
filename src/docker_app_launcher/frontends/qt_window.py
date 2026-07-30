@@ -511,7 +511,10 @@ if HAS_QT:
             self._hide_progress()
             self._build_in_progress = False
             self._set_busy(False)
-            lockfile.write_pending_operation(self._cfg, action_id)
+            arming_failure = lockfile.write_pending_operation(self._cfg, action_id)
+            if arming_failure is not None:
+                # Deliberate open, VISIBLY (#103): the guard could not arm.
+                self._log(self._t("guard_unavailable", detail=arming_failure), tag="err")
             self._log(self._t("cancel_unresponsive"), tag="err")
             self._record_cancel_outcome(action_id, "cancel_unresponsive")
             self._refresh()

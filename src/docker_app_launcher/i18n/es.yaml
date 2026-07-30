@@ -98,6 +98,7 @@ error: 'Error: {msg}'
 error_word: Error
 fix_docker_permission: Configurar acceso a Docker…
 free_port_found: 'Puerto libre encontrado: {port}.'
+guard_unavailable: 'Nota: la protección de concurrencia no puede funcionar ahora (su archivo marcador no es accesible: {detail}). Las operaciones continúan SIN esta protección - evita iniciar una segunda operación hasta que la anterior haya terminado visiblemente.'
 health_ok: Disponibilidad confirmada ✓
 hide_details: Ocultar detalles
 image_acquire_failed: 'La descarga de la imagen de la app falló: {detail}'

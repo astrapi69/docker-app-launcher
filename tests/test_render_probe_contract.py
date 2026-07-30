@@ -52,6 +52,8 @@ def _valid_contract() -> dict[str, object]:
             "status_headline": "· Probe App is not installed.",
             "log_collapsed_default": True,
             "progress_idle": True,
+            "guard_marker_writable": True,
+            "guard_marker_dir": "/home/user/.probe-app",
         },
     }
 
@@ -104,4 +106,21 @@ class TestAssistantContract:
         assistant = contract["assistant"]
         assert isinstance(assistant, dict)
         assistant["log_collapsed_default"] = False
+        assert _judge(contract).returncode == 1
+
+    def test_unwritable_guard_anchor_fails(self) -> None:
+        contract = _valid_contract()
+        assistant = contract["assistant"]
+        assert isinstance(assistant, dict)
+        assistant["guard_marker_writable"] = False
+        result = _judge(contract)
+        assert result.returncode == 1 and "guard-unavailable" in result.stdout
+
+    def test_pre_marker_contract_fails(self) -> None:
+        # RED for the anchor check itself: a probe without the field must
+        # not satisfy the judge (an unchecked anchor reads as unchecked).
+        contract = _valid_contract()
+        assistant = contract["assistant"]
+        assert isinstance(assistant, dict)
+        del assistant["guard_marker_writable"]
         assert _judge(contract).returncode == 1

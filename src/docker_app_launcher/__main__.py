@@ -85,6 +85,16 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _probe_guard_marker(config: LauncherConfig) -> bool:
+    """Arm and clear the pending marker once - the render probe's proof that
+    the guard can work at the BUILT artifact's real config anchor."""
+    from docker_app_launcher import lockfile as _lockfile
+
+    detail = _lockfile.write_pending_operation(config, "render-probe")
+    _lockfile.clear_pending_operation(config)
+    return detail is None
+
+
 def run_render_probe(config: LauncherConfig) -> int:
     """Open the real window once and print its rendered contract as JSON.
 
@@ -131,6 +141,13 @@ def run_render_probe(config: LauncherConfig) -> int:
             # progress indicator must be hidden; a bar that is visible here
             # is the stuck-activity class the device finding exposed.
             "progress_idle": not bool(app._progress_frame.winfo_ismapped()),
+            # #102/#103 at the BUILT artifact: the concurrency guard's marker
+            # must be armable where the frozen binary actually runs - config
+            # paths are anchored specially in frozen operation, and a wrong
+            # anchor would greet the device session with the guard-
+            # unavailable note. Probed by ARMING for real, then cleaning up.
+            "guard_marker_writable": _probe_guard_marker(config),
+            "guard_marker_dir": str(config.config_path),
         },
     }
     app.destroy()

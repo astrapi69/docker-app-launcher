@@ -67,6 +67,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--install", action="store_true", help="Build + start the app and exit.")
     parser.add_argument("--start", action="store_true", help="Start the stopped app and exit.")
+    parser.add_argument(
+        "--update",
+        action="store_true",
+        help="Update the app in one step (stop, re-acquire, start, health check) and exit.",
+    )
     parser.add_argument("--stop", action="store_true", help="Stop the running app and exit.")
     parser.add_argument("--uninstall", action="store_true", help="Remove the app containers/images and exit.")
     parser.add_argument("--cleanup", action="store_true", help="Remove stale leftovers and exit.")
@@ -113,6 +118,7 @@ def run_render_probe(config: LauncherConfig) -> int:
             "system_check": str(app._system_check_btn.cget("text")),
             "copy_diagnosis": str(app._copy_buttons["copy_diagnosis"].cget("text")),
             "copy_support_bundle": str(app._copy_buttons["copy_support_bundle"].cget("text")),
+            "update_app": str(app._update_btn.cget("text")),
             "log_toggle": str(app._log_toggle_btn.cget("text")),
             "problem_card_sections": [
                 str(app._problem_meaning_label.cget("text")),
@@ -177,6 +183,10 @@ def run_cli_action(args: argparse.Namespace, config: LauncherConfig) -> int | No
         return 0 if ok else 1
     if args.start:
         ok, msg = actions.start(config, on_step=print, on_output=print)
+        print(msg)
+        return 0 if ok else 1
+    if args.update:
+        ok, msg = actions.update(config, on_step=print, on_output=print)
         print(msg)
         return 0 if ok else 1
     if args.stop:

@@ -69,6 +69,7 @@ def main() -> int:
             "log_toggle",
             "problem_card",
             "status_headline",
+            "update_button",
         ]
         if assistant.get("elements") != expected_elements:
             errors.append(f"assistant elements mismatch: {assistant.get('elements')!r} != {expected_elements!r}")
@@ -76,12 +77,13 @@ def main() -> int:
             "system_check",
             "copy_diagnosis",
             "copy_support_bundle",
+            "update_app",
             "show_details",
             "hide_details",
             "what_it_means",
             "what_to_do",
         }
-        for label_field in ("system_check", "copy_diagnosis", "copy_support_bundle", "log_toggle"):
+        for label_field in ("system_check", "copy_diagnosis", "copy_support_bundle", "update_app", "log_toggle"):
             label = str(assistant.get(label_field, ""))
             if not label.strip():
                 errors.append(f"assistant label {label_field} is empty")

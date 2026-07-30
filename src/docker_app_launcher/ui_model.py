@@ -328,6 +328,10 @@ def dispatch_action(
         if port is None:
             return False, i18n.t("port_invalid", config, min=actions.MIN_PORT, max=actions.MAX_PORT)
         return actions.change_port(config, port, on_step=on_step, on_output=on_output)
+    if action_id == "update":
+        return actions.update(
+            config, on_step=on_step, on_output=on_output, on_progress=on_progress, should_cancel=should_cancel
+        )
     if action_id == "stop":
         return actions.stop(config)
     if action_id == "app_logs":
@@ -376,6 +380,10 @@ ASSISTANT_ELEMENTS: tuple[str, ...] = (
     "copy_diagnosis_button",
     "copy_support_bundle_button",
     "log_toggle",
+    # One-step update (#92): stop -> re-acquire -> start -> health. Listed here
+    # so every frontend MUST render it (tests/test_frontend_parity.py) - the
+    # same drift-proofing the rest of the assistant gets.
+    "update_button",
 )
 
 # Check ids that can carry status "error" and therefore NEED the two
@@ -423,6 +431,7 @@ def assistant_labels(config: LauncherConfig) -> dict[str, str]:
             "no_problems_found",
             "show_details",
             "hide_details",
+            "update_app",
         )
     }
 

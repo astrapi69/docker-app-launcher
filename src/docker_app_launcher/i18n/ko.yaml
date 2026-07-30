@@ -180,7 +180,15 @@ uninstall: 제거
 uninstall_done: 제거가 완료되었습니다. 데이터는 보존됩니다.
 uninstall_partial: '일부 제거됨: 컨테이너 {count}개를 제거할 수 없습니다.'
 uninstalling: 제거를 시작했습니다...
+update_app: 업데이트
 update_available: '업데이트 사용 가능: {tag} - {url}'
+update_done: '{app}이(가) 업데이트되어 실행 중입니다.'
+update_fetching: 최신 버전을 가져오는 중...
+update_health_failed: '업데이트했지만 {app}에 연결할 수 없습니다: {detail}. {hint}'
+update_not_installed: '업데이트할 항목이 없습니다: {app}이(가) 설치되어 있지 않습니다. 먼저 설치하세요.'
+update_rollback_generic: 되돌리려면 이전 버전을 다시 설치한 후 시작하세요.
+update_rollback_image: '이전 버전으로 되돌리려면: ''docker tag {image_id} {reference}''를 실행한 후 시작하세요. 이전 이미지는 아직 이 컴퓨터에 남아 있습니다.'
+update_stopping: 업데이트를 위해 {app}을(를) 중지하는 중...
 updating: 이미지 업데이트 중 (코드 변경 후에는 몇 분, 그 외에는 몇 초)...
 verify_clean: '검증: 컨테이너를 찾을 수 없습니다 ✓'
 verify_remain: '검증: 컨테이너 {count}개가 남아 있습니다 ✗'

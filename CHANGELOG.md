@@ -8,6 +8,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **One-step update: `--update` and a GUI Update button (#92).** From a
+  running stack there was no single update action (`install` returned
+  already-installed, `start` already-running); the working path was the
+  two-step Stop then Start. `actions.update` now wraps it: stop,
+  re-acquire (image mode re-pulls `image_reference`, the build modes
+  rebuild), start, and a health check, with named volumes preserved. On a
+  failed health check it prints a rollback hint that names the previous
+  image, which is still on disk after a re-pull (#88), so the user can
+  return to the version that worked. Exposed as the `--update` CLI flag
+  (exit 0/1) and, in all three frontends, as an Update button added to the
+  assistant element set so `test_frontend_parity` forces every frontend to
+  render it. New i18n keys in all 11 catalogs. Measured per mode as the
+  `update` operation in the lifecycle matrix's per-mode driver (one-step
+  `update()` from the running state, asserting the stack stays running and
+  healthy); the rollback hint is covered by the mocked unit suite.
 - **Two-audience documentation (#91).** New `docs/quickstart-end-user.md`
   walks a non-developer from installing Docker through "Check system",
   install, and open-in-browser, with a troubleshooting section organized
@@ -92,8 +107,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   deterministic across Compose generations. Named volumes survive a
   recreate; anything written INSIDE the container outside a named volume
   is ephemeral on every start from now on (measured, see the
-  environment matrix). Surfaced by the #92 lifecycle-matrix runs on the
-  CI runner's Compose; locked by a mocked test.
+  environment matrix). This also makes the one-step update (#92) pick up
+  new source in compose mode. Surfaced by the #92 lifecycle-matrix runs
+  on the CI runner's Compose; locked by a mocked test.
 - **False "Port occupied" for up to a minute after a stop (#90).** The
   bind probe now sets SO_REUSEADDR on POSIX - TIME_WAIT remnants of a
   just-stopped app no longer read as occupied, matching how docker-proxy

@@ -116,6 +116,16 @@ class TestCliActions:
         monkeypatch.setattr(actions, "install", lambda c, **k: (False, "bad"))
         assert __main__.main(["--install"]) == 1
 
+    def test_update_routes_through_actions(self, monkeypatch) -> None:
+        seen: dict[str, object] = {}
+        monkeypatch.setattr(actions, "update", lambda c, **k: seen.setdefault("v", (True, "updated")))
+        assert __main__.main(["--update"]) == 0
+        assert "v" in seen
+
+    def test_update_failure_exit_code(self, monkeypatch) -> None:
+        monkeypatch.setattr(actions, "update", lambda c, **k: (False, "health failed"))
+        assert __main__.main(["--update"]) == 1
+
     def test_stop_routes(self, monkeypatch) -> None:
         monkeypatch.setattr(actions, "stop", lambda c: (True, "stopped"))
         assert __main__.main(["--stop"]) == 0

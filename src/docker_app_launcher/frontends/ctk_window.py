@@ -371,6 +371,19 @@ if HAS_CTK:
 
             threading.Thread(target=_run, daemon=True, name=f"dal-gui-{label_key}").start()
 
+        def _build_update_button(self) -> Any:
+            """One-step update (#92): stop -> re-acquire -> start -> health,
+            through the shared action machinery. The action self-guards."""
+            btn = ctk.CTkButton(
+                self._secondary_frame,
+                text=self._assistant_labels["update_app"],
+                command=functools.partial(self._on_action, "update"),
+                width=110,
+            )
+            btn.pack(side="left", padx=4)
+            self._update_btn = btn
+            return btn
+
         def _build_log_toggle(self) -> Any:
             btn = ctk.CTkButton(self._secondary_frame, command=self._toggle_log, width=110)
             btn.pack(side="left", padx=4)

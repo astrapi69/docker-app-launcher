@@ -118,6 +118,7 @@ ASSISTANT_WIDGET_BUILDERS = {
     "copy_diagnosis_button": "_build_copy_diagnosis_button",
     "copy_support_bundle_button": "_build_copy_support_bundle_button",
     "log_toggle": "_build_log_toggle",
+    "update_button": "_build_update_button",
 }
 
 
@@ -433,6 +434,20 @@ class LauncherApp(tk.Tk):
             self.after(0, done)
 
         threading.Thread(target=_run, daemon=True, name=f"dal-gui-{label_key}").start()
+
+    def _build_update_button(self) -> tk.Widget:
+        """One-step update (#92): stop -> re-acquire -> start -> health. Routes
+        through the shared action machinery (busy state, progress bar, result
+        line), so a failed update surfaces its rollback hint like any other
+        result. The action self-guards (docker down / not installed)."""
+        btn = tk.Button(
+            self._secondary_frame,
+            text=self._assistant_labels["update_app"],
+            command=functools.partial(self._on_action, "update"),
+        )
+        btn.pack(side="left", padx=4)
+        self._update_btn = btn
+        return btn
 
     def _build_log_toggle(self) -> tk.Widget:
         """The log stays collapsed by default but findable (#81): learners see
@@ -934,9 +949,10 @@ class LauncherApp(tk.Tk):
         # mismatch this fix closes).
         if action_id in ("install", "start") and port is not None:
             actions.set_port(self._cfg, port)
-        # A build only happens on install/start; arm the cancel signal for those
-        # so closing the window mid-build terminates the subprocess (#60).
-        builds = action_id in ("install", "start")
+        # A build only happens on install/start/update; arm the cancel signal
+        # for those so closing the window mid-build terminates the subprocess
+        # (#60). Update rebuilds/re-pulls via start(), so it is a build too.
+        builds = action_id in ("install", "start", "update")
         if builds:
             self._cancel_build.clear()
             self._build_in_progress = True

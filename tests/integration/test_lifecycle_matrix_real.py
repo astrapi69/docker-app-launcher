@@ -9,11 +9,14 @@ broke the pull path; the #78 dispatch fell from a successful image acquire
 into the compose build):
 
     install -> install again (already installed) -> logs -> stop ->
-    start (restart a STOPPED stack) -> stop -> uninstall ->
-    stop/uninstall when nothing runs
+    start (restart a STOPPED stack) -> update (one-step, from running) ->
+    stop -> uninstall -> stop/uninstall when nothing runs
 
 The checked set is enumerated in ``_OPERATIONS`` and asserted complete at
-the end of every mode run - no silently skipped operation.
+the end of every mode run - no silently skipped operation. The one-step
+``update()`` (#92) is one of those operations, exercised per mode from the
+running state; the manual stop -> start update path with the
+volume-preservation and new-source proofs stays in the dedicated #88 cells.
 
 Gates: ``DAL_LIFECYCLE_MATRIX=1`` (never runs in the Docker-free suite);
 ``DAL_LIFECYCLE_MATRIX_MODE`` optionally narrows to one mode. Runtime split
@@ -68,6 +71,7 @@ _OPERATIONS = [
     "app_logs",
     "stop",
     "start_stopped_stack",
+    "update",
     "stop_again",
     "uninstall",
     "stop_when_nothing_runs",
@@ -166,6 +170,18 @@ def _drive_full_operation_set(mode: str, tmp_path: Path) -> None:
     assert ok, f"[{mode}] restarting the stopped stack failed: {msg}"
     assert lifecycle.get_state(config) == "running", f"[{mode}] not running after restart"
     checked.append("start_stopped_stack")
+
+    # One-step update (#92) from the RUNNING state - the action start() cannot
+    # perform (it returns already_running). update() stops, re-acquires
+    # (re-pull / rebuild), starts, and health-checks in one call; here the
+    # source is unchanged, so this proves the orchestration completes and
+    # leaves the stack running AND healthy per mode. The "picks up new source"
+    # and the volume-preservation proofs are the dedicated #88 cells; the
+    # rollback hint is the mocked unit suite (tests/docker/test_update.py).
+    ok, msg = lifecycle.update(config)
+    assert ok, f"[{mode}] one-step update failed: {msg}"
+    assert lifecycle.get_state(config) == "running", f"[{mode}] not running after update"
+    checked.append("update")
 
     ok, msg = lifecycle.stop(config)
     assert ok, f"[{mode}] second stop failed: {msg}"
@@ -318,10 +334,10 @@ class TestUpdatePathImageMode:
             steps.append("marker_written")
 
             # MEASURED behavior: start() on a RUNNING stack returns
-            # already_running and touches nothing - there is no one-action
-            # update from the running state. The real update path is
-            # stop -> (new reference) -> start; a single-action update is
-            # tracked as its own issue.
+            # already_running and touches nothing, so the MANUAL update path is
+            # stop -> (new reference) -> start (this cell). The one-action
+            # update() that wraps it (#92) is measured as the ``update``
+            # operation in _drive_full_operation_set.
             ok, msg = lifecycle.stop(config)
             assert ok, f"stop before update failed: {msg}"
             steps.append("stopped_for_update")
@@ -446,3 +462,14 @@ class TestUpdatePathComposeMode(_UpdateViaRebuild):
     def test_rebuild_preserves_the_volume(self, tmp_path: Path) -> None:
         _skip_unless("compose")
         self._run(tmp_path)
+
+
+# NOTE (#92): the ONE-STEP update() action is measured per mode as the
+# ``update`` operation inside _drive_full_operation_set above (a single
+# stop -> re-acquire -> start -> health on the already-running stack). It was
+# deliberately NOT added as three more standalone install+build cells: doing so
+# tripled the real-container churn on the single-daemon matrix job and made the
+# runner flaky (measured: stop-not-verified and compose recreate races on runs
+# that were green with the lighter footprint). The "picks up new source" and
+# volume-preservation proofs stay in the dedicated #88 cells below; the rollback
+# hint is covered by the mocked unit suite (tests/docker/test_update.py).

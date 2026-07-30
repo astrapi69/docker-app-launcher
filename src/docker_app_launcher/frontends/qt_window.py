@@ -423,6 +423,15 @@ if HAS_QT:
 
             threading.Thread(target=_run, daemon=True, name=f"dal-gui-{label_key}").start()
 
+        def _build_update_button(self) -> Any:
+            """One-step update (#92): stop -> re-acquire -> start -> health,
+            through the shared action machinery. The action self-guards."""
+            btn = QPushButton(self._assistant_labels["update_app"])
+            btn.clicked.connect(functools.partial(self._on_action, "update"))
+            self._assistant_row.addWidget(btn)
+            self._update_btn = btn
+            return btn
+
         def _build_log_toggle(self) -> Any:
             btn = QPushButton()
             btn.clicked.connect(self._toggle_log)

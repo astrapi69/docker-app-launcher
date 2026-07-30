@@ -180,7 +180,15 @@ uninstall: Deinstallieren
 uninstall_done: Deinstallation abgeschlossen. Deine Daten bleiben erhalten.
 uninstall_partial: 'Teilweise entfernt: {count} Container konnte(n) nicht entfernt werden.'
 uninstalling: Deinstallation gestartet...
+update_app: Aktualisieren
 update_available: 'Update verfügbar: {tag} - {url}'
+update_done: '{app} wurde aktualisiert und läuft.'
+update_fetching: Neueste Version wird geladen...
+update_health_failed: 'Aktualisiert, aber {app} ist nicht erreichbar: {detail}. {hint}'
+update_not_installed: 'Nichts zu aktualisieren: {app} ist nicht installiert. Bitte zuerst installieren.'
+update_rollback_generic: Zum Zurücksetzen die vorherige Version neu installieren und dann starten.
+update_rollback_image: 'Zum Zurücksetzen auf die vorherige Version: ''docker tag {image_id} {reference}'' ausführen und dann starten. Das vorherige Image ist noch auf diesem Rechner.'
+update_stopping: '{app} wird zum Aktualisieren gestoppt...'
 updating: Image wird aktualisiert (nach Code-Änderungen einige Minuten, sonst Sekunden)...
 verify_clean: 'Verifizierung: keine Container gefunden ✓'
 verify_remain: 'Verifizierung: {count} Container verbleiben ✗'

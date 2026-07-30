@@ -1,7 +1,9 @@
 # Lifecycle matrix (#79): the full operation set per deployment mode against
 # a real engine - install, install-again, logs, stop, restart of the stopped
-# stack, uninstall, nothing-runs transitions - for image, dockerfile AND
-# compose mode. Runtime split (documented in docs/environment-matrix.md):
+# stack, the one-step update() from running (#92), uninstall, nothing-runs
+# transitions - for image, dockerfile AND compose mode. The manual stop ->
+# start update path with the volume-preservation proof is the #88 cells.
+# Runtime split (documented in docs/environment-matrix.md):
 # the per-push ci.yml runs the mocked suite plus the fast old-engine cell;
 # this full matrix runs nightly and on demand, so nobody mistakes a green
 # push for full-matrix coverage.

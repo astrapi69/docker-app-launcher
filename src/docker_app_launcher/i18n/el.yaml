@@ -180,7 +180,15 @@ uninstall: Απεγκατάσταση
 uninstall_done: Η απεγκατάσταση ολοκληρώθηκε. Τα δεδομένα σας διατηρούνται.
 uninstall_partial: 'Αφαιρέθηκε εν μέρει: {count} container(s) δεν μπόρεσαν να αφαιρεθούν.'
 uninstalling: Η απεγκατάσταση ξεκίνησε...
+update_app: Ενημέρωση
 update_available: 'Διαθέσιμη ενημέρωση: {tag} - {url}'
+update_done: Το {app} ενημερώθηκε και εκτελείται.
+update_fetching: Λήψη της τελευταίας έκδοσης...
+update_health_failed: 'Ενημερώθηκε, αλλά το {app} δεν είναι προσβάσιμο: {detail}. {hint}'
+update_not_installed: 'Δεν υπάρχει τίποτα για ενημέρωση: το {app} δεν είναι εγκατεστημένο. Εγκαταστήστε το πρώτα.'
+update_rollback_generic: Για επαναφορά, επανεγκαταστήστε την προηγούμενη έκδοση και ξεκινήστε ξανά.
+update_rollback_image: 'Για επαναφορά στην προηγούμενη έκδοση: εκτελέστε ''docker tag {image_id} {reference}'' και ξεκινήστε ξανά. Η προηγούμενη εικόνα υπάρχει ακόμη σε αυτό το μηχάνημα.'
+update_stopping: Διακοπή του {app} για ενημέρωση...
 updating: Ενημέρωση image (μερικά λεπτά μετά από αλλαγές κώδικα, αλλιώς δευτερόλεπτα)...
 verify_clean: 'Επαλήθευση: δεν βρέθηκαν containers ✓'
 verify_remain: 'Επαλήθευση: {count} container(s) απομένουν ✗'

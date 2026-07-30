@@ -59,6 +59,7 @@ docker-app-launcher --app-logs                # print the tail of the app contai
 docker-app-launcher --support-bundle          # sanitized diagnosis to paste into a bug report
 docker-app-launcher --install --port 9000     # build + start headless
 docker-app-launcher --start                   # start the stopped app
+docker-app-launcher --update                  # one step: stop, re-acquire, start, health
 docker-app-launcher --stop                    # stop the running app
 docker-app-launcher --uninstall               # remove containers/images
 docker-app-launcher --cleanup                 # remove stale leftovers

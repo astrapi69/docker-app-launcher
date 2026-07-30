@@ -180,7 +180,15 @@ uninstall: अनइंस्टॉल करें
 uninstall_done: अनइंस्टॉल पूरा हुआ। आपका डेटा सुरक्षित है।
 uninstall_partial: 'आंशिक रूप से हटाया गया: {count} कंटेनर नहीं हटाए जा सके।'
 uninstalling: अनइंस्टॉल शुरू हुआ...
+update_app: अपडेट करें
 update_available: 'अपडेट उपलब्ध: {tag} - {url}'
+update_done: '{app} अपडेट हो गया और चल रहा है।'
+update_fetching: नवीनतम संस्करण प्राप्त किया जा रहा है...
+update_health_failed: 'अपडेट हो गया, लेकिन {app} तक नहीं पहुँचा जा सका: {detail}. {hint}'
+update_not_installed: 'अपडेट करने के लिए कुछ नहीं: {app} इंस्टॉल नहीं है। पहले इसे इंस्टॉल करें।'
+update_rollback_generic: वापस लौटने के लिए, पिछला संस्करण फिर से इंस्टॉल करें और फिर शुरू करें।
+update_rollback_image: 'पिछले संस्करण पर वापस लौटने के लिए: ''docker tag {image_id} {reference}'' चलाएँ, फिर शुरू करें। पिछली इमेज अभी भी इस मशीन पर मौजूद है।'
+update_stopping: अपडेट के लिए {app} को रोका जा रहा है...
 updating: इमेज अपडेट हो रही है (कोड बदलाव के बाद कुछ मिनट, अन्यथा कुछ सेकंड)...
 verify_clean: 'सत्यापन: कोई कंटेनर नहीं मिला ✓'
 verify_remain: 'सत्यापन: {count} कंटेनर शेष हैं ✗'

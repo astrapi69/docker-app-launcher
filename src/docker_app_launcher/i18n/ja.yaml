@@ -180,7 +180,15 @@ uninstall: アンインストール
 uninstall_done: アンインストールが完了しました。データは保持されます。
 uninstall_partial: '一部削除しました: {count} 個のコンテナを削除できませんでした。'
 uninstalling: アンインストールを開始しました...
+update_app: 更新
 update_available: 'アップデートがあります: {tag} - {url}'
+update_done: '{app} を更新しました。実行中です。'
+update_fetching: 最新バージョンを取得しています...
+update_health_failed: '更新しましたが、{app} に到達できません: {detail}. {hint}'
+update_not_installed: '更新するものがありません: {app} はインストールされていません。先にインストールしてください。'
+update_rollback_generic: 元に戻すには、以前のバージョンを再インストールしてから起動してください。
+update_rollback_image: '以前のバージョンに戻すには: ''docker tag {image_id} {reference}'' を実行してから起動してください。以前のイメージはこのマシンにまだ残っています。'
+update_stopping: 更新のため {app} を停止しています...
 updating: イメージを更新中（コード変更後は数分、それ以外は数秒）...
 verify_clean: '検証: コンテナは見つかりませんでした ✓'
 verify_remain: '検証: {count} 個のコンテナが残っています ✗'

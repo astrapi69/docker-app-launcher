@@ -180,7 +180,15 @@ uninstall: Kaldır
 uninstall_done: Kaldırma tamamlandı. Verileriniz korunur.
 uninstall_partial: 'Kısmen kaldırıldı: {count} konteyner kaldırılamadı.'
 uninstalling: Kaldırma işlemi başlatıldı...
+update_app: Güncelle
 update_available: 'Güncelleme mevcut: {tag} - {url}'
+update_done: '{app} güncellendi ve çalışıyor.'
+update_fetching: En son sürüm alınıyor...
+update_health_failed: 'Güncellendi ama {app} erişilebilir değil: {detail}. {hint}'
+update_not_installed: 'Güncellenecek bir şey yok: {app} kurulu değil. Önce kurun.'
+update_rollback_generic: Geri almak için önceki sürümü yeniden kurun ve tekrar başlatın.
+update_rollback_image: 'Önceki sürüme geri dönmek için: ''docker tag {image_id} {reference}'' komutunu çalıştırın ve tekrar başlatın. Önceki imaj hâlâ bu makinede.'
+update_stopping: Güncelleme için {app} durduruluyor...
 updating: İmaj güncelleniyor (kod değişikliklerinden sonra birkaç dakika, aksi halde saniyeler)...
 verify_clean: 'Doğrulama: konteyner bulunamadı ✓'
 verify_remain: 'Doğrulama: {count} konteyner kaldı ✗'

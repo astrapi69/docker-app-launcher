@@ -225,6 +225,9 @@ from docker_app_launcher.docker.lifecycle import (
 from docker_app_launcher.docker.lifecycle import (
     uninstall as uninstall,
 )
+from docker_app_launcher.docker.lifecycle import (
+    update as update,
+)
 from docker_app_launcher.install_manifest import (
     _now as _now,
 )

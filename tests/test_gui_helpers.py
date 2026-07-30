@@ -146,6 +146,19 @@ class TestDispatchAction:
         gui.dispatch_action("start", cfg, should_cancel=flag)
         assert seen.get("should_cancel") is flag
 
+    def test_update_routes(self, cfg, monkeypatch) -> None:
+        monkeypatch.setattr(actions, "update", lambda c, **k: (True, "updated"))
+        assert gui.dispatch_action("update", cfg) == (True, "updated")
+
+    def test_update_forwards_should_cancel(self, cfg, monkeypatch) -> None:
+        # Update rebuilds/re-pulls via start(), so the build-cancel signal (#60)
+        # must reach the actions layer here too.
+        seen: dict[str, object] = {}
+        monkeypatch.setattr(actions, "update", lambda c, **k: seen.update(k) or (True, "updated"))
+        flag = lambda: True  # noqa: E731 - a trivial stand-in callback
+        gui.dispatch_action("update", cfg, should_cancel=flag)
+        assert seen.get("should_cancel") is flag
+
     def test_stop_routes(self, cfg, monkeypatch) -> None:
         monkeypatch.setattr(actions, "stop", lambda c: (True, "stopped"))
         assert gui.dispatch_action("stop", cfg) == (True, "stopped")

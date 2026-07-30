@@ -382,6 +382,21 @@ Seed cells shipped now:
   path; the #78 dispatch fell from a successful image acquire into the
   compose build.
 
+- UPDATE PATH (#88, #92): measured per mode inside the same lifecycle
+  matrix, two complementary ways. The ONE-ACTION `update()` (#92) is an
+  operation in `_drive_full_operation_set`: from the RUNNING state - exactly
+  what `start()` refuses (`already_running`) - it stops, re-acquires
+  (re-pull / rebuild), starts, and health-checks in one call, asserting the
+  stack is running and healthy afterwards per mode. The MANUAL path (stop ->
+  new reference -> start, #88, `TestUpdatePath*`) additionally proves the
+  named volume survives and, in image mode, that the previous image remains
+  for rollback. The rollback hint on a failed health check is covered by the
+  mocked unit suite (`tests/docker/test_update.py`), since the matrix
+  exercises the healthy path. Note: the one-step `update()` was deliberately
+  folded into the existing per-mode driver rather than added as three more
+  standalone install+build cells - the extra real-container churn made the
+  single-daemon runner flaky (stop-not-verified / compose recreate races).
+
 Cells enumerated for follow-up (need the corresponding gap fix or heavier
 provisioning, tracked by their gap issue):
 

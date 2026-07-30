@@ -180,7 +180,15 @@ uninstall: Hapus pemasangan
 uninstall_done: Penghapusan pemasangan selesai. Data Anda tetap tersimpan.
 uninstall_partial: 'Sebagian dihapus: {count} kontainer tidak dapat dihapus.'
 uninstalling: Penghapusan pemasangan dimulai...
+update_app: Perbarui
 update_available: 'Pembaruan tersedia: {tag} - {url}'
+update_done: '{app} telah diperbarui dan sedang berjalan.'
+update_fetching: Mengambil versi terbaru...
+update_health_failed: 'Diperbarui, tetapi {app} tidak dapat dijangkau: {detail}. {hint}'
+update_not_installed: 'Tidak ada yang perlu diperbarui: {app} belum terpasang. Pasang dulu.'
+update_rollback_generic: Untuk mengembalikan, pasang ulang versi sebelumnya, lalu mulai lagi.
+update_rollback_image: 'Untuk kembali ke versi sebelumnya: jalankan ''docker tag {image_id} {reference}'', lalu mulai lagi. Image sebelumnya masih ada di mesin ini.'
+update_stopping: Menghentikan {app} untuk pembaruan...
 updating: Memperbarui image (beberapa menit setelah perubahan kode, beberapa detik jika tidak)...
 verify_clean: 'Verifikasi: tidak ada kontainer ditemukan ✓'
 verify_remain: 'Verifikasi: {count} kontainer tersisa ✗'

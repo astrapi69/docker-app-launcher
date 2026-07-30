@@ -642,6 +642,84 @@ def start(
     return True, _t(config, "start_done")
 
 
+def _rollback_hint(config: LauncherConfig, previous: dict[str, Any]) -> str:
+    """A localized 'how to get back to the working version' line for a failed
+    update (#92).
+
+    Image mode names the OUTGOING image so the user can retag it and start
+    again - the previous image is still on disk after a re-pull (#88), and its
+    identity was recorded in the manifest before the update (#80). The build
+    modes overwrite the tag in place and keep no separate handle, so they fall
+    back to the generic reinstall hint.
+    """
+    if config.effective_deployment_mode == "image":
+        image_id = str(previous.get("image_id") or "")
+        reference = str(previous.get("image_reference") or config.image_reference or "")
+        if image_id and reference:
+            return _t(config, "update_rollback_image", image_id=image_id, reference=reference)
+    return _t(config, "update_rollback_generic")
+
+
+def update(
+    config: LauncherConfig,
+    *,
+    on_step: ProgressFn | None = None,
+    on_output: OutputFn | None = None,
+    on_progress: ProgressPctFn | None = None,
+    should_cancel: CancelFn | None = None,
+) -> tuple[bool, str]:
+    """Update the app in ONE step: stop -> re-acquire -> start -> health (#92).
+
+    The missing action the #88 matrix surfaced: from a running stack there was
+    no single "update" - ``install`` returned already-installed and ``start``
+    returned already-running, so the working path was the two-step Stop then
+    Start. This wraps it:
+
+    1. stop the stack (a no-op when already stopped);
+    2. re-acquire and start via :func:`start` - image mode re-pulls
+       ``image_reference``, the build modes rebuild; ``start`` also refreshes
+       the manifest identity (#80) with action ``update``;
+    3. health-check the result. On failure, surface the health detail together
+       with a rollback hint that names the PREVIOUS image (still local, #88), so
+       the user can return to the version that worked.
+
+    Named volumes survive throughout (data is preserved, #88). Returns
+    ``(ok, message)``; guards (Docker down, not installed) return
+    ``(False, ...)``.
+    """
+    docker_ok, _ = check_docker()
+    if not docker_ok:
+        return False, _t(config, "docker_unavailable")
+    if get_state(config) == "not_installed":
+        return False, _t(config, "update_not_installed")
+
+    # Snapshot the outgoing identity BEFORE anything changes: start() overwrites
+    # the manifest, so the rollback anchor must be captured up front.
+    previous = read_manifest(config) or {}
+
+    _notify(on_step, _t(config, "update_stopping"))
+    _progress(on_progress, 0, _t(config, "update_stopping"))
+    stopped, stop_msg = stop(config)
+    if not stopped:
+        return False, stop_msg
+
+    _notify(on_step, _t(config, "update_fetching"))
+    started, start_msg = start(
+        config, on_step=on_step, on_output=on_output, on_progress=on_progress, should_cancel=should_cancel
+    )
+    if not started:
+        # start() already classified the build/pull failure - pass it through.
+        return False, start_msg
+
+    _notify(on_step, _t(config, "checking_health"))
+    _progress(on_progress, None, _t(config, "checking_health"))
+    healthy, detail = health_check(config)
+    if not healthy:
+        return False, _t(config, "update_health_failed", detail=detail, hint=_rollback_hint(config, previous))
+    _progress(on_progress, 100, _t(config, "update_done"))
+    return True, _t(config, "update_done")
+
+
 def app_logs(config: LauncherConfig, *, lines: int | None = None) -> tuple[bool, str]:
     """Fetch the tail of the app's container logs (P2).
 

@@ -67,8 +67,20 @@ its own CI run. Consequence to know: there is NO last local chance to
 catch a mistake — in a public repository an accidentally committed
 secret is published immediately and cannot be recalled (cloning can
 happen between push and discovery; history rewriting does not undo it).
-pre-commit currently has NO secret scan; adding one is the release
-manager's call (it slows every commit).
+Secret scanning is two-stage (#95): SERVER - GitHub secret scanning
+with push protection is ENABLED on this repo (the stage a bypassed local
+hook cannot dodge; a blocked push names the secret's location and offers
+a bypass URL that requires a stated reason - use it only for confirmed
+false alarms). LOCAL - gitleaks as a PINNED pre-commit hook (~0.5 s per
+commit, cached). Hit policy, fixed up front: the scanner is NEVER
+weakened to pass a hit. A hit on a legitimate string means the string is
+reworded, or that one finding is excepted individually WITH a plaintext
+reason - no blanket exceptions for files, directories or rules
+(precedent: the reworded comment in crypto.py in the governance repo,
+where the TEXT changed rather than teaching the checker to ignore
+comments). A real secret that reached public history counts as
+COMPROMISED and gets replaced, never excepted. History baseline
+2026-07-30: 169 commits scanned, zero findings.
 
 ## Conventions
 

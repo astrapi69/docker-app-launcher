@@ -167,8 +167,15 @@ def process_start_marker(pid: int) -> str | None:
     cannot ask a foreign process to confirm it; the start time is the
     attribute the OS answers for. Linux: starttime from /proc/<pid>/stat
     (clock ticks since boot, stable for the process lifetime). Other POSIX
-    (macOS): `ps -o lstart=`. Windows: None - tasklist offers no start
-    time; pid+TTL remain the NAMED residual there.
+    (macOS): `ps -o lstart=`. Windows: None - the NAMED residual (pid+TTL).
+    CHECKED AND REJECTED (2026-07-30, so the question is not reopened): a
+    PowerShell/CIM path exists (Get-Process .StartTime / Win32_Process
+    CreationDate) and its cost would be acceptable (the gate runs only at
+    operation start, not per status poll) - but this repo has no Windows
+    unit-test job and no local Windows to MEASURE on, so the branch would
+    ship unmeasured and untested on its platform: exactly the
+    supported-on-paper class. Revisit iff Windows becomes a first-class
+    target with a real test rig (environment matrix §1.4).
     """
     try:
         if sys.platform.startswith("linux"):

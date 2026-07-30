@@ -57,6 +57,7 @@ cleanup_running: Temizleniyor...
 cleanup_scanning: Kurulum kalıntıları taranıyor...
 cleanup_skipped: Temizlik atlandı.
 closed_minimized: Uygulama çalışmaya devam ediyor; pencere küçültüldü.
+completed_before_cancel: 'Not: iptal çok geç geldi - işlem zaten başarıyla tamamlanmıştı.'
 compose_base_unresolved: Compose dosyası {path} konumunda bulunamadı. install_dir ayarlı değil, bu yüzden geçerli dizine göre arandı; bu, launcher bir menü kısayolundan, bir Snap'ten veya dosya yöneticisinden başlatıldığında güvenilmez. Launcher yapılandırmasında install_dir'i compose dosyasını içeren dizine ayarlayın.
 compose_missing: 'Docker Compose kullanılamıyor. Compose v2 eklentisini kurun — Ubuntu/Debian: ''sudo apt install docker-compose-plugin'' (veya Docker''ı güncelleyin) — ardından launcher''ı yeniden başlatın. Tek servisli uygulamalar alternatif olarak deployment_mode ''dockerfile'' kullanabilir (Compose gerekmez).'
 compose_not_found: 'Compose dosyası bulunamadı: {path}'
@@ -129,6 +130,7 @@ nothing_to_uninstall: Kaldırılacak bir şey yok (konteyner mevcut değil).
 open_browser: Tarayıcıda aç
 open_install_guide: Kurulum kılavuzunu aç
 operation_cancelled: İptal edildi. Şu anda hiçbir şey çalışmıyor; indirilen veya derlenen parçalar önbellekte kalır ve bir sonraki denemeyi hızlandırır. ({detail})
+operation_pending_blocked: '''{action}'' henüz başlatılamıyor: önceki adım bittiğini doğrulamadı ve arka planda uygulama üzerinde çalışmaya devam ediyor olabilir. İki işlemin aynı kapsayıcıya dokunmaması için yeni işlemler, o yanıt verene kadar en fazla {minutes} dakika bekler. Launcher''ı yeniden başlatmak da bunu kaldırır.'
 port_changed: Bağlantı noktası {port} olarak değiştirildi.
 port_free: '{port} bağlantı noktası boş.'
 port_invalid: Bağlantı noktası {min} ile {max} arasında olmalıdır.

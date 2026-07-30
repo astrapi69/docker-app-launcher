@@ -57,6 +57,7 @@ cleanup_running: クリーンアップ中...
 cleanup_scanning: インストールの残存ファイルを検索しています...
 cleanup_skipped: クリーンアップをスキップしました。
 closed_minimized: アプリは実行を続けます。ウィンドウは最小化されました。
+completed_before_cancel: '注: キャンセルが遅すぎました - 操作はすでに正常に完了していました。'
 compose_base_unresolved: Compose ファイルが {path} に見つかりません。install_dir が設定されていないため、現在のディレクトリを基準に探索されました。これはランチャーがメニューショートカット、Snap、ファイルマネージャーから起動された場合に不確実です。ランチャー設定の install_dir を compose ファイルのあるディレクトリに設定してください。
 compose_missing: 'Docker Compose が利用できません。Compose v2 プラグインをインストールしてください — Ubuntu/Debian: ''sudo apt install docker-compose-plugin''（または Docker を更新）— その後ランチャーを再起動してください。 シングルサービスのアプリは代わりに deployment_mode ''dockerfile'' を使えます（Compose 不要）。'
 compose_not_found: 'Compose ファイルが見つかりません: {path}'
@@ -129,6 +130,7 @@ nothing_to_uninstall: アンインストールするものはありません（�
 open_browser: ブラウザで開く
 open_install_guide: インストールガイドを開く
 operation_cancelled: キャンセルしました。現在何も実行されていません。すでにダウンロード・ビルドされた部分はキャッシュに残り、次回の試行を速くします。({detail})
+operation_pending_blocked: まだ '{action}' を開始できません。前のステップが終了を確認しておらず、バックグラウンドでアプリに対して作業を続けている可能性があります。二つの操作が同じコンテナーに触れないよう、新しい操作は応答があるまで最大 {minutes} 分待機します。ランチャーの再起動でも解除されます。
 port_changed: ポートを {port} に変更しました。
 port_free: ポート {port} は空いています。
 port_invalid: ポートは {min} から {max} の間でなければなりません。

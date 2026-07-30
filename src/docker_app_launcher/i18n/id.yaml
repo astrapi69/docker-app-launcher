@@ -57,6 +57,7 @@ cleanup_running: Membersihkan...
 cleanup_scanning: Memindai sisa instalasi...
 cleanup_skipped: Pembersihan dilewati.
 closed_minimized: Aplikasi tetap berjalan; jendela diminimalkan.
+completed_before_cancel: 'Catatan: pembatalan datang terlambat - operasi sudah selesai dengan sukses.'
 compose_base_unresolved: Berkas compose tidak ditemukan di {path}. install_dir tidak diatur, jadi dicari relatif terhadap direktori saat ini, yang tidak dapat diandalkan saat launcher dijalankan dari pintasan menu, Snap, atau pengelola berkas. Atur install_dir di konfigurasi launcher ke direktori yang berisi berkas compose.
 compose_missing: 'Docker Compose tidak tersedia. Pasang plugin Compose v2 — Ubuntu/Debian: ''sudo apt install docker-compose-plugin'' (atau perbarui Docker) — lalu mulai ulang launcher. Aplikasi single-service dapat memakai deployment_mode ''dockerfile'' sebagai alternatif (tanpa Compose).'
 compose_not_found: 'Berkas compose tidak ditemukan: {path}'
@@ -129,6 +130,7 @@ nothing_to_uninstall: Tidak ada yang perlu dihapus (tidak ada kontainer).
 open_browser: Buka di browser
 open_install_guide: Buka panduan instalasi
 operation_cancelled: Dibatalkan. Tidak ada yang berjalan sekarang; bagian yang sudah diunduh atau dibangun tetap di cache dan mempercepat percobaan berikutnya. ({detail})
+operation_pending_blocked: '''{action}'' belum bisa dimulai: langkah sebelumnya belum mengonfirmasi akhirnya dan mungkin masih bekerja pada aplikasi di latar belakang. Agar dua operasi tidak menyentuh kontainer yang sama, operasi baru menunggu sampai ia melapor, paling lama {minutes} menit. Memulai ulang launcher juga menghapus ini.'
 port_changed: Port diubah menjadi {port}.
 port_free: Port {port} tersedia.
 port_invalid: Port harus antara {min} dan {max}.

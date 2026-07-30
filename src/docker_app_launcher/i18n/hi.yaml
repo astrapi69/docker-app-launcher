@@ -57,6 +57,7 @@ cleanup_running: साफ़ किया जा रहा है...
 cleanup_scanning: इंस्टॉलेशन अवशेष खोजे जा रहे हैं...
 cleanup_skipped: सफ़ाई छोड़ी गई।
 closed_minimized: ऐप चलता रहता है; विंडो छोटी की गई।
+completed_before_cancel: 'नोट: रद्द करना बहुत देर से आया - कार्य पहले ही सफलतापूर्वक पूरा हो चुका था।'
 compose_base_unresolved: Compose फ़ाइल {path} पर नहीं मिली। install_dir सेट नहीं है, इसलिए इसे वर्तमान डायरेक्टरी के सापेक्ष खोजा गया, जो तब अविश्वसनीय है जब launcher मेनू शॉर्टकट, Snap या फ़ाइल मैनेजर से शुरू होता है। launcher config में install_dir को उस डायरेक्टरी पर सेट करें जिसमें compose फ़ाइल है।
 compose_missing: 'Docker Compose उपलब्ध नहीं है। Compose v2 प्लगइन इंस्टॉल करें — Ubuntu/Debian: ''sudo apt install docker-compose-plugin'' (या Docker अपडेट करें) — फिर launcher फिर से शुरू करें। सिंगल-सर्विस ऐप्स वैकल्पिक रूप से deployment_mode ''dockerfile'' उपयोग कर सकते हैं (Compose की आवश्यकता नहीं)।'
 compose_not_found: 'Compose फ़ाइल नहीं मिली: {path}'
@@ -129,6 +130,7 @@ nothing_to_uninstall: अनइंस्टॉल करने के लिए 
 open_browser: ब्राउज़र में खोलें
 open_install_guide: इंस्टॉलेशन गाइड खोलें
 operation_cancelled: रद्द किया गया। अभी कुछ नहीं चल रहा; पहले से डाउनलोड या निर्मित हिस्से कैश में रहते हैं और अगली कोशिश तेज़ करते हैं। ({detail})
+operation_pending_blocked: '''{action}'' अभी शुरू नहीं हो सकता: पिछला चरण अपना अंत पुष्ट नहीं कर पाया और शायद पृष्ठभूमि में ऐप पर काम कर रहा है। दो कार्य एक ही कंटेनर को न छुएँ, इसलिए नए कार्य उसकी प्रतिक्रिया तक प्रतीक्षा करते हैं, अधिकतम {minutes} मिनट। लॉन्चर को फिर से शुरू करने से भी यह हट जाता है।'
 port_changed: पोर्ट {port} पर बदला गया।
 port_free: पोर्ट {port} खाली है।
 port_invalid: पोर्ट {min} और {max} के बीच होना चाहिए।

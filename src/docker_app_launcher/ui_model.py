@@ -525,6 +525,16 @@ OPERATION_OUTCOMES: tuple[str, ...] = ("success", "failure", "cancelled", "cance
 
 CANCEL_WATCHDOG_SECONDS = 10
 
+# After a watchdog release the unresponsive operation may still be working
+# on the SAME container/volume in the background (#100). Measured: a second
+# parallel install fails with a raw engine 409; worse, a hung operation
+# waking up AFTER an uninstall recreates resources - the reported end state
+# would lie. So new long-running actions are BLOCKED while one is pending,
+# with the guard's own exits: the late result clears it immediately, this
+# TTL clears it otherwise (a stuck HTTP call has almost certainly died with
+# its socket by then), and a launcher restart is named in the message.
+PENDING_BACKGROUND_TTL_SECONDS = 600
+
 # The honesty map (#98): which operations a cancel REALLY ends, what state
 # the user is in afterwards, and what the next step is. Operations not
 # listed are NOT cancellable and show no cancel control - stop/uninstall
@@ -547,5 +557,6 @@ CANCELLABLE_ACTIONS: dict[str, str] = {
 #   stop/uninstall - short, and a mid-flight abort could leave a worse
 #     half-state (container removed, volume kept or vice versa) than
 #     finishing; change_port/cleanup - near-instant; change_internal_port -
-#     its rebuild path has no cancel plumbing yet (own compose call);
+#     its rebuild path has no cancel plumbing yet (own compose call;
+#     tracked as #101, not just prose);
 #     archive load inside image mode - a single fast local call.

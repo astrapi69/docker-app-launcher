@@ -57,6 +57,7 @@ cleanup_running: Cleaning up...
 cleanup_scanning: Scanning for leftover installation files...
 cleanup_skipped: Cleanup skipped.
 closed_minimized: App keeps running; window minimized.
+completed_before_cancel: 'Note: the cancel came too late - the operation had already finished successfully.'
 compose_base_unresolved: Compose file not found at {path}. install_dir is not set, so it was looked up relative to the current directory, which is unreliable when the launcher starts from a menu shortcut, a Snap, or a file manager. Set install_dir in the launcher config to the directory that holds the compose file.
 compose_missing: 'Docker Compose is not available. Install the Compose v2 plugin — Ubuntu/Debian: ''sudo apt install docker-compose-plugin'' (or update Docker) — then restart the launcher. Single-service apps can alternatively use deployment_mode ''dockerfile'' (no Compose needed).'
 compose_not_found: 'Compose file not found: {path}'
@@ -129,6 +130,7 @@ nothing_to_uninstall: Nothing to uninstall (no container present).
 open_browser: Open in browser
 open_install_guide: Open installation guide
 operation_cancelled: Cancelled. Nothing is running now; parts already downloaded or built stay cached and speed up the next attempt. ({detail})
+operation_pending_blocked: 'Cannot start ''{action}'' yet: the previous step did not confirm its end and may still be working on the app in the background. To avoid two operations touching the same container, new operations wait until it reports back, at most {minutes} minutes. Restarting the launcher also clears this.'
 port_changed: Port changed to {port}.
 port_free: Port {port} is free.
 port_invalid: Port must be between {min} and {max}.

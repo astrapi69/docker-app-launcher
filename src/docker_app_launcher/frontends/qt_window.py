@@ -20,6 +20,7 @@ import platform as _platform
 import re
 import sys
 import threading
+import time
 from typing import Any
 
 from docker_app_launcher import actions, i18n, lockfile, tray, ui_model, update_check
@@ -94,6 +95,7 @@ if HAS_QT:
             self._log_follow_stop: threading.Event | None = None
             self._cancel_build = threading.Event()
             self._current_action: str | None = None
+            self._pending_background: tuple[str, float] | None = None
             self._build_in_progress = False
             self._invoke.connect(lambda fn: fn())
 
@@ -493,11 +495,34 @@ if HAS_QT:
                 watchdog.stop()
                 self._cancel_watchdog = None
 
+        def _pending_background_blocks(self, action_id: str) -> bool:
+            """Guard (#100): while an unresponsive operation may still work on the
+            same container in the background, new long-running actions are refused
+            - measured: a hung operation waking up after an uninstall recreates
+            resources, so the reported end state would lie. Exits: the late result
+            clears the guard, the TTL expires it, a restart clears it."""
+            pending = self._pending_background
+            if pending is None or action_id not in ui_model.LONG_RUNNING_ACTIONS:
+                return False
+            if time.monotonic() - pending[1] >= ui_model.PENDING_BACKGROUND_TTL_SECONDS:
+                self._pending_background = None
+                return False
+            self._log(
+                self._t(
+                    "operation_pending_blocked",
+                    action=pending[0],
+                    minutes=ui_model.PENDING_BACKGROUND_TTL_SECONDS // 60,
+                ),
+                tag="err",
+            )
+            return True
+
         def _on_cancel_unresponsive(self, action_id: str) -> None:
             self._cancel_watchdog = None
             self._hide_progress()
             self._build_in_progress = False
             self._set_busy(False)
+            self._pending_background = (action_id, time.monotonic())
             self._log(self._t("cancel_unresponsive"), tag="err")
             self._record_cancel_outcome(action_id, "cancel_unresponsive")
             self._refresh()
@@ -843,6 +868,8 @@ if HAS_QT:
         # --- actions (threaded) ---
 
         def _on_action(self, action_id: str) -> None:
+            if self._pending_background_blocks(action_id):
+                return
             raw = self._port_entry.text().strip()
             port = int(raw) if raw.isdigit() else None
             if action_id in ("install", "start") and port is not None:
@@ -882,6 +909,7 @@ if HAS_QT:
             # DEFINED end state for EVERY outcome (#97): stop and hide the
             # progress indicator on success, failure and cancel alike.
             self._cancel_watchdog_stop()
+            self._pending_background = None  # the late result IS the pending guard's exit (#100)
             self._hide_progress()
             if result is not None and not result[0] and self._cancel_build.is_set():
                 self._record_cancel_outcome(action_id, "cancelled")
@@ -890,6 +918,10 @@ if HAS_QT:
             if result is not None:
                 ok, msg = result
                 self._log(msg, tag="ok" if ok else "err")
+                if ok and self._cancel_build.is_set():
+                    # The cancel came too late (#98 review): name it, or the
+                    # user who cancelled is confused by a success message.
+                    self._log(self._t("completed_before_cancel"))
                 if not ok and self._cfg.on_error is not None:
                     try:
                         self._cfg.on_error(self._cfg, msg)

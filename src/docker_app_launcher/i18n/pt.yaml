@@ -57,6 +57,7 @@ cleanup_running: Limpando...
 cleanup_scanning: Procurando resíduos de instalação...
 cleanup_skipped: Limpeza ignorada.
 closed_minimized: O app continua em execução; janela minimizada.
+completed_before_cancel: 'Nota: o cancelamento chegou tarde demais - a operação já havia terminado com sucesso.'
 compose_base_unresolved: Arquivo compose não encontrado em {path}. install_dir não está definido, então foi procurado em relação ao diretório atual, o que não é confiável quando o launcher inicia a partir de um atalho de menu, um Snap ou um gerenciador de arquivos. Defina install_dir na configuração do launcher para o diretório que contém o arquivo compose.
 compose_missing: 'O Docker Compose não está disponível. Instale o plugin Compose v2 — Ubuntu/Debian: ''sudo apt install docker-compose-plugin'' (ou atualize o Docker) — e reinicie o launcher. Apps de serviço único podem alternativamente usar deployment_mode ''dockerfile'' (sem Compose).'
 compose_not_found: 'Arquivo compose não encontrado: {path}'
@@ -129,6 +130,7 @@ nothing_to_uninstall: Nada para desinstalar (nenhum contêiner presente).
 open_browser: Abrir no navegador
 open_install_guide: Abrir guia de instalação
 operation_cancelled: Cancelado. Nada está em execução agora; as partes já baixadas ou construídas ficam em cache e aceleram a próxima tentativa. ({detail})
+operation_pending_blocked: 'Ainda não é possível iniciar ''{action}'': a etapa anterior não confirmou seu fim e pode continuar trabalhando no aplicativo em segundo plano. Para evitar que duas operações toquem o mesmo contêiner, novas operações aguardam até ela responder, no máximo {minutes} minutos. Reiniciar o launcher também libera isso.'
 port_changed: Porta alterada para {port}.
 port_free: A porta {port} está livre.
 port_invalid: A porta deve estar entre {min} e {max}.

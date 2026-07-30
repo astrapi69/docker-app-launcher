@@ -8,6 +8,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **The watchdog window is closed (#100).** After an unresponsive cancel
+  freed the window, a second operation could start while the stuck step
+  still worked on the SAME container - measured: a hung operation waking
+  up after an uninstall would recreate resources, making the reported
+  end state lie, and a parallel install fails with a raw engine 409. New
+  long-running actions are now refused while one is pending, with the
+  guard's own exits named in the message: the late result clears it
+  immediately, a 10-minute TTL expires it, and a launcher restart clears
+  it too. Coverage over the full long-running action set. A cancel that
+  arrives after completion now says so ("the cancel came too late")
+  instead of confusing with a bare success.
 - **Running operations are cancellable, honestly (#98).** A Cancel
   control appears beside the progress bar only for operations a cancel
   can REALLY end (install, start, update - the acquire/build phase);

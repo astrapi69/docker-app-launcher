@@ -166,3 +166,57 @@ class TestCancelControl:
         app._set_busy(True)
         assert str(app._cancel_btn["state"]) == "normal", "the one way OUT of busy must stay clickable"
         app._set_busy(False)
+
+
+class TestPendingBackgroundGuard:
+    """#100: while an unresponsive operation may still work on the same
+    container in the background, EVERY long-running action is refused - with
+    the guard's own exits (late result, TTL, restart). Coverage over the
+    same checked set as the outcomes."""
+
+    @pytest.mark.parametrize("action", ui_model.LONG_RUNNING_ACTIONS)
+    def test_every_long_running_action_is_blocked_while_pending(self, app, action: str) -> None:
+        import time as _time
+
+        app._pending_background = ("install", _time.monotonic())
+        assert app._pending_background_blocks(action) is True, f"{action} must be refused while pending"
+
+    def test_short_actions_pass(self, app) -> None:
+        import time as _time
+
+        app._pending_background = ("install", _time.monotonic())
+        assert app._pending_background_blocks("app_logs") is False, "reading logs touches nothing"
+
+    def test_late_result_is_the_first_exit(self, app) -> None:
+        import time as _time
+
+        app._pending_background = ("install", _time.monotonic())
+        app._on_result("install", (False, "late failure"))
+        assert app._pending_background is None
+        assert app._pending_background_blocks("install") is False
+
+    def test_ttl_is_the_second_exit(self, app, monkeypatch) -> None:
+        import time as _time
+
+        app._pending_background = ("install", _time.monotonic() - ui_model.PENDING_BACKGROUND_TTL_SECONDS - 1)
+        assert app._pending_background_blocks("install") is False, "an expired guard must not block forever"
+        assert app._pending_background is None
+
+    def test_unresponsive_cancel_arms_the_guard(self, app) -> None:
+        app._on_cancel_unresponsive("update")
+        assert app._pending_background is not None and app._pending_background[0] == "update"
+
+
+class TestCancelTooLateNote:
+    def test_success_after_cancel_names_it(self, app, monkeypatch) -> None:
+        app._cancel_build.set()
+        logged: list[str] = []
+        orig = app._log
+
+        def spy(line: str, tag: str = "info") -> None:
+            logged.append(line)
+            orig(line, tag=tag)
+
+        monkeypatch.setattr(app, "_log", spy)
+        app._on_result("install", (True, "Installation complete."))
+        assert any("too late" in line or "zu spät" in line for line in logged), logged

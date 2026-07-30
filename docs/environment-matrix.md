@@ -450,6 +450,10 @@ code changes.
       `$XDG_RUNTIME_DIR/docker.sock` and does NOT offer `usermod`.
 - [ ] Snap Docker: confirm behavior with a compose file under `~/.<app>/`
       (expected to fail today; tracked by G7).
+- [ ] First launch shows NO "concurrency guard cannot work" note (#103):
+      the marker writes to config_dir (home-anchored, same directory as
+      launcher.json/manifest) - a note here would mean the wrapper
+      redirected config_dir somewhere unwritable.
 - [ ] FINAL ACCEPTANCE for the image-mode end-user path (#86/#81): on the
       REAL QA old device (the one the original field failures came from),
       run `--doctor` -> `--install` (image mode) -> `--health` ->

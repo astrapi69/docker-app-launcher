@@ -6,6 +6,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.25.0] - 2026-07-30
+
+Highlight: the operation lifecycle grew up. The progress bar used to keep
+animating even after a SUCCESSFUL install (and forever after a failed
+one); there was no cancel and no protection against two operations
+touching the same container. Now every operation ends in a defined idle
+state, running operations are honestly cancellable with named post-cancel
+states, and a cross-process guard (GUI and CLI alike) prevents
+side-by-side operations - with visible, named exits instead of new stuck
+states. Consumers should pin >= 0.25.0 before shipping installs.
+
+
 ### Added
 
 - **The concurrency guard holds on BOTH entry paths (#102).** The
@@ -1146,7 +1158,8 @@ plan to move to image mode.
 - CLI ↔ GUI parity: both route through the same actions.
 - 160+ tests (no display required), mypy strict, ruff clean.
 
-[Unreleased]: https://github.com/astrapi69/docker-app-launcher/compare/v0.24.0...HEAD
+[Unreleased]: https://github.com/astrapi69/docker-app-launcher/compare/v0.25.0...HEAD
+[0.25.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.24.0...v0.25.0
 [0.24.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.23.0...v0.24.0
 [0.23.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.22.0...v0.23.0
 [0.22.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.21.1...v0.22.0

@@ -17,6 +17,13 @@ Contract properties:
 - Matching normalizes whitespace before comparing, because doc prose
   wraps lines mid-phrase (measured: "concurrency guard cannot work"
   had zero naive-grep hits purely due to a line break).
+
+Known limit, deliberately open: this suite proves a mention EXISTS,
+not that it is still CORRECT - when a capability's behavior changes,
+a stale mention stays green. A content hash over prose (the fix used
+for the gate-rule coupling) would be wrong here: it fires on every
+rewording and creates exactly the false alarms this check avoids.
+Currency of the text stays with the release-checklist line and review.
 """
 
 from __future__ import annotations

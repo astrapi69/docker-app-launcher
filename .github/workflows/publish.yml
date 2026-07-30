@@ -7,6 +7,7 @@ on:
 permissions:
   id-token: write
   contents: read
+  actions: read
 
 jobs:
   publish:
@@ -15,6 +16,26 @@ jobs:
     environment: pypi
     steps:
       - uses: actions/checkout@v4
+
+      - name: Require green CI on the tagged commit (#93)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The checked set must be COMPLETE: publish runs make ci itself, but
+          # the old-engine cell, the frozen-binary contract, the 3.10-3.14
+          # matrix and the cross-platform smokes live only in ci.yml. A red or
+          # cancelled regular check of the published commit blocks the upload.
+          # (On a legitimate flake: fix or rerun ci.yml until green, then rerun
+          # this workflow - the tag stays in place.)
+          for i in $(seq 1 80); do
+            STATE=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml --commit "$GITHUB_SHA"               --json status,conclusion --jq 'if length == 0 then "none" elif .[0].status != "completed" then "pending" else .[0].conclusion end')
+            case "$STATE" in
+              success) echo "ci.yml green on $GITHUB_SHA"; exit 0 ;;
+              pending|none) echo "waiting for ci.yml on $GITHUB_SHA ($STATE)"; sleep 30 ;;
+              *) echo "::error::ci.yml on $GITHUB_SHA concluded '$STATE' - publishing is blocked until the commit's regular checks are green."; exit 1 ;;
+            esac
+          done
+          echo "::error::Timed out waiting for ci.yml on $GITHUB_SHA."; exit 1
 
       - name: Set up Python
         uses: actions/setup-python@v5

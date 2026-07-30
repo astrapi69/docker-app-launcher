@@ -126,6 +126,10 @@ def run_render_probe(config: LauncherConfig) -> int:
             ],
             "status_headline": str(app._state_label.cget("text")),
             "log_collapsed_default": bool(app._log_collapsed),
+            # #97: the idle end state EXISTS - at render nothing runs, so the
+            # progress indicator must be hidden; a bar that is visible here
+            # is the stuck-activity class the device finding exposed.
+            "progress_idle": not bool(app._progress_frame.winfo_ismapped()),
         },
     }
     app.destroy()

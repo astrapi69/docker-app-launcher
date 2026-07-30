@@ -99,6 +99,10 @@ def main() -> int:
             errors.append(f"status headline must carry a non-color state symbol, got {headline!r}")
         if assistant.get("log_collapsed_default") is not True:
             errors.append("the log must start collapsed (learners see headline/card first)")
+        if assistant.get("progress_idle") is not True:
+            errors.append(
+                "progress must be hidden at idle - a visible bar with nothing running is the #97 stuck-activity class"
+            )
 
     if errors:
         print("FROZEN BINARY CONTRACT VIOLATIONS:")

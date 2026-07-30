@@ -811,6 +811,9 @@ if HAS_QT:
             threading.Thread(target=worker, daemon=True).start()
 
         def _on_result(self, action_id: str, result: tuple[bool, str] | None) -> None:
+            # DEFINED end state for EVERY outcome (#97): stop and hide the
+            # progress indicator on success, failure and cancel alike.
+            self._hide_progress()
             self._set_busy(False)
             if result is not None:
                 ok, msg = result

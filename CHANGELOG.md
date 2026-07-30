@@ -6,6 +6,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Progress no longer animates forever after a failed operation (#97,
+  device finding).** The hide lived only on the success path, and an
+  image pull streams indeterminate updates - so after a failed
+  acquisition the bar kept claiming activity with no way to end it. Every
+  long-running operation now ends in a DEFINED idle state for success,
+  failure and cancel alike, in all three frontends; enforced per
+  (operation x outcome) by a real-window coverage suite over the new
+  LONG_RUNNING_ACTIONS enumeration, and the frozen contract asserts the
+  idle state.
+
 ## [0.24.0] - 2026-07-30
 
 Highlight: a REAL user-facing fix - on some Compose generations an app

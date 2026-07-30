@@ -489,3 +489,23 @@ def support_bundle_clipboard_text(config: LauncherConfig) -> str:
     from docker_app_launcher.doctor import collect_support_bundle
 
     return collect_support_bundle(config).to_text()
+
+
+# Long-running operations and their outcomes (#97). CONTRACT: every action
+# listed here must leave the window in a DEFINED idle state for EVERY outcome
+# - progress hidden and stopped, buttons re-enabled, next action startable
+# without a restart. Coverage is enforced per (action x outcome) by
+# tests/test_operation_end_states.py against the REAL windows; a new
+# long-running action that is not listed here fails the suite's sync pin.
+LONG_RUNNING_ACTIONS: tuple[str, ...] = (
+    "install",
+    "start",
+    "update",
+    "stop",
+    "uninstall",
+    "cleanup",
+    "change_port",
+    "change_internal_port",
+)
+
+OPERATION_OUTCOMES: tuple[str, ...] = ("success", "failure", "cancelled")

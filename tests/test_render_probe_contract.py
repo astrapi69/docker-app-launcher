@@ -49,6 +49,7 @@ def _valid_contract() -> dict[str, object]:
             "problem_card_sections": ["What does this mean?", "What you can do"],
             "status_headline": "· Probe App is not installed.",
             "log_collapsed_default": True,
+            "progress_idle": True,
         },
     }
 

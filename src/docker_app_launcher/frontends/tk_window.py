@@ -982,6 +982,11 @@ class LauncherApp(tk.Tk):
         threading.Thread(target=worker, daemon=True).start()
 
     def _on_result(self, action_id: str, result: tuple[bool, str] | None) -> None:
+        # DEFINED end state for EVERY outcome (#97): the progress indicator
+        # stops and hides on success, failure and cancel alike - the hide
+        # used to live only on the percent>=100 success path, so a failed
+        # pull (which streams percent=None) left the bar ANIMATING forever.
+        self._hide_progress()
         self._build_in_progress = False
         self._set_busy(False)
         if result is not None:

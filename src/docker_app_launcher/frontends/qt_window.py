@@ -20,7 +20,6 @@ import platform as _platform
 import re
 import sys
 import threading
-import time
 from typing import Any
 
 from docker_app_launcher import actions, i18n, lockfile, tray, ui_model, update_check
@@ -95,7 +94,6 @@ if HAS_QT:
             self._log_follow_stop: threading.Event | None = None
             self._cancel_build = threading.Event()
             self._current_action: str | None = None
-            self._pending_background: tuple[str, float] | None = None
             self._build_in_progress = False
             self._invoke.connect(lambda fn: fn())
 
@@ -496,33 +494,24 @@ if HAS_QT:
                 self._cancel_watchdog = None
 
         def _pending_background_blocks(self, action_id: str) -> bool:
-            """Guard (#100): while an unresponsive operation may still work on the
-            same container in the background, new long-running actions are refused
-            - measured: a hung operation waking up after an uninstall recreates
-            resources, so the reported end state would lie. Exits: the late result
-            clears the guard, the TTL expires it, a restart clears it."""
-            pending = self._pending_background
-            if pending is None or action_id not in ui_model.LONG_RUNNING_ACTIONS:
-                return False
-            if time.monotonic() - pending[1] >= ui_model.PENDING_BACKGROUND_TTL_SECONDS:
-                self._pending_background = None
-                return False
-            self._log(
-                self._t(
-                    "operation_pending_blocked",
-                    action=pending[0],
-                    minutes=ui_model.PENDING_BACKGROUND_TTL_SECONDS // 60,
-                ),
-                tag="err",
-            )
-            return True
+            """ONE gate for both entry paths (#102): delegates to
+            ui_model.check_pending_operation - the same call the CLI makes, so
+            the two ways cannot drift (mirror class of the bundle finding). A
+            release by TTL logs the never-confirmed note and proceeds."""
+            block, note = ui_model.check_pending_operation(self._cfg, action_id)
+            if block is not None:
+                self._log(block, tag="err")
+                return True
+            if note is not None:
+                self._log(note, tag="err")
+            return False
 
         def _on_cancel_unresponsive(self, action_id: str) -> None:
             self._cancel_watchdog = None
             self._hide_progress()
             self._build_in_progress = False
             self._set_busy(False)
-            self._pending_background = (action_id, time.monotonic())
+            lockfile.write_pending_operation(self._cfg, action_id)
             self._log(self._t("cancel_unresponsive"), tag="err")
             self._record_cancel_outcome(action_id, "cancel_unresponsive")
             self._refresh()
@@ -909,7 +898,7 @@ if HAS_QT:
             # DEFINED end state for EVERY outcome (#97): stop and hide the
             # progress indicator on success, failure and cancel alike.
             self._cancel_watchdog_stop()
-            self._pending_background = None  # the late result IS the pending guard's exit (#100)
+            lockfile.clear_pending_operation(self._cfg)  # the late result IS the guard's exit (#100)
             self._hide_progress()
             if result is not None and not result[0] and self._cancel_build.is_set():
                 self._record_cancel_outcome(action_id, "cancelled")

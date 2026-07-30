@@ -131,6 +131,7 @@ open_browser: Open in browser
 open_install_guide: Open installation guide
 operation_cancelled: Cancelled. Nothing is running now; parts already downloaded or built stay cached and speed up the next attempt. ({detail})
 operation_pending_blocked: 'Cannot start ''{action}'' yet: the previous step did not confirm its end and may still be working on the app in the background. To avoid two operations touching the same container, new operations wait until it reports back, at most {minutes} minutes. Restarting the launcher also clears this.'
+pending_expired_unconfirmed: 'Note: the previous operation (''{action}'') never confirmed its end - this release is by timeout, not an all-clear. Its result is unknown; run the system check before relying on the current state.'
 port_changed: Port changed to {port}.
 port_free: Port {port} is free.
 port_invalid: Port must be between {min} and {max}.

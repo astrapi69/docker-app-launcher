@@ -17,6 +17,10 @@ import logging
 import os
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from docker_app_launcher.config import LauncherConfig
 
 logger = logging.getLogger("docker_app_launcher.lockfile")
 
@@ -135,3 +139,60 @@ def consume_focus_request(lock_path: Path) -> bool:
         marker.unlink()
         return True
     return False
+
+
+# --- pending-operation marker (#102) -----------------------------------------
+# The concurrency guard's cross-process carrier: the GUI writes it when a
+# cancel goes unresponsive, clears it on the late result. PID-bound on
+# purpose: the hung worker is a THREAD of the GUI process, so a dead owner
+# pid means the hung operation died with it - the marker voids itself, a
+# crashed GUI never blocks forever, and "restart clears it" is mechanically
+# true rather than a promise.
+
+_PENDING_FILE = "pending-operation.json"
+
+
+def _pending_path(config: LauncherConfig) -> Path:
+    return config.config_path / _PENDING_FILE
+
+
+def write_pending_operation(config: LauncherConfig, action: str) -> None:
+    """Best-effort, fail-open - the guard must not depend on a writable disk."""
+    import json as _json
+    import time as _time
+
+    try:
+        path = _pending_path(config)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            _json.dumps({"action": action, "at": _time.time(), "pid": os.getpid()}),
+            encoding="utf-8",
+        )
+    except OSError as exc:
+        logger.warning("could not write pending-operation marker: %s", exc)
+
+
+def clear_pending_operation(config: LauncherConfig) -> None:
+    import contextlib as _contextlib
+
+    with _contextlib.suppress(OSError):
+        _pending_path(config).unlink(missing_ok=True)
+
+
+def read_pending_operation(config: LauncherConfig) -> dict[str, object] | None:
+    """The marker, or None when absent, malformed, or its owner pid is dead."""
+    import json as _json
+
+    try:
+        data = _json.loads(_pending_path(config).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    try:
+        pid = int(str(data.get("pid", 0)))
+    except ValueError:
+        return None
+    if pid <= 0 or not pid_is_alive(pid):
+        return None
+    return data

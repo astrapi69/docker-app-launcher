@@ -131,6 +131,7 @@ open_browser: 브라우저에서 열기
 open_install_guide: 설치 안내 열기
 operation_cancelled: 취소되었습니다. 지금은 아무것도 실행되지 않습니다. 이미 내려받았거나 빌드된 부분은 캐시에 남아 다음 시도를 빠르게 합니다. ({detail})
 operation_pending_blocked: '아직 ''{action}''을(를) 시작할 수 없습니다: 이전 단계가 종료를 확인하지 않았고 백그라운드에서 앱을 계속 작업 중일 수 있습니다. 두 작업이 같은 컨테이너를 건드리지 않도록, 새 작업은 응답이 올 때까지 최대 {minutes}분 대기합니다. 런처를 다시 시작해도 해제됩니다.'
+pending_expired_unconfirmed: '참고: 이전 작업(''{action}'')은 끝을 한 번도 확인하지 못했습니다 - 이 해제는 시간 초과에 따른 것이며 이상 없음 신호가 아닙니다. 결과를 알 수 없으니 현재 상태를 신뢰하기 전에 시스템 점검을 실행하세요.'
 port_changed: 포트를 {port} (으)로 변경했습니다.
 port_free: 포트 {port} 이(가) 비어 있습니다.
 port_invalid: 포트는 {min} 에서 {max} 사이여야 합니다.

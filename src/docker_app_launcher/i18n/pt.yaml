@@ -131,6 +131,7 @@ open_browser: Abrir no navegador
 open_install_guide: Abrir guia de instalação
 operation_cancelled: Cancelado. Nada está em execução agora; as partes já baixadas ou construídas ficam em cache e aceleram a próxima tentativa. ({detail})
 operation_pending_blocked: 'Ainda não é possível iniciar ''{action}'': a etapa anterior não confirmou seu fim e pode continuar trabalhando no aplicativo em segundo plano. Para evitar que duas operações toquem o mesmo contêiner, novas operações aguardam até ela responder, no máximo {minutes} minutos. Reiniciar o launcher também libera isso.'
+pending_expired_unconfirmed: 'Nota: a operação anterior (''{action}'') nunca confirmou seu fim - esta liberação é por tempo, não um sinal de que está tudo bem. Seu resultado é desconhecido; execute a verificação do sistema antes de confiar no estado atual.'
 port_changed: Porta alterada para {port}.
 port_free: A porta {port} está livre.
 port_invalid: A porta deve estar entre {min} e {max}.

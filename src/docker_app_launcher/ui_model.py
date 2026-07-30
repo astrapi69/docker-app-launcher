@@ -560,3 +560,40 @@ CANCELLABLE_ACTIONS: dict[str, str] = {
 #     its rebuild path has no cancel plumbing yet (own compose call;
 #     tracked as #101, not just prose);
 #     archive load inside image mode - a single fast local call.
+
+
+def check_pending_operation(config: LauncherConfig, action_id: str) -> tuple[str | None, str | None]:
+    """The ONE concurrency gate both entry paths call (#102) - GUI and CLI;
+    two implementations of the same guard would drift (mirror class of the
+    bundle finding).
+
+    Returns ``(block_message, expiry_note)``: a block message refuses the
+    action (the marker's owner may still work on the same container); an
+    expiry note lets the action proceed but says the previous operation
+    NEVER confirmed its end - a release by time is not an all-clear.
+    """
+    import time as _time
+
+    from docker_app_launcher import lockfile as _lockfile
+
+    if action_id not in LONG_RUNNING_ACTIONS:
+        return None, None
+    marker = _lockfile.read_pending_operation(config)
+    if marker is None:
+        return None, None
+    try:
+        age = _time.time() - float(str(marker.get("at", 0)))
+    except ValueError:
+        age = PENDING_BACKGROUND_TTL_SECONDS
+    if age >= PENDING_BACKGROUND_TTL_SECONDS:
+        _lockfile.clear_pending_operation(config)  # the TTL is the guard's exit
+        return None, i18n.t("pending_expired_unconfirmed", config, action=str(marker.get("action", "?")))
+    return (
+        i18n.t(
+            "operation_pending_blocked",
+            config,
+            action=str(marker.get("action", "?")),
+            minutes=PENDING_BACKGROUND_TTL_SECONDS // 60,
+        ),
+        None,
+    )

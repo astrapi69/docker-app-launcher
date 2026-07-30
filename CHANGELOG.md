@@ -8,6 +8,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **The concurrency guard holds on BOTH entry paths (#102).** The
+  pending-operation guard lived in window memory; the freshly documented
+  CLI contract routed past it - and could not even see it, a CLI run
+  being another process (mirror class of the bundle finding, other
+  direction). The guard now has one shared layer both paths call: a
+  PID-bound marker in the config directory (the hung worker is a thread
+  of the GUI process, so a dead owner voids the marker - a crashed GUI
+  never blocks, and "restart clears it" is mechanically true). CLI
+  long-running flags refuse with the same localized message; the guarded
+  flag set is sync-pinned against the long-running action set so a new
+  entry path cannot slip past unnoticed. A release by TTL now says the
+  previous operation NEVER confirmed its end - by-time release is not an
+  all-clear - distinct from the silent release by a late result.
 - **The watchdog window is closed (#100).** After an unresponsive cancel
   freed the window, a second operation could start while the stuck step
   still worked on the SAME container - measured: a hung operation waking

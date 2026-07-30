@@ -131,6 +131,7 @@ open_browser: Buka di browser
 open_install_guide: Buka panduan instalasi
 operation_cancelled: Dibatalkan. Tidak ada yang berjalan sekarang; bagian yang sudah diunduh atau dibangun tetap di cache dan mempercepat percobaan berikutnya. ({detail})
 operation_pending_blocked: '''{action}'' belum bisa dimulai: langkah sebelumnya belum mengonfirmasi akhirnya dan mungkin masih bekerja pada aplikasi di latar belakang. Agar dua operasi tidak menyentuh kontainer yang sama, operasi baru menunggu sampai ia melapor, paling lama {minutes} menit. Memulai ulang launcher juga menghapus ini.'
+pending_expired_unconfirmed: 'Catatan: operasi sebelumnya (''{action}'') tidak pernah mengonfirmasi akhirnya - pelepasan ini karena batas waktu, bukan tanda aman. Hasilnya tidak diketahui; jalankan pemeriksaan sistem sebelum mengandalkan keadaan saat ini.'
 port_changed: Port diubah menjadi {port}.
 port_free: Port {port} tersedia.
 port_invalid: Port harus antara {min} dan {max}.

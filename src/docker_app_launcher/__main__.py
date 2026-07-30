@@ -138,6 +138,21 @@ def run_render_probe(config: LauncherConfig) -> int:
     return 0
 
 
+# CLI flags that trigger long-running actions, mapped to their action ids -
+# ONE source pinned against ui_model.LONG_RUNNING_ACTIONS by
+# tests/test_pending_operation_guard.py, so a new entry path cannot slip
+# past the guard unnoticed (#102). change_port/change_internal_port have no
+# standalone CLI action flag (documented exception in the pin).
+GUARDED_CLI_ACTIONS = {
+    "install": "install",
+    "start": "start",
+    "update": "update",
+    "stop": "stop",
+    "uninstall": "uninstall",
+    "cleanup": "cleanup",
+}
+
+
 def run_cli_action(args: argparse.Namespace, config: LauncherConfig) -> int | None:
     """Route a headless CLI action through the actions layer.
 
@@ -149,6 +164,21 @@ def run_cli_action(args: argparse.Namespace, config: LauncherConfig) -> int | No
     2 = config or usage error (raised before this function runs).
     """
     import json as _json
+
+    from docker_app_launcher import ui_model as _ui_model
+
+    # The concurrency guard holds on BOTH entry paths (#102): the same gate
+    # the GUI consults. A pending unresponsive operation blocks the action;
+    # a release by TTL prints the never-confirmed note and proceeds.
+    for flag_attr, guarded_action in GUARDED_CLI_ACTIONS.items():
+        if getattr(args, flag_attr):
+            block, note = _ui_model.check_pending_operation(config, guarded_action)
+            if block is not None:
+                print(block)
+                return 1
+            if note is not None:
+                print(note)
+            break
 
     if args.doctor:
         from docker_app_launcher.doctor import collect_doctor_report, render_doctor_text

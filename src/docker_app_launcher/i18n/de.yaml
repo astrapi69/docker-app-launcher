@@ -131,6 +131,7 @@ open_browser: Im Browser öffnen
 open_install_guide: Installationsanleitung öffnen
 operation_cancelled: Abgebrochen. Es läuft jetzt nichts; bereits heruntergeladene oder gebaute Teile bleiben im Zwischenspeicher und beschleunigen den nächsten Versuch. ({detail})
 operation_pending_blocked: '''{action}'' kann noch nicht starten: der vorherige Schritt hat sein Ende nicht bestätigt und arbeitet möglicherweise im Hintergrund weiter an der App. Damit nicht zwei Vorgänge denselben Container anfassen, warten neue Vorgänge, bis er sich meldet, höchstens {minutes} Minuten. Ein Neustart des Launchers hebt das ebenfalls auf.'
+pending_expired_unconfirmed: 'Hinweis: der vorherige Vorgang (''{action}'') hat sein Ende nie bestätigt - diese Freigabe beruht auf Zeitablauf, nicht auf Entwarnung. Sein Ergebnis ist unbekannt; führe die Systemprüfung aus, bevor du dich auf den aktuellen Zustand verlässt.'
 port_changed: Port auf {port} geändert.
 port_free: Port {port} ist frei.
 port_invalid: Port muss zwischen {min} und {max} liegen.

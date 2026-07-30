@@ -131,6 +131,7 @@ open_browser: Tarayıcıda aç
 open_install_guide: Kurulum kılavuzunu aç
 operation_cancelled: İptal edildi. Şu anda hiçbir şey çalışmıyor; indirilen veya derlenen parçalar önbellekte kalır ve bir sonraki denemeyi hızlandırır. ({detail})
 operation_pending_blocked: '''{action}'' henüz başlatılamıyor: önceki adım bittiğini doğrulamadı ve arka planda uygulama üzerinde çalışmaya devam ediyor olabilir. İki işlemin aynı kapsayıcıya dokunmaması için yeni işlemler, o yanıt verene kadar en fazla {minutes} dakika bekler. Launcher''ı yeniden başlatmak da bunu kaldırır.'
+pending_expired_unconfirmed: 'Not: önceki işlem (''{action}'') bitişini hiç doğrulamadı - bu serbest bırakma zaman aşımından, temiz raporundan değil. Sonucu bilinmiyor; mevcut duruma güvenmeden önce sistem denetimini çalıştırın.'
 port_changed: Bağlantı noktası {port} olarak değiştirildi.
 port_free: '{port} bağlantı noktası boş.'
 port_invalid: Bağlantı noktası {min} ile {max} arasında olmalıdır.

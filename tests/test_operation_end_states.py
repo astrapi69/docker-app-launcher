@@ -176,35 +176,57 @@ class TestPendingBackgroundGuard:
 
     @pytest.mark.parametrize("action", ui_model.LONG_RUNNING_ACTIONS)
     def test_every_long_running_action_is_blocked_while_pending(self, app, action: str) -> None:
-        import time as _time
+        from docker_app_launcher import lockfile
 
-        app._pending_background = ("install", _time.monotonic())
+        lockfile.write_pending_operation(app._cfg, "install")
         assert app._pending_background_blocks(action) is True, f"{action} must be refused while pending"
 
     def test_short_actions_pass(self, app) -> None:
-        import time as _time
+        from docker_app_launcher import lockfile
 
-        app._pending_background = ("install", _time.monotonic())
+        lockfile.write_pending_operation(app._cfg, "install")
         assert app._pending_background_blocks("app_logs") is False, "reading logs touches nothing"
 
     def test_late_result_is_the_first_exit(self, app) -> None:
-        import time as _time
+        from docker_app_launcher import lockfile
 
-        app._pending_background = ("install", _time.monotonic())
+        lockfile.write_pending_operation(app._cfg, "install")
         app._on_result("install", (False, "late failure"))
-        assert app._pending_background is None
+        assert lockfile.read_pending_operation(app._cfg) is None
         assert app._pending_background_blocks("install") is False
 
-    def test_ttl_is_the_second_exit(self, app, monkeypatch) -> None:
+    def test_ttl_release_carries_the_never_confirmed_note(self, app) -> None:
+        import json
         import time as _time
 
-        app._pending_background = ("install", _time.monotonic() - ui_model.PENDING_BACKGROUND_TTL_SECONDS - 1)
-        assert app._pending_background_blocks("install") is False, "an expired guard must not block forever"
-        assert app._pending_background is None
+        from docker_app_launcher import lockfile
+
+        lockfile.write_pending_operation(app._cfg, "install")
+        path = app._cfg.config_path / "pending-operation.json"
+        data = json.loads(path.read_text())
+        data["at"] = _time.time() - ui_model.PENDING_BACKGROUND_TTL_SECONDS - 1
+        path.write_text(json.dumps(data))
+        logged: list[str] = []
+        orig = app._log
+
+        def spy(line: str, tag: str = "info") -> None:
+            logged.append(line)
+            orig(line, tag=tag)
+
+        app._log = spy
+        blocked = app._pending_background_blocks("install")
+        app._log = orig
+        assert blocked is False, "an expired guard must not block forever"
+        assert any("never confirmed" in line or "nie" in line for line in logged), (
+            "a release BY TIME must say the previous state was never confirmed"
+        )
 
     def test_unresponsive_cancel_arms_the_guard(self, app) -> None:
+        from docker_app_launcher import lockfile
+
         app._on_cancel_unresponsive("update")
-        assert app._pending_background is not None and app._pending_background[0] == "update"
+        marker = lockfile.read_pending_operation(app._cfg)
+        assert marker is not None and marker["action"] == "update"
 
 
 class TestCancelTooLateNote:

@@ -58,6 +58,18 @@ base works for any Docker app.
 - Lint / format / types: `make lint`, `make format`, `make typecheck`
 - Auto-fix: `make fix`
 
+## Working-environment note
+
+The development environment auto-pushes `main` after every commit
+(observed 2026-07-30: each direct commit produced its own push-event CI
+run before any explicit `git push`). Gain: every intermediate state gets
+its own CI run. Consequence to know: there is NO last local chance to
+catch a mistake — in a public repository an accidentally committed
+secret is published immediately and cannot be recalled (cloning can
+happen between push and discovery; history rewriting does not undo it).
+pre-commit currently has NO secret scan; adding one is the release
+manager's call (it slows every commit).
+
 ## Conventions
 
 - **Nothing hard-coded:** every app-specific value (name, container/image,
@@ -129,6 +141,37 @@ Concretely: the build paths go through one capability gate per mode
 (`docker/build_readiness.py`) that collects all blockers before the build
 (`compose_blockers` / `dockerfile_blockers` / `image_blockers`), never a
 chain of independent green checkmarks.
+
+### The five-point test contract (#94; full text: governance repo, "Gate test contract", #2083)
+
+Applies to EVERY gate, readiness check, wait loop and precondition query
+— not only CI workflows. Both #93 findings were contract violations in
+plain shell logic, not in a "gate" anyone had labeled as one. One
+sentence and one local precedent per point:
+
+1. **It detects the violation** — a RED proof that reproduces the
+   incident. Precedent: `test_frontend_parity.py` was recorded RED
+   (ctk/qt missing) before phase c made it green (#81).
+2. **It passes on a clean tree** — else it "works" by failing always.
+   Precedent: the render-probe judge's self-test includes the
+   complete-contract-passes case (`test_render_probe_contract.py`).
+3. **It fails CLOSED when its own basis is missing** — "could not
+   check" is never "nothing to find". Precedent: the dind readiness
+   loop fell through silently after 60 swallowed probes and the dead
+   engine surfaced as an opaque exec error (#93, fixed in 0159d1e).
+4. **It reports WHAT it measured** — an unchecked set reads as a clean
+   one. Precedent: publish.yml's gate ran only `make ci` and uploaded
+   while the tagged commit's old-engine job was red in ci.yml, outside
+   the consulted set (#93, fixed in ae12f43). Positive carriers:
+   `KNOWN_CHECK_IDS`, `_OPERATIONS`, `PATH_FIELD_ANCHORS`.
+5. **Its number/verdict means the same thing everywhere** — name the
+   environment the measurement depends on. Precedent: whether a compose
+   rebuild actually ran the new image depended on the user's Compose
+   generation; green locally, stale on the runner, until
+   `--force-recreate` made it deterministic (0331053).
+
+No enforcement gate for the contract itself at this repo size; revisit
+with evidence if it keeps being violated.
 
 ### Mode completeness rule (#78)
 

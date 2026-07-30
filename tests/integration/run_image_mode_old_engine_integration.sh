@@ -24,6 +24,15 @@ for _ in $(seq 1 60); do
   if docker exec "$NAME" docker version >/dev/null 2>&1; then break; fi
   sleep 1
 done
+# The dind daemon occasionally dies right after start on shared runners
+# (storage-driver probe). A dead container would otherwise surface as an
+# opaque "container is not running" on the NEXT exec - fail here with the
+# daemon's own log instead, so a flake is diagnosable from the CI output.
+if [ "$(docker inspect -f '{{.State.Running}}' "$NAME")" != "true" ]; then
+  echo "FAIL: the dind engine container died during startup - daemon log:"
+  docker logs "$NAME" 2>&1 | tail -40
+  exit 1
+fi
 docker exec "$NAME" docker version --format 'engine ready: {{.Server.Version}} (API {{.Server.APIVersion}})'
 
 echo "=== provisioning the distro profile (engine only, no client plugins) ==="

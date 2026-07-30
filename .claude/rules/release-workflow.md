@@ -189,6 +189,17 @@ CHANGELOG excerpt.
 
 - [ ] Reviewed commits since the last tag
 - [ ] Version picked per SemVer and confirmed by the user
+- [ ] User docs cover every NEW user-visible capability (#106). This
+      point is only truthfully tickable by LISTING, per capability, its
+      name and its location (file + section) in the user docs
+      (README.md) and — for end-user-facing capabilities — in
+      `docs/quickstart-end-user.md`; write "none this release"
+      explicitly when nothing user-visible changed. The CHANGELOG does
+      NOT count (it addresses readers-after-the-fact, not users). The
+      machine check `tests/test_user_docs_coverage.py` covers the
+      enumerable sets (CLI flags, assistant elements, guard notes);
+      this line exists for capabilities OUTSIDE those sets (behavioral
+      semantics, new file formats, new environment variables).
 - [ ] CHANGELOG entry committed
 - [ ] `pyproject.toml` version bumped; `__version__` matches
 - [ ] `make release-check` clean

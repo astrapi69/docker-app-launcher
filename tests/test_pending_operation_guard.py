@@ -222,3 +222,39 @@ class TestPidReuseDefense:
         path.write_text(json.dumps(data))
         marker, degraded = lockfile.read_pending_operation(gconfig)
         assert degraded is None and marker is not None
+
+
+class TestAtomicMarkerWrite:
+    """#105: the marker is either complete or absent - never torn. A torn
+    marker would read as garbage and be CONSUMED, taking the protection
+    with it; the guard exists for crashes and must not be crash-sensitive."""
+
+    def test_write_goes_through_temp_and_replace(self, gconfig, monkeypatch) -> None:
+        import os as _os
+
+        calls: list[tuple[str, str]] = []
+        real_replace = _os.replace
+
+        def spy_replace(src: str, dst: str) -> None:
+            calls.append((str(src), str(dst)))
+            real_replace(src, dst)
+
+        monkeypatch.setattr(_os, "replace", spy_replace)
+        assert lockfile.write_pending_operation(gconfig, "install") is None
+        assert calls, "the write must go through an atomic rename"
+        marker, degraded = lockfile.read_pending_operation(gconfig)
+        assert degraded is None and marker is not None
+
+    def test_crash_between_write_and_replace_leaves_no_marker(self, gconfig, monkeypatch) -> None:
+        import os as _os
+
+        def boom(src: str, dst: str) -> None:
+            raise OSError("simulated crash at rename")
+
+        monkeypatch.setattr(_os, "replace", boom)
+        detail = lockfile.write_pending_operation(gconfig, "install")
+        assert detail is not None, "the failed arming is reported (#103)"
+        path = gconfig.config_path / "pending-operation.json"
+        assert not path.exists(), "either complete or ABSENT - never torn"
+        leftovers = list(gconfig.config_path.glob("*.tmp*")) + list(gconfig.config_path.glob(".pending*"))
+        assert leftovers == [], f"no stray temp files: {leftovers}"

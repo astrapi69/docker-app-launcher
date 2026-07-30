@@ -200,13 +200,21 @@ def write_pending_operation(config: LauncherConfig, action: str) -> str | None:
     surface the returned detail visibly, because a silently missing
     protection is the worst case.
     """
+    import contextlib as _contextlib
     import json as _json
     import time as _time
 
+    path = _pending_path(config)
+    # ATOMIC write (#105): temp file in the SAME directory, then os.replace -
+    # the marker is either complete or absent, never torn. A torn marker
+    # would read as garbage and be CONSUMED (#103), taking the protection
+    # with it; the guard exists for crashes and must not be crash-sensitive
+    # itself. os.replace is atomic on POSIX (rename(2), same filesystem) and
+    # uses MoveFileEx REPLACE_EXISTING semantics on Windows.
+    tmp = path.with_name(path.name + ".tmp")
     try:
-        path = _pending_path(config)
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(
+        tmp.write_text(
             _json.dumps(
                 {
                     "action": action,
@@ -219,9 +227,12 @@ def write_pending_operation(config: LauncherConfig, action: str) -> str | None:
             ),
             encoding="utf-8",
         )
+        os.replace(tmp, path)
         return None
     except OSError as exc:
         logger.warning("could not write pending-operation marker: %s", exc)
+        with _contextlib.suppress(OSError):
+            tmp.unlink(missing_ok=True)
         return str(exc)
 
 

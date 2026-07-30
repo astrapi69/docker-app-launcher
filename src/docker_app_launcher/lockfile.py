@@ -159,6 +159,35 @@ def consume_focus_request(lock_path: Path) -> bool:
 _PENDING_FILE = "pending-operation.json"
 
 
+def process_start_marker(pid: int) -> str | None:
+    """A start-of-process attribute a READER can verify for any pid (#104).
+
+    Defends the pending marker against PID reuse: same number, different
+    process. A random token would not work here - a cross-process reader
+    cannot ask a foreign process to confirm it; the start time is the
+    attribute the OS answers for. Linux: starttime from /proc/<pid>/stat
+    (clock ticks since boot, stable for the process lifetime). Other POSIX
+    (macOS): `ps -o lstart=`. Windows: None - tasklist offers no start
+    time; pid+TTL remain the NAMED residual there.
+    """
+    try:
+        if sys.platform.startswith("linux"):
+            stat = Path(f"/proc/{pid}/stat").read_text(encoding="utf-8", errors="replace")
+            # Field 22 (starttime); split AFTER the last ')' - the comm field
+            # may contain spaces and parentheses.
+            fields = stat.rsplit(")", 1)[1].split()
+            return fields[19]
+        if sys.platform == "win32":
+            return None
+        import subprocess as _subprocess
+
+        result = _subprocess.run(["ps", "-p", str(pid), "-o", "lstart="], capture_output=True, text=True, timeout=5)
+        value = result.stdout.strip()
+        return value or None
+    except (OSError, IndexError, ValueError):
+        return None
+
+
 def _pending_path(config: LauncherConfig) -> Path:
     return config.config_path / _PENDING_FILE
 
@@ -178,7 +207,16 @@ def write_pending_operation(config: LauncherConfig, action: str) -> str | None:
         path = _pending_path(config)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
-            _json.dumps({"action": action, "at": _time.time(), "pid": os.getpid()}),
+            _json.dumps(
+                {
+                    "action": action,
+                    "at": _time.time(),
+                    "pid": os.getpid(),
+                    # PID-reuse defense (#104): readers verify the start
+                    # marker; a recycled pid with a different start is void.
+                    "start": process_start_marker(os.getpid()),
+                }
+            ),
             encoding="utf-8",
         )
         return None
@@ -234,4 +272,12 @@ def read_pending_operation(config: LauncherConfig) -> tuple[dict[str, object] | 
         return None, "unparsable marker content (bad pid)"
     if pid <= 0 or not pid_is_alive(pid):
         return None, None  # dead owner: validly void, the marker self-voids
+    stored_start = str(data.get("start") or "")
+    if stored_start:
+        current_start = process_start_marker(pid)
+        if current_start is not None and current_start != stored_start:
+            # Same number, different process (#104): the owner died and the
+            # pid was recycled - the marker is void. If the current start is
+            # unobtainable (platform gap), pid+TTL remain the named residual.
+            return None, None
     return data, None

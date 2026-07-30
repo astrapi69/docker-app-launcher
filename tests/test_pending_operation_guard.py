@@ -184,3 +184,41 @@ class TestDeliberateOpenIsVisible:
         assert ui_model.check_pending_operation(gconfig, "install") == (None, None), (
             "no marker is the NORMAL case - no note noise"
         )
+
+
+class TestPidReuseDefense:
+    """#104: a recycled PID must not validate a foreign process as owner.
+    The marker stores the owner's process START marker; readers verify it -
+    a matching pid with a WRONG start marker is void. Where no start marker
+    is obtainable (platform gap), pid+TTL remain the named residual."""
+
+    def test_own_start_marker_is_obtainable_here(self) -> None:
+        marker = lockfile.process_start_marker(os.getpid())
+        assert marker, "on Linux/macOS the start marker must be readable for the own pid"
+
+    def test_matching_pid_wrong_start_marker_is_void(self, gconfig) -> None:
+        lockfile.write_pending_operation(gconfig, "install")
+        path = gconfig.config_path / "pending-operation.json"
+        data = json.loads(path.read_text())
+        assert data.get("start"), "the writer must record its start marker"
+        data["start"] = "recycled-pid-different-process"
+        path.write_text(json.dumps(data))
+        assert lockfile.read_pending_operation(gconfig) == (None, None), (
+            "same pid but different process start: the owner died, the marker is void"
+        )
+
+    def test_matching_start_marker_stays_valid(self, gconfig) -> None:
+        lockfile.write_pending_operation(gconfig, "install")
+        marker, degraded = lockfile.read_pending_operation(gconfig)
+        assert degraded is None and marker is not None and marker["action"] == "install"
+
+    def test_marker_without_start_field_falls_back_to_pid(self, gconfig) -> None:
+        # Older markers / platforms without a start marker: pid+TTL remain
+        # the named residual - never a crash, never a false void.
+        lockfile.write_pending_operation(gconfig, "install")
+        path = gconfig.config_path / "pending-operation.json"
+        data = json.loads(path.read_text())
+        data.pop("start", None)
+        path.write_text(json.dumps(data))
+        marker, degraded = lockfile.read_pending_operation(gconfig)
+        assert degraded is None and marker is not None

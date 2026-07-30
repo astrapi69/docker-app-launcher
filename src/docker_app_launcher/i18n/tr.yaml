@@ -25,6 +25,9 @@ build_timeout: Docker derlemesi zaman aşımına uğradı.
 building: İmaj derleniyor (ilk seferde birkaç dakika sürebilir)...
 buildx_missing: 'Docker Compose derlemesi buildx''e devreder ve buildx {required} veya sonrasını gerektirir, ancak buildx eklentisi bulunamadı. buildx kurun: platformunuz için ikili dosyayı docker/buildx sürümlerinden indirin, {path} konumuna koyun ve ''chmod +x {path}'' ile çalıştırılabilir yapın. Dağıtım paketleri bunun için güvenilmez çıktı.'
 buildx_too_old: 'Docker Compose derlemesi buildx''e devreder ve buildx {required} veya sonrasını gerektirir, ancak buildx {found} kurulu. Daha yeni bir buildx kurun: platformunuz için ikili dosyayı docker/buildx sürümlerinden indirin, {path} konumuna koyun ve ''chmod +x {path}'' ile çalıştırılabilir yapın. Dağıtım paketleri bunun için güvenilmez çıktı.'
+cancel_operation: İptal
+cancel_unresponsive: Çalışan adım iptal isteğine yanıt vermiyor. Arka planda tamamlanabilir - pencere yeniden kullanılabilir ve adım biter bitmez durum görüntüsü güncellenir.
+cancelling: İptal ediliyor...
 check_compose_file_exists_fix: Uygulama dosyalarının install_dir altında olduğundan ve compose dosya adının gerçek dosyayla eşleştiğinden emin olun.
 check_compose_file_exists_meaning: Bu uygulama bir Docker Compose dosyasıyla yönetiliyor ve yapılandırılan dosya gösterilen yolda yok.
 check_docker_running_fix: 'Docker Desktop''ı veya docker hizmetini başlatın (Linux: ''sudo systemctl start docker''), sonra sistem denetimini yeniden çalıştırın. Docker kurulu değilse önce kurun.'
@@ -125,6 +128,7 @@ not_reachable_after: '{app} {timeout}sn sonra erişilebilir değil ({detail}).'
 nothing_to_uninstall: Kaldırılacak bir şey yok (konteyner mevcut değil).
 open_browser: Tarayıcıda aç
 open_install_guide: Kurulum kılavuzunu aç
+operation_cancelled: İptal edildi. Şu anda hiçbir şey çalışmıyor; indirilen veya derlenen parçalar önbellekte kalır ve bir sonraki denemeyi hızlandırır. ({detail})
 port_changed: Bağlantı noktası {port} olarak değiştirildi.
 port_free: '{port} bağlantı noktası boş.'
 port_invalid: Bağlantı noktası {min} ile {max} arasında olmalıdır.
@@ -182,6 +186,7 @@ uninstall_partial: 'Kısmen kaldırıldı: {count} konteyner kaldırılamadı.'
 uninstalling: Kaldırma işlemi başlatıldı...
 update_app: Güncelle
 update_available: 'Güncelleme mevcut: {tag} - {url}'
+update_cancelled_stopped: Güncelleme iptal edildi - güncelleme yeni sürümü almadan önce uygulamayı durdurduğu için uygulama şu anda DURDURULMUŞ durumda. Önceki sürümü çalıştırmak için Başlat'a basın; imajı hâlâ bu makinede. ({detail})
 update_done: '{app} güncellendi ve çalışıyor.'
 update_fetching: En son sürüm alınıyor...
 update_health_failed: 'Güncellendi ama {app} erişilebilir değil: {detail}. {hint}'

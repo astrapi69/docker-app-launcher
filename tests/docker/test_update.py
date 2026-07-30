@@ -151,3 +151,21 @@ class TestUpdateMessageVisibility:
         assert ok is True
         assert i18n.t("update_stopping", config) in steps
         assert i18n.t("update_fetching", config) in steps
+
+
+class TestUpdateCancelLeavesStoppedStateNamed:
+    """#98: the trickiest cancel - update STOPPED the app before re-acquiring.
+    The message must say the app is stopped now and name Start as the next
+    step (the previous image is still local, #88)."""
+
+    def test_cancel_during_reacquire_names_the_stopped_state(self, image_config, monkeypatch) -> None:
+        monkeypatch.setattr(lifecycle, "check_docker", lambda: (True, "ok"))
+        monkeypatch.setattr(lifecycle, "get_state", lambda c: "running")
+        monkeypatch.setattr(lifecycle, "read_manifest", lambda c: {})
+        monkeypatch.setattr(lifecycle, "stop", lambda c: (True, "stopped"))
+        monkeypatch.setattr(lifecycle, "start", lambda c, **k: (False, "cancelled by request - layers cached"))
+        cancelled = {"v": True}
+        ok, msg = lifecycle.update(image_config, should_cancel=lambda: cancelled["v"])
+        assert ok is False
+        assert "STOPPED" in msg or "GESTOPPT" in msg.upper() or "stopped" in msg.lower()
+        assert "Start" in msg, "the next step must be named"

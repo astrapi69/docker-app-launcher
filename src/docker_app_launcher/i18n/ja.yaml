@@ -25,6 +25,9 @@ build_timeout: Docker ビルドがタイムアウトしました。
 building: イメージをビルド中（初回は数分かかる場合があります）...
 buildx_missing: 'Docker Compose のビルドは buildx に委譲され、buildx {required} 以降が必要ですが、buildx プラグインが見つかりませんでした。buildx をインストールしてください: お使いのプラットフォーム向けバイナリを docker/buildx のリリースから入手し、{path} に配置して ''chmod +x {path}'' で実行可能にします。ディストリビューションのパッケージはこの用途では信頼できないことが分かっています。'
 buildx_too_old: 'Docker Compose のビルドは buildx に委譲され、buildx {required} 以降が必要ですが、インストールされているのは buildx {found} です。新しい buildx をインストールしてください: お使いのプラットフォーム向けバイナリを docker/buildx のリリースから入手し、{path} に配置して ''chmod +x {path}'' で実行可能にします。ディストリビューションのパッケージはこの用途では信頼できないことが分かっています。'
+cancel_operation: キャンセル
+cancel_unresponsive: 実行中のステップがキャンセル要求に応答していません。バックグラウンドで完了する可能性があります。ウィンドウは再び操作でき、終了し次第、状態表示が更新されます。
+cancelling: キャンセル中...
 check_compose_file_exists_fix: アプリのファイルが install_dir にあり、設定の compose ファイル名が実際のファイルと一致しているか確認してください。
 check_compose_file_exists_meaning: このアプリは Docker Compose ファイルで制御されますが、設定されたファイルが表示されたパスに存在しません。
 check_docker_running_fix: 'Docker Desktop または docker サービスを起動し（Linux: ''sudo systemctl start docker''）、システムチェックを再実行してください。未インストールの場合は先にインストールしてください。'
@@ -125,6 +128,7 @@ not_reachable_after: '{timeout}秒後も {app} に到達できません（{detai
 nothing_to_uninstall: アンインストールするものはありません（コンテナが存在しません）。
 open_browser: ブラウザで開く
 open_install_guide: インストールガイドを開く
+operation_cancelled: キャンセルしました。現在何も実行されていません。すでにダウンロード・ビルドされた部分はキャッシュに残り、次回の試行を速くします。({detail})
 port_changed: ポートを {port} に変更しました。
 port_free: ポート {port} は空いています。
 port_invalid: ポートは {min} から {max} の間でなければなりません。
@@ -182,6 +186,7 @@ uninstall_partial: '一部削除しました: {count} 個のコンテナを削�
 uninstalling: アンインストールを開始しました...
 update_app: 更新
 update_available: 'アップデートがあります: {tag} - {url}'
+update_cancelled_stopped: 更新をキャンセルしました - 更新は新しいバージョンを取得する前にアプリを停止するため、アプリは現在停止しています。開始を押すと以前のバージョンが起動します。そのイメージはまだこのマシンにあります。({detail})
 update_done: '{app} を更新しました。実行中です。'
 update_fetching: 最新バージョンを取得しています...
 update_health_failed: '更新しましたが、{app} に到達できません: {detail}. {hint}'

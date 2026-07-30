@@ -35,7 +35,7 @@ from docker_app_launcher.docker.command_runner import _run
 from docker_app_launcher.docker.detection import check_docker
 from docker_app_launcher.docker.lifecycle import get_state, health_check
 from docker_app_launcher.docker.tool_versions import detect_tool_versions
-from docker_app_launcher.install_manifest import read_manifest
+from docker_app_launcher.install_manifest import last_aborted_operation, read_manifest
 from docker_app_launcher.launcher_settings import resolve_port
 
 logger = logging.getLogger("docker_app_launcher.doctor")
@@ -121,6 +121,16 @@ def collect_doctor_report(config: LauncherConfig) -> DoctorReport:
     checks.append(CheckResult("launcher_port", "info", f"launcher port: {port} (env_port_key: {config.env_port_key})"))
     state = get_state(config)
     checks.append(CheckResult("state", "info", f"state: {state}"))
+    aborted = last_aborted_operation(config)
+    if aborted:
+        checks.append(
+            CheckResult(
+                "last_operation_aborted",
+                "info",
+                f"last operation: {aborted.get('action', '?')} ended {aborted.get('outcome', '?')} "
+                f"at {aborted.get('at', '?')} - include this in a bug report",
+            )
+        )
     if state == "running":
         published = _published_ports_of_running(config)
         if published:
@@ -213,6 +223,11 @@ def collect_support_bundle(config: LauncherConfig) -> SupportBundle:
         healthy, detail = health_check(config)
         fields["health"] = f"{'ok' if healthy else 'FAILED'} ({detail})"
     manifest = read_manifest(config) or {}
+    aborted = last_aborted_operation(config)
+    if aborted:
+        fields["last_operation"] = (
+            f"{aborted.get('action', '?')} ended {aborted.get('outcome', '?')} at {aborted.get('at', '?')}"
+        )
     for key in ("image_reference", "image_id", "image_digests", "image_source"):
         if manifest.get(key):
             fields[key] = manifest[key]

@@ -25,6 +25,9 @@ build_timeout: Docker build timed out.
 building: Building image (may take a few minutes the first time)...
 buildx_missing: 'The Docker Compose build delegates to buildx and needs buildx {required} or later, but no buildx plugin was found. Install buildx: download the binary for your platform from the docker/buildx releases, put it at {path}, then run ''chmod +x {path}''. Distribution packages have proven unreliable for this.'
 buildx_too_old: 'The Docker Compose build delegates to buildx and needs buildx {required} or later, but buildx {found} is installed. Install a newer buildx: download the binary for your platform from the docker/buildx releases, put it at {path}, then run ''chmod +x {path}''. Distribution packages have proven unreliable for this.'
+cancel_operation: Cancel
+cancel_unresponsive: The running step is not responding to the cancel request. It may still finish in the background - the window is usable again, and the state display refreshes as soon as it ends.
+cancelling: Cancelling...
 check_compose_file_exists_fix: Make sure the app files are present under install_dir and the compose file name in the config matches the real file.
 check_compose_file_exists_meaning: This app is driven by a Docker Compose file, and the configured file does not exist at the shown path.
 check_docker_running_fix: 'Start Docker Desktop or the docker service (Linux: ''sudo systemctl start docker''), then run the system check again. If Docker is not installed, install it first.'
@@ -125,6 +128,7 @@ not_reachable_after: '{app} not reachable after {timeout}s ({detail}).'
 nothing_to_uninstall: Nothing to uninstall (no container present).
 open_browser: Open in browser
 open_install_guide: Open installation guide
+operation_cancelled: Cancelled. Nothing is running now; parts already downloaded or built stay cached and speed up the next attempt. ({detail})
 port_changed: Port changed to {port}.
 port_free: Port {port} is free.
 port_invalid: Port must be between {min} and {max}.
@@ -182,13 +186,14 @@ uninstall_partial: 'Partially removed: {count} container(s) could not be removed
 uninstalling: Uninstall started...
 update_app: Update
 update_available: 'Update available: {tag} - {url}'
+update_cancelled_stopped: Update cancelled - the app is STOPPED now, because updating stops it before fetching the new version. Press Start to run the previous version; its image is still on this machine. ({detail})
 update_done: '{app} was updated and is running.'
 update_fetching: Fetching the latest version...
 update_health_failed: 'Updated, but {app} is not reachable: {detail}. {hint}'
 update_not_installed: 'Nothing to update: {app} is not installed. Install it first.'
-update_rollback_generic: 'To roll back, reinstall the previous version, then start again.'
+update_rollback_generic: To roll back, reinstall the previous version, then start again.
 update_rollback_image: 'To roll back to the previous version: run ''docker tag {image_id} {reference}'', then start again. The previous image is still on this machine.'
-update_stopping: 'Stopping {app} to update...'
+update_stopping: Stopping {app} to update...
 updating: Updating image (a few minutes after code changes, seconds otherwise)...
 verify_clean: 'Verification: no containers found ✓'
 verify_remain: 'Verification: {count} container(s) remain ✗'

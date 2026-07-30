@@ -6,6 +6,30 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Running operations are cancellable, honestly (#98).** A Cancel
+  control appears beside the progress bar only for operations a cancel
+  can REALLY end (install, start, update - the acquire/build phase);
+  stop/uninstall/cleanup/port changes show no control, each with its
+  reason recorded. A cancelled pull stops consuming the stream (the
+  daemon aborts the remaining downloads) and says what remains: already
+  fetched layers stay cached ON PURPOSE and speed up the next attempt; a
+  cancelled dockerfile build names that the running step may still
+  finish in the background. The trickiest case is named to the user: a
+  cancelled UPDATE leaves the app STOPPED (updating stops it before
+  fetching), and the message says so and names Start as the next step -
+  the previous image is still on the machine. The cancelling state has
+  its own exit: if the operation ignores the request for 10 seconds, the
+  window returns to idle with an honest message instead of a forever
+  "cancelling" state (the #97 class at a new spot); a late result still
+  lands. Double clicks are inert; closing the window still signals the
+  cancel. Cancelled and unresponsive outcomes are recorded in the
+  install history and surface in `--doctor` and the support bundle. All
+  three frontends via the parity-enforced element set; the coverage
+  suite grew to (8 operations x 4 outcomes); new i18n keys in all 11
+  catalogs; the frozen contract asserts the control and its label.
+
 ### Fixed
 
 - **Progress no longer animates forever after a failed operation (#97,

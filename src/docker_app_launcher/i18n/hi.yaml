@@ -25,6 +25,9 @@ build_timeout: Docker बिल्ड का समय समाप्त हो
 building: इमेज बनाई जा रही है (पहली बार कुछ मिनट लग सकते हैं)...
 buildx_missing: 'Docker Compose बिल्ड buildx को सौंपता है और buildx {required} या नया चाहिए, लेकिन कोई buildx प्लगइन नहीं मिला। buildx इंस्टॉल करें: अपने प्लेटफ़ॉर्म के लिए बाइनरी docker/buildx releases से डाउनलोड करें, उसे {path} पर रखें, फिर ''chmod +x {path}'' से executable बनाएं। इसके लिए डिस्ट्रीब्यूशन पैकेज अविश्वसनीय साबित हुए हैं।'
 buildx_too_old: 'Docker Compose बिल्ड buildx को सौंपता है और buildx {required} या नया चाहिए, लेकिन buildx {found} इंस्टॉल है। नया buildx इंस्टॉल करें: अपने प्लेटफ़ॉर्म के लिए बाइनरी docker/buildx releases से डाउनलोड करें, उसे {path} पर रखें, फिर ''chmod +x {path}'' से executable बनाएं। इसके लिए डिस्ट्रीब्यूशन पैकेज अविश्वसनीय साबित हुए हैं।'
+cancel_operation: रद्द करें
+cancel_unresponsive: चल रहा चरण रद्द करने के अनुरोध का जवाब नहीं दे रहा है। यह पृष्ठभूमि में पूरा हो सकता है - विंडो फिर से उपयोग योग्य है, और समाप्त होते ही स्थिति अपडेट हो जाएगी।
+cancelling: रद्द किया जा रहा है...
 check_compose_file_exists_fix: सुनिश्चित करें कि ऐप की फ़ाइलें install_dir में हैं और compose फ़ाइल का नाम असली फ़ाइल से मेल खाता है।
 check_compose_file_exists_meaning: यह ऐप एक Docker Compose फ़ाइल से चलती है, और कॉन्फ़िगर की गई फ़ाइल दिखाए गए पथ पर मौजूद नहीं है।
 check_docker_running_fix: 'Docker Desktop या docker सेवा शुरू करें (Linux: ''sudo systemctl start docker''), फिर सिस्टम जाँच दोबारा चलाएँ। अगर Docker इंस्टॉल नहीं है, तो पहले उसे इंस्टॉल करें।'
@@ -125,6 +128,7 @@ not_reachable_after: '{timeout}s के बाद {app} तक नहीं प�
 nothing_to_uninstall: अनइंस्टॉल करने के लिए कुछ नहीं (कोई कंटेनर मौजूद नहीं)।
 open_browser: ब्राउज़र में खोलें
 open_install_guide: इंस्टॉलेशन गाइड खोलें
+operation_cancelled: रद्द किया गया। अभी कुछ नहीं चल रहा; पहले से डाउनलोड या निर्मित हिस्से कैश में रहते हैं और अगली कोशिश तेज़ करते हैं। ({detail})
 port_changed: पोर्ट {port} पर बदला गया।
 port_free: पोर्ट {port} खाली है।
 port_invalid: पोर्ट {min} और {max} के बीच होना चाहिए।
@@ -182,6 +186,7 @@ uninstall_partial: 'आंशिक रूप से हटाया गया: 
 uninstalling: अनइंस्टॉल शुरू हुआ...
 update_app: अपडेट करें
 update_available: 'अपडेट उपलब्ध: {tag} - {url}'
+update_cancelled_stopped: अपडेट रद्द - ऐप अभी रुकी हुई है, क्योंकि अपडेट नई संस्करण लाने से पहले उसे रोकता है। पिछली संस्करण चलाने के लिए स्टार्ट दबाएँ; उसकी इमेज अभी इस मशीन पर है। ({detail})
 update_done: '{app} अपडेट हो गया और चल रहा है।'
 update_fetching: नवीनतम संस्करण प्राप्त किया जा रहा है...
 update_health_failed: 'अपडेट हो गया, लेकिन {app} तक नहीं पहुँचा जा सका: {detail}. {hint}'

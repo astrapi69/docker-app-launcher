@@ -337,3 +337,48 @@ class TestRegistryAccessClassification:
         _wire(monkeypatch, client)
         rc, detail = image_backend.up(pcfg)
         assert rc == 1 and "registry" in detail.lower()
+
+
+class TestPullCancel:
+    """#98: a cancel request ENDS the pull - the stream stops being consumed
+    between chunks (the daemon aborts remaining downloads when the request
+    closes), no container is started, and the message says what remains:
+    already fetched layers stay cached and speed up the next attempt
+    (deliberate decision, not a side effect)."""
+
+    def test_cancel_between_chunks_stops_the_pull(self, pcfg, monkeypatch) -> None:
+        seen = {"chunks": 0}
+
+        class _EndlessApi(_FakePullApi):
+            def pull(self, repository, tag=None, **kwargs):
+                self.pull_args = (repository, tag)
+                while True:
+                    seen["chunks"] += 1
+                    yield {"status": "Downloading", "id": "layer1"}
+
+        client = _FakePullClient()
+        client.api = _EndlessApi([])
+        _wire(monkeypatch, client)
+        rc, detail = image_backend.up(pcfg, should_cancel=lambda: seen["chunks"] >= 3)
+        assert rc == 1
+        assert "cancel" in detail.lower(), f"the result must say it was cancelled: {detail!r}"
+        assert seen["chunks"] <= 4, "the stream must stop being consumed promptly after the request"
+        assert client.containers.run_kwargs == {}, "no container may start from a cancelled pull"
+
+    def test_cancelled_message_names_the_kept_layers(self, pcfg, monkeypatch) -> None:
+        class _EndlessApi(_FakePullApi):
+            def pull(self, repository, tag=None, **kwargs):
+                while True:
+                    yield {"status": "Downloading", "id": "l"}
+
+        client = _FakePullClient()
+        client.api = _EndlessApi([])
+        _wire(monkeypatch, client)
+        rc, detail = image_backend.up(pcfg, should_cancel=lambda: True)
+        assert rc == 1 and "layer" in detail.lower(), "kept layers are a decision, named in the message"
+
+    def test_no_cancel_callback_keeps_old_behavior(self, pcfg, monkeypatch) -> None:
+        client = _FakePullClient([{"status": "ok"}])
+        _wire(monkeypatch, client)
+        rc, _ = image_backend.up(pcfg)
+        assert rc == 0

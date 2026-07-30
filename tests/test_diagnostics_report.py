@@ -36,6 +36,7 @@ KNOWN_CHECK_IDS = {
     "published_ports",
     "port_drift",
     "health_reachable",
+    "last_operation_aborted",
 }
 
 

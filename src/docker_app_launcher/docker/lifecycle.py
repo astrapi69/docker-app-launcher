@@ -286,6 +286,7 @@ def _dockerfile_up(
     on_step: ProgressFn | None,
     on_output: OutputFn | None,
     on_progress: ProgressPctFn | None,
+    should_cancel: CancelFn | None = None,
 ) -> tuple[bool, str] | None:
     """Dockerfile-mode build+run (#51): ``None`` on success, else the result.
 
@@ -297,8 +298,14 @@ def _dockerfile_up(
     _notify(on_step, _t(config, "install_needs_network"))  # first build pulls base images (G5)
     _notify(on_step, _t(config, "building"))
     _progress(on_progress, None, _t(config, "building"))
-    rc, detail = dockerfile_backend.up(config, on_output=on_output, on_progress=on_progress)
+    rc, detail = dockerfile_backend.up(
+        config, on_output=on_output, on_progress=on_progress, should_cancel=should_cancel
+    )
     if rc != 0:
+        if should_cancel is not None and should_cancel():
+            # A cancel is an OUTCOME, not a failure (#98): say what remains
+            # (nothing running, caches kept) and what the next step is.
+            return False, _t(config, "operation_cancelled", detail=detail)
         return _build_failed(config, detail)
     _notify(on_step, _t(config, "container_started"))
     _progress(on_progress, 95, _t(config, "container_started"))
@@ -311,6 +318,7 @@ def _image_up(
     on_step: ProgressFn | None,
     on_output: OutputFn | None,
     on_progress: ProgressPctFn | None,
+    should_cancel: CancelFn | None = None,
 ) -> tuple[bool, str] | None:
     """Image-mode acquire+run (#78): ``None`` on success, else the result.
 
@@ -324,8 +332,10 @@ def _image_up(
         _notify(on_step, _t(config, "image_needs_network"))
     _notify(on_step, _t(config, "image_acquiring"))
     _progress(on_progress, None, _t(config, "image_acquiring"))
-    rc, detail = image_backend.up(config, on_output=on_output, on_progress=on_progress)
+    rc, detail = image_backend.up(config, on_output=on_output, on_progress=on_progress, should_cancel=should_cancel)
     if rc != 0:
+        if should_cancel is not None and should_cancel():
+            return False, _t(config, "operation_cancelled", detail=detail)
         return False, _t(config, "image_acquire_failed", detail=detail)
     _notify(on_step, _t(config, "container_started"))
     _progress(on_progress, 95, _t(config, "container_started"))
@@ -461,12 +471,16 @@ def install(
     _notify(on_step, _t(config, "docker_ok"))
 
     if config.effective_deployment_mode == "image":
-        image_error = _image_up(config, on_step=on_step, on_output=on_output, on_progress=on_progress)
+        image_error = _image_up(
+            config, on_step=on_step, on_output=on_output, on_progress=on_progress, should_cancel=should_cancel
+        )
         if image_error is not None:
             return image_error
         return _verify_install(config, port, on_step=on_step, on_progress=on_progress)
     if config.effective_deployment_mode == "dockerfile":
-        dockerfile_error = _dockerfile_up(config, on_step=on_step, on_output=on_output, on_progress=on_progress)
+        dockerfile_error = _dockerfile_up(
+            config, on_step=on_step, on_output=on_output, on_progress=on_progress, should_cancel=should_cancel
+        )
         if dockerfile_error is not None:
             return dockerfile_error
         return _verify_install(config, port, on_step=on_step, on_progress=on_progress)
@@ -601,11 +615,15 @@ def start(
     _notify(on_step, _t(config, "updating"))
     _progress(on_progress, 5, _t(config, "updating"))
     if config.effective_deployment_mode == "image":
-        image_error = _image_up(config, on_step=on_step, on_output=on_output, on_progress=on_progress)
+        image_error = _image_up(
+            config, on_step=on_step, on_output=on_output, on_progress=on_progress, should_cancel=should_cancel
+        )
         if image_error is not None:
             return image_error
     elif config.effective_deployment_mode == "dockerfile":
-        dockerfile_error = _dockerfile_up(config, on_step=on_step, on_output=on_output, on_progress=on_progress)
+        dockerfile_error = _dockerfile_up(
+            config, on_step=on_step, on_output=on_output, on_progress=on_progress, should_cancel=should_cancel
+        )
         if dockerfile_error is not None:
             return dockerfile_error
     else:
@@ -708,6 +726,12 @@ def update(
         config, on_step=on_step, on_output=on_output, on_progress=on_progress, should_cancel=should_cancel
     )
     if not started:
+        if should_cancel is not None and should_cancel():
+            # The trickiest cancel (#98): the app was STOPPED before the
+            # re-acquire, so a cancelled update leaves a state the user did
+            # not ask for. Say it, with the next step - the previous image
+            # is still local (#88), Start runs it.
+            return False, _t(config, "update_cancelled_stopped", detail=start_msg)
         # start() already classified the build/pull failure - pass it through.
         return False, start_msg
 

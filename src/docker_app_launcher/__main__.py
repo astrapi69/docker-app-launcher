@@ -120,6 +120,7 @@ def run_render_probe(config: LauncherConfig) -> int:
             "copy_support_bundle": str(app._copy_buttons["copy_support_bundle"].cget("text")),
             "update_app": str(app._update_btn.cget("text")),
             "log_toggle": str(app._log_toggle_btn.cget("text")),
+            "cancel": str(app._cancel_btn.cget("text")),
             "problem_card_sections": [
                 str(app._problem_meaning_label.cget("text")),
                 str(app._problem_fix_label.cget("text")),

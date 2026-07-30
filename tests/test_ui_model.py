@@ -27,6 +27,9 @@ class TestAssistantPresentationLayer:
             "show_details",
             "hide_details",
             "update_app",
+            "cancel_operation",
+            "cancelling",
+            "cancel_unresponsive",
         }
         assert set(labels) == expected
         assert all(v.strip() for v in labels.values()), "renderers never invent or drop text"
@@ -79,4 +82,5 @@ class TestAssistantPresentationLayer:
             "copy_support_bundle_button",
             "log_toggle",
             "update_button",
+            "cancel_button",
         ), "changing the element set is an API decision - update every frontend and this pin together"

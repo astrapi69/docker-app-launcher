@@ -119,6 +119,7 @@ ASSISTANT_WIDGET_BUILDERS = {
     "copy_support_bundle_button": "_build_copy_support_bundle_button",
     "log_toggle": "_build_log_toggle",
     "update_button": "_build_update_button",
+    "cancel_button": "_build_cancel_button",
 }
 
 
@@ -137,6 +138,7 @@ class LauncherApp(tk.Tk):
         # Cancel signal for an in-progress build: set by closing the window
         # mid-build so the build subprocess is terminated, not orphaned (#60).
         self._cancel_build = threading.Event()
+        self._current_action: str | None = None
         self._build_in_progress = False
         self._buttons: dict[str, tk.Button] = {}
         self._log_follow_stop: threading.Event | None = None
@@ -471,6 +473,68 @@ class LauncherApp(tk.Tk):
         else:
             self._status_frame.pack(fill="both", expand=True, padx=12, pady=(8, 8), before=self._divider)
             self._log_toggle_btn.configure(text=self._assistant_labels["hide_details"])
+
+    def _build_cancel_button(self) -> tk.Widget:
+        """Cancel (#98): lives INSIDE the progress frame, so it can only ever
+        be visible while an operation shows progress; additionally packed only
+        for actions in ui_model.CANCELLABLE_ACTIONS (honesty over pretense:
+        no control where a real abort is impossible)."""
+        btn = tk.Button(
+            self._progress_frame,
+            text=self._assistant_labels["cancel_operation"],
+            command=self._on_cancel_click,
+        )
+        self._cancel_btn = btn
+        self._cancel_watchdog_id: str | None = None
+        return btn
+
+    def _show_cancel_for(self, action_id: str) -> None:
+        if action_id in ui_model.CANCELLABLE_ACTIONS:
+            # The frame is the cancel button's home: show it right at action
+            # start, so the one way OUT is visible before the first progress
+            # line arrives.
+            if not self._progress_frame.winfo_ismapped():
+                self._progress_frame.pack(fill="x", before=self._divider)
+            self._cancel_btn.configure(text=self._assistant_labels["cancel_operation"], state="normal")
+            self._cancel_btn.pack(pady=(2, 4))
+        else:
+            self._cancel_btn.pack_forget()
+
+    def _on_cancel_click(self) -> None:
+        """First click requests the cancel; the label flips to 'cancelling'
+        and the button disables (double clicks are inert). The watchdog
+        guarantees an exit if the operation never answers (#98 point 3)."""
+        self._cancel_build.set()
+        self._cancel_btn.configure(text=self._assistant_labels["cancelling"], state="disabled")
+        current = self._current_action or ""
+        self._cancel_watchdog_id = self.after(
+            ui_model.CANCEL_WATCHDOG_SECONDS * 1000, lambda: self._on_cancel_unresponsive(current)
+        )
+
+    def _cancel_watchdog_stop(self) -> None:
+        watchdog_id = getattr(self, "_cancel_watchdog_id", None)
+        if watchdog_id is not None:
+            self.after_cancel(watchdog_id)
+            self._cancel_watchdog_id = None
+
+    def _on_cancel_unresponsive(self, action_id: str) -> None:
+        """The cancelling state's own exit (#98 point 3): the operation did
+        not answer the request within the watchdog window (stuck syscall,
+        hanging connection). The window returns to a usable idle state with
+        an HONEST message - the step may still finish in the background, and
+        a late result still lands via _on_result (idempotent)."""
+        self._cancel_watchdog_id = None
+        self._hide_progress()
+        self._build_in_progress = False
+        self._set_busy(False)
+        self._log(self._t("cancel_unresponsive"), tag="err")
+        self._record_cancel_outcome(action_id, "cancel_unresponsive")
+        self._refresh()
+
+    def _record_cancel_outcome(self, action_id: str, outcome: str) -> None:
+        from docker_app_launcher.install_manifest import record_operation_outcome
+
+        record_operation_outcome(self._cfg, action_id or "unknown", outcome)
 
     def _t(self, key: str, **kwargs: object) -> str:
         return i18n.t(key, self._cfg, **kwargs)
@@ -931,6 +995,9 @@ class LauncherApp(tk.Tk):
 
     def _hide_progress(self) -> None:
         try:
+            cancel_btn = self.__dict__.get("_cancel_btn")
+            if cancel_btn is not None:
+                cancel_btn.pack_forget()
             self._progress.stop()
             self._progress["value"] = 0
             self._progress_frame.pack_forget()
@@ -952,11 +1019,13 @@ class LauncherApp(tk.Tk):
         # A build only happens on install/start/update; arm the cancel signal
         # for those so closing the window mid-build terminates the subprocess
         # (#60). Update rebuilds/re-pulls via start(), so it is a build too.
-        builds = action_id in ("install", "start", "update")
+        builds = action_id in ui_model.CANCELLABLE_ACTIONS
         if builds:
             self._cancel_build.clear()
             self._build_in_progress = True
+        self._current_action = action_id
         self._set_busy(True)
+        self._show_cancel_for(action_id)
 
         def step(label: str) -> None:
             self.after(0, lambda: self._log(label))
@@ -986,7 +1055,12 @@ class LauncherApp(tk.Tk):
         # stops and hides on success, failure and cancel alike - the hide
         # used to live only on the percent>=100 success path, so a failed
         # pull (which streams percent=None) left the bar ANIMATING forever.
+        self._cancel_watchdog_stop()
         self._hide_progress()
+        if result is not None and not result[0] and self._cancel_build.is_set():
+            # Cancelled is an OUTCOME: make it visible to a later bug report
+            # (--doctor / support bundle read the history tail, #98).
+            self._record_cancel_outcome(action_id, "cancelled")
         self._build_in_progress = False
         self._set_busy(False)
         if result is not None:
@@ -1013,6 +1087,11 @@ class LauncherApp(tk.Tk):
         """
         for btn in self._iter_buttons():
             btn["state"] = "disabled" if busy else "normal"
+        # __dict__.get, not getattr: a half-built instance (headless tests
+        # construct via __new__) would recurse into tk.Tk.__getattr__.
+        cancel_btn = self.__dict__.get("_cancel_btn")
+        if busy and cancel_btn is not None and cancel_btn.winfo_ismapped():
+            cancel_btn["state"] = "normal"  # the one way OUT of busy stays clickable
         self._set_topmost(busy)
         if busy:
             self._clear_status()

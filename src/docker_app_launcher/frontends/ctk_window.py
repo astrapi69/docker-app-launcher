@@ -72,6 +72,9 @@ if HAS_CTK:
             self._tray: tray.TrayController | None = None
             self._buttons: dict[str, Any] = {}
             self._log_follow_stop: threading.Event | None = None
+            self._cancel_build = threading.Event()
+            self._current_action: str | None = None
+            self._build_in_progress = False
             self._tooltips: dict[str, _Tooltip] = {}
 
             self.title(window_title(config))
@@ -403,6 +406,53 @@ if HAS_CTK:
             else:
                 self._status.pack(fill="both", expand=True, padx=12, pady=(8, 8), before=self._divider)
                 self._log_toggle_btn.configure(text=self._assistant_labels["hide_details"])
+
+        def _build_cancel_button(self) -> Any:
+            btn = ctk.CTkButton(
+                self._progress_frame,
+                text=self._assistant_labels["cancel_operation"],
+                command=self._on_cancel_click,
+                width=110,
+            )
+            self._cancel_btn = btn
+            self._cancel_watchdog_id = None
+            return btn
+
+        def _show_cancel_for(self, action_id: str) -> None:
+            if action_id in ui_model.CANCELLABLE_ACTIONS:
+                if not self._progress_frame.winfo_ismapped():
+                    self._progress_frame.pack(fill="x", before=self._divider)
+                self._cancel_btn.configure(text=self._assistant_labels["cancel_operation"], state="normal")
+                self._cancel_btn.pack(pady=(2, 4))
+            else:
+                self._cancel_btn.pack_forget()
+
+        def _on_cancel_click(self) -> None:
+            self._cancel_build.set()
+            self._cancel_btn.configure(text=self._assistant_labels["cancelling"], state="disabled")
+            current = self._current_action or ""
+            self._cancel_watchdog_id = self.after(
+                ui_model.CANCEL_WATCHDOG_SECONDS * 1000, lambda: self._on_cancel_unresponsive(current)
+            )
+
+        def _cancel_watchdog_stop(self) -> None:
+            if getattr(self, "_cancel_watchdog_id", None) is not None:
+                self.after_cancel(self._cancel_watchdog_id)
+                self._cancel_watchdog_id = None
+
+        def _on_cancel_unresponsive(self, action_id: str) -> None:
+            self._cancel_watchdog_id = None
+            self._hide_progress()
+            self._build_in_progress = False
+            self._set_busy(False)
+            self._log(self._t("cancel_unresponsive"), tag="err")
+            self._record_cancel_outcome(action_id, "cancel_unresponsive")
+            self._refresh()
+
+        def _record_cancel_outcome(self, action_id: str, outcome: str) -> None:
+            from docker_app_launcher.install_manifest import record_operation_outcome
+
+            record_operation_outcome(self._cfg, action_id or "unknown", outcome)
 
         def _t(self, key: str, **kwargs: object) -> str:
             return i18n.t(key, self._cfg, **kwargs)
@@ -738,6 +788,8 @@ if HAS_CTK:
             try:
                 self._progress.stop()
                 self._progress.set(0)
+                if getattr(self, "_cancel_btn", None) is not None:
+                    self._cancel_btn.pack_forget()
                 self._progress_frame.pack_forget()
             except tk.TclError as exc:  # pragma: no cover - WM dependent
                 logger.debug("could not hide progress bar: %s", exc)
@@ -749,7 +801,13 @@ if HAS_CTK:
             port = int(raw) if raw.isdigit() else None
             if action_id in ("install", "start") and port is not None:
                 actions.set_port(self._cfg, port)
+            cancellable = action_id in ui_model.CANCELLABLE_ACTIONS
+            if cancellable:
+                self._cancel_build.clear()
+                self._build_in_progress = True
+            self._current_action = action_id
             self._set_busy(True)
+            self._show_cancel_for(action_id)
 
             def step(label: str) -> None:
                 self.after(0, lambda: self._log(label))
@@ -761,7 +819,13 @@ if HAS_CTK:
                 result = run_guarded(
                     action_id,
                     lambda: dispatch_action(
-                        action_id, self._cfg, port=port, on_step=step, on_output=output, on_progress=self._on_progress
+                        action_id,
+                        self._cfg,
+                        port=port,
+                        on_step=step,
+                        on_output=output,
+                        on_progress=self._on_progress,
+                        should_cancel=self._cancel_build.is_set if action_id in ui_model.CANCELLABLE_ACTIONS else None,
                     ),
                 )
                 self.after(0, lambda: self._on_result(action_id, result))
@@ -771,7 +835,11 @@ if HAS_CTK:
         def _on_result(self, action_id: str, result: tuple[bool, str] | None) -> None:
             # DEFINED end state for EVERY outcome (#97): stop and hide the
             # progress indicator on success, failure and cancel alike.
+            self._cancel_watchdog_stop()
             self._hide_progress()
+            if result is not None and not result[0] and self._cancel_build.is_set():
+                self._record_cancel_outcome(action_id, "cancelled")
+            self._build_in_progress = False
             self._set_busy(False)
             if result is not None:
                 ok, msg = result
@@ -786,6 +854,8 @@ if HAS_CTK:
         def _set_busy(self, busy: bool) -> None:
             for btn in self._iter_buttons():
                 btn.configure(state="disabled" if busy else "normal")
+            if busy and getattr(self, "_cancel_btn", None) is not None and self._cancel_btn.winfo_ismapped():
+                self._cancel_btn.configure(state="normal")  # the one way OUT of busy stays clickable
             try:
                 self.attributes("-topmost", busy)
             except tk.TclError as exc:  # pragma: no cover - WM dependent

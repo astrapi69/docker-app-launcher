@@ -33,6 +33,7 @@ def _valid_contract() -> dict[str, object]:
         "locale": "en",
         "assistant": {
             "elements": [
+                "cancel_button",
                 "copy_diagnosis_button",
                 "copy_support_bundle_button",
                 "doctor_checklist",
@@ -46,6 +47,7 @@ def _valid_contract() -> dict[str, object]:
             "copy_support_bundle": "Copy support bundle",
             "update_app": "Update",
             "log_toggle": "Show details",
+            "cancel": "Cancel",
             "problem_card_sections": ["What does this mean?", "What you can do"],
             "status_headline": "· Probe App is not installed.",
             "log_collapsed_default": True,

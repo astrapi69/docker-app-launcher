@@ -24,6 +24,7 @@ manifest" error, which is classified into a clear message here.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from typing import Any
 
 from docker_app_launcher.config import LauncherConfig
@@ -101,6 +102,7 @@ def up(
     *,
     on_output: OutputFn | None = None,
     on_progress: ProgressPctFn | None = None,
+    should_cancel: Callable[[], bool] | None = None,
 ) -> tuple[int, str]:
     """Acquire the image (archive > pull > local fallback) and (re)start it."""
     try:
@@ -110,7 +112,9 @@ def up(
     if not config.use_registry_credentials:
         _disable_registry_auth(client)
     try:
-        rc, detail = _acquire_image(client, config, on_output=on_output, on_progress=on_progress)
+        rc, detail = _acquire_image(
+            client, config, on_output=on_output, on_progress=on_progress, should_cancel=should_cancel
+        )
         if rc != 0:
             return rc, detail
         return _run_pulled_container(client, config)
@@ -126,6 +130,7 @@ def _acquire_image(
     *,
     on_output: OutputFn | None,
     on_progress: ProgressPctFn | None,
+    should_cancel: Callable[[], bool] | None = None,
 ) -> tuple[int, str]:
     archive = config.image_archive_path
     if archive is not None and archive.is_file():
@@ -147,7 +152,9 @@ def _acquire_image(
         return 0, ""
     logger.info("pulling image %s", config.image_reference)
     try:
-        return _pull_with_progress(client, config, on_output=on_output, on_progress=on_progress)
+        return _pull_with_progress(
+            client, config, on_output=on_output, on_progress=on_progress, should_cancel=should_cancel
+        )
     except Exception as exc:
         if _looks_like_network_error(exc) and _image_in_local_engine(client, config):
             # Offline with a local copy: start MUST work without net.
@@ -165,6 +172,7 @@ def _pull_with_progress(
     *,
     on_output: OutputFn | None,
     on_progress: ProgressPctFn | None,
+    should_cancel: Callable[[], bool] | None = None,
 ) -> tuple[int, str]:
     """Stream the pull; every status line reaches the panel — never a
     silent multi-hundred-MB download."""
@@ -173,6 +181,16 @@ def _pull_with_progress(
     repository, tag = parse_repository_tag(config.image_reference)
     last_error = ""
     for chunk in client.api.pull(repository, tag=tag, stream=True, decode=True):
+        if should_cancel is not None and should_cancel():
+            # A REAL cancel (#98): stop consuming the stream - closing the
+            # request makes the daemon abort the remaining downloads. The
+            # layers fetched so far stay in the local cache ON PURPOSE: they
+            # are not damaged, and the next attempt reuses them - kept as a
+            # decision, not as a side effect.
+            logger.info("pull of %s cancelled by request; fetched layers stay cached", config.image_reference)
+            return 1, (
+                "cancelled by request - already downloaded layers stay in the local cache and speed up the next attempt"
+            )
         if "error" in chunk:
             last_error = str(chunk.get("errorDetail", {}).get("message") or chunk["error"])
             continue

@@ -384,6 +384,11 @@ ASSISTANT_ELEMENTS: tuple[str, ...] = (
     # so every frontend MUST render it (tests/test_frontend_parity.py) - the
     # same drift-proofing the rest of the assistant gets.
     "update_button",
+    # Cancel (#98): visible only while a CANCELLABLE action runs; stays
+    # enabled while everything else is busy-disabled; a second click is
+    # ignored (the label flips to "cancelling"), and the watchdog guarantees
+    # an exit if the operation never answers.
+    "cancel_button",
 )
 
 # Check ids that can carry status "error" and therefore NEED the two
@@ -432,6 +437,9 @@ def assistant_labels(config: LauncherConfig) -> dict[str, str]:
             "show_details",
             "hide_details",
             "update_app",
+            "cancel_operation",
+            "cancelling",
+            "cancel_unresponsive",
         )
     }
 
@@ -508,4 +516,36 @@ LONG_RUNNING_ACTIONS: tuple[str, ...] = (
     "change_internal_port",
 )
 
-OPERATION_OUTCOMES: tuple[str, ...] = ("success", "failure", "cancelled")
+# "cancel_unresponsive" is the exit of the cancelling state itself (#98):
+# a cancel request the operation ignores (stuck syscall, hanging
+# connection) must not leave the window in a forever-"cancelling" state -
+# that would be the #97 class at a new spot. The watchdog forces this
+# outcome after CANCEL_WATCHDOG_SECONDS with an honest message.
+OPERATION_OUTCOMES: tuple[str, ...] = ("success", "failure", "cancelled", "cancel_unresponsive")
+
+CANCEL_WATCHDOG_SECONDS = 10
+
+# The honesty map (#98): which operations a cancel REALLY ends, what state
+# the user is in afterwards, and what the next step is. Operations not
+# listed are NOT cancellable and show no cancel control - stop/uninstall
+# are short and a mid-flight abort could leave worse states than finishing;
+# cleanup and port persistence are near-instant.
+# action -> (post-state description key context, i18n key of the message the
+# user sees on cancel; the per-mode backends add the kept-cache detail).
+CANCELLABLE_ACTIONS: dict[str, str] = {
+    # acquire/build phase is the long part; nothing runs afterwards, caches
+    # kept, next step: press the same button again.
+    "install": "operation_cancelled",
+    "start": "operation_cancelled",
+    # the tricky one: update STOPPED the app before re-acquiring - the user
+    # ends up with a state they did not ask for; the message says so and
+    # names Start as the next step (previous image still local, #88).
+    "update": "update_cancelled_stopped",
+}
+# NOT cancellable, each with its reason (honesty over pretense - a control
+# that only resets the UI while work continues is worse than none):
+#   stop/uninstall - short, and a mid-flight abort could leave a worse
+#     half-state (container removed, volume kept or vice versa) than
+#     finishing; change_port/cleanup - near-instant; change_internal_port -
+#     its rebuild path has no cancel plumbing yet (own compose call);
+#     archive load inside image mode - a single fast local call.

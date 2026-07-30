@@ -140,7 +140,15 @@ class TestPerCheckIdExplanationParity:
         from docker_app_launcher.ui_model import ERROR_CHECK_IDS
         from tests.test_diagnostics_report import KNOWN_CHECK_IDS
 
-        info_only = {"config_identity", "toolchain_versions", "launcher_port", "state", "published_ports", "readiness"}
+        info_only = {
+            "config_identity",
+            "toolchain_versions",
+            "launcher_port",
+            "state",
+            "published_ports",
+            "readiness",
+            "last_operation_aborted",
+        }
         error_capable = KNOWN_CHECK_IDS - info_only
         assert error_capable == set(ERROR_CHECK_IDS), (
             f"ERROR_CHECK_IDS out of sync with the doctor's error-capable ids: "

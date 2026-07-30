@@ -142,6 +142,40 @@ def mark_uninstalled(config: LauncherConfig, version: str) -> None:
         _write_manifest(config, data)
 
 
+def record_operation_outcome(config: LauncherConfig, action: str, outcome: str) -> None:
+    """Append a non-success operation outcome to the install history (#98).
+
+    Cancelled (and unresponsive-cancel) operations must be visible to a
+    later bug report: ``--doctor`` and the support bundle read the history
+    tail. Best-effort and fail-open like every manifest write - never
+    raises, version lookup skipped (the daemon may be the reason the
+    operation was cancelled in the first place).
+    """
+    try:
+        data = read_manifest(config) or {"schema": 1, "install_history": []}
+        history = data.setdefault("install_history", [])
+        history.append({"at": _now(), "action": action, "outcome": outcome})
+        _write_manifest(config, data)
+    except OSError as exc:
+        logger.warning("could not record operation outcome: %s", exc)
+
+
+def last_aborted_operation(config: LauncherConfig) -> dict[str, str] | None:
+    """The most recent history entry whose outcome is cancelled/unresponsive,
+    IF it is the latest entry - an operation completed afterwards supersedes
+    it (#98)."""
+    data = read_manifest(config)
+    if not data:
+        return None
+    history = data.get("install_history") or []
+    if not history:
+        return None
+    tail = history[-1]
+    if isinstance(tail, dict) and tail.get("outcome") in ("cancelled", "cancel_unresponsive"):
+        return {k: str(v) for k, v in tail.items()}
+    return None
+
+
 def _record_manifest(config: LauncherConfig, port: int, *, action: str) -> None:
     """Best-effort: (re)write the manifest + append a history entry. Never raises."""
     try:

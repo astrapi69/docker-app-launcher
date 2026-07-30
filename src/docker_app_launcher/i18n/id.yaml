@@ -25,6 +25,9 @@ build_timeout: Pembangunan Docker melebihi batas waktu.
 building: Membangun image (mungkin perlu beberapa menit saat pertama kali)...
 buildx_missing: 'Build Docker Compose mendelegasikan ke buildx dan memerlukan buildx {required} atau lebih baru, tetapi plugin buildx tidak ditemukan. Pasang buildx: unduh biner untuk platform Anda dari rilis docker/buildx, letakkan di {path}, lalu buat dapat dieksekusi dengan ''chmod +x {path}''. Paket distribusi terbukti tidak dapat diandalkan untuk ini.'
 buildx_too_old: 'Build Docker Compose mendelegasikan ke buildx dan memerlukan buildx {required} atau lebih baru, tetapi yang terpasang buildx {found}. Pasang buildx yang lebih baru: unduh biner untuk platform Anda dari rilis docker/buildx, letakkan di {path}, lalu buat dapat dieksekusi dengan ''chmod +x {path}''. Paket distribusi terbukti tidak dapat diandalkan untuk ini.'
+cancel_operation: Batalkan
+cancel_unresponsive: Langkah yang berjalan tidak merespons permintaan pembatalan. Ia mungkin selesai di latar belakang - jendela dapat dipakai lagi, dan status akan diperbarui begitu selesai.
+cancelling: Membatalkan...
 check_compose_file_exists_fix: Pastikan berkas aplikasi ada di install_dir dan nama berkas compose dalam konfigurasi cocok dengan berkas sebenarnya.
 check_compose_file_exists_meaning: Aplikasi ini dikendalikan oleh berkas Docker Compose, dan berkas yang dikonfigurasi tidak ada di jalur yang ditampilkan.
 check_docker_running_fix: 'Jalankan Docker Desktop atau layanan docker (Linux: ''sudo systemctl start docker''), lalu jalankan pemeriksaan sistem lagi. Jika Docker belum terpasang, pasang dulu.'
@@ -125,6 +128,7 @@ not_reachable_after: '{app} tidak dapat dijangkau setelah {timeout}d ({detail}).
 nothing_to_uninstall: Tidak ada yang perlu dihapus (tidak ada kontainer).
 open_browser: Buka di browser
 open_install_guide: Buka panduan instalasi
+operation_cancelled: Dibatalkan. Tidak ada yang berjalan sekarang; bagian yang sudah diunduh atau dibangun tetap di cache dan mempercepat percobaan berikutnya. ({detail})
 port_changed: Port diubah menjadi {port}.
 port_free: Port {port} tersedia.
 port_invalid: Port harus antara {min} dan {max}.
@@ -182,6 +186,7 @@ uninstall_partial: 'Sebagian dihapus: {count} kontainer tidak dapat dihapus.'
 uninstalling: Penghapusan pemasangan dimulai...
 update_app: Perbarui
 update_available: 'Pembaruan tersedia: {tag} - {url}'
+update_cancelled_stopped: Pembaruan dibatalkan - aplikasi sekarang BERHENTI, karena pembaruan menghentikannya sebelum mengambil versi baru. Tekan Mulai untuk menjalankan versi sebelumnya; image-nya masih ada di mesin ini. ({detail})
 update_done: '{app} telah diperbarui dan sedang berjalan.'
 update_fetching: Mengambil versi terbaru...
 update_health_failed: 'Diperbarui, tetapi {app} tidak dapat dijangkau: {detail}. {hint}'

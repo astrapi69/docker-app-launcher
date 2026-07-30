@@ -13,6 +13,7 @@ socket reads as the permission verdict, never as a generic failure.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from typing import Any
 
 from docker_app_launcher.config import LauncherConfig
@@ -115,6 +116,7 @@ def up(
     *,
     on_output: OutputFn | None = None,
     on_progress: ProgressPctFn | None = None,
+    should_cancel: Callable[[], bool] | None = None,
 ) -> tuple[int, str]:
     """Build the image and (re)start its container: ``(rc, detail)``.
 
@@ -135,7 +137,7 @@ def up(
         _disable_registry_auth(client)
     _log_proxy_settings(client)
     try:
-        rc, detail = _build(client, config, on_output=on_output, on_progress=on_progress)
+        rc, detail = _build(client, config, on_output=on_output, on_progress=on_progress, should_cancel=should_cancel)
         if rc != 0:
             return rc, detail
         return _run_container(client, config)
@@ -151,6 +153,7 @@ def _build(
     *,
     on_output: OutputFn | None,
     on_progress: ProgressPctFn | None,
+    should_cancel: Callable[[], bool] | None = None,
 ) -> tuple[int, str]:
     """Stream the docker-py build; forward every line to the log panel."""
     if not config.dockerfile_path.is_file():
@@ -170,6 +173,18 @@ def _build(
         rm=True,
         decode=True,
     ):
+        if should_cancel is not None and should_cancel():
+            # Honest cancel (#98): we stop consuming the stream; the classic
+            # builder may FINISH the currently running build step in the
+            # background before the daemon notices the closed request. The
+            # build cache produced so far stays and speeds up the next build
+            # (a decision, not a side effect) - no image is tagged, no
+            # container is started.
+            logger.info("dockerfile build of %s cancelled by request; build cache stays", config.image_name)
+            return 1, (
+                "cancelled by request - the running build step may still finish in the "
+                "background; the build cache stays and speeds up the next attempt"
+            )
         if "stream" in chunk:
             line = str(chunk["stream"]).rstrip()
             if line:

@@ -25,6 +25,9 @@ build_timeout: Docker 빌드가 시간 초과되었습니다.
 building: 이미지 빌드 중 (처음에는 몇 분 걸릴 수 있습니다)...
 buildx_missing: 'Docker Compose 빌드는 buildx에 위임되며 buildx {required} 이상이 필요하지만, buildx 플러그인을 찾을 수 없습니다. buildx를 설치하세요: 플랫폼용 바이너리를 docker/buildx 릴리스에서 내려받아 {path}에 두고 ''chmod +x {path}''로 실행 가능하게 만드세요. 배포판 패키지는 이 용도에 신뢰할 수 없는 것으로 확인되었습니다.'
 buildx_too_old: 'Docker Compose 빌드는 buildx에 위임되며 buildx {required} 이상이 필요하지만, 설치된 것은 buildx {found}입니다. 최신 buildx를 설치하세요: 플랫폼용 바이너리를 docker/buildx 릴리스에서 내려받아 {path}에 두고 ''chmod +x {path}''로 실행 가능하게 만드세요. 배포판 패키지는 이 용도에 신뢰할 수 없는 것으로 확인되었습니다.'
+cancel_operation: 취소
+cancel_unresponsive: 실행 중인 단계가 취소 요청에 응답하지 않습니다. 백그라운드에서 완료될 수 있습니다 - 창은 다시 사용할 수 있으며, 끝나는 즉시 상태 표시가 갱신됩니다.
+cancelling: 취소하는 중...
 check_compose_file_exists_fix: 앱 파일이 install_dir에 있는지, 설정의 compose 파일 이름이 실제 파일과 일치하는지 확인하세요.
 check_compose_file_exists_meaning: 이 앱은 Docker Compose 파일로 제어되는데, 설정된 파일이 표시된 경로에 없습니다.
 check_docker_running_fix: 'Docker Desktop 또는 docker 서비스를 시작한 뒤(Linux: ''sudo systemctl start docker'') 시스템 점검을 다시 실행하세요. 설치되어 있지 않다면 먼저 설치하세요.'
@@ -125,6 +128,7 @@ not_reachable_after: '{timeout}초 후에도 {app} 에 연결할 수 없습니�
 nothing_to_uninstall: 제거할 항목이 없습니다 (컨테이너가 없습니다).
 open_browser: 브라우저에서 열기
 open_install_guide: 설치 안내 열기
+operation_cancelled: 취소되었습니다. 지금은 아무것도 실행되지 않습니다. 이미 내려받았거나 빌드된 부분은 캐시에 남아 다음 시도를 빠르게 합니다. ({detail})
 port_changed: 포트를 {port} (으)로 변경했습니다.
 port_free: 포트 {port} 이(가) 비어 있습니다.
 port_invalid: 포트는 {min} 에서 {max} 사이여야 합니다.
@@ -182,6 +186,7 @@ uninstall_partial: '일부 제거됨: 컨테이너 {count}개를 제거할 수 �
 uninstalling: 제거를 시작했습니다...
 update_app: 업데이트
 update_available: '업데이트 사용 가능: {tag} - {url}'
+update_cancelled_stopped: 업데이트가 취소되었습니다 - 업데이트는 새 버전을 가져오기 전에 앱을 중지하므로 앱은 현재 중지되어 있습니다. 시작을 누르면 이전 버전이 실행됩니다. 해당 이미지는 아직 이 컴퓨터에 있습니다. ({detail})
 update_done: '{app}이(가) 업데이트되어 실행 중입니다.'
 update_fetching: 최신 버전을 가져오는 중...
 update_health_failed: '업데이트했지만 {app}에 연결할 수 없습니다: {detail}. {hint}'

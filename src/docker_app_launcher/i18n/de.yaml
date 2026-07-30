@@ -25,6 +25,9 @@ build_timeout: Docker-Build hat das Zeitlimit überschritten.
 building: Image bauen (kann beim ersten Mal einige Minuten dauern)...
 buildx_missing: 'Der Docker-Compose-Build delegiert an buildx und benötigt buildx {required} oder neuer, es wurde aber kein buildx-Plugin gefunden. buildx installieren: die Binärdatei für deine Plattform aus den docker/buildx-Releases herunterladen, unter {path} ablegen und mit ''chmod +x {path}'' ausführbar machen. Paketquellen haben sich hierfür als unzuverlässig erwiesen.'
 buildx_too_old: 'Der Docker-Compose-Build delegiert an buildx und benötigt buildx {required} oder neuer, installiert ist aber buildx {found}. Neueres buildx installieren: die Binärdatei für deine Plattform aus den docker/buildx-Releases herunterladen, unter {path} ablegen und mit ''chmod +x {path}'' ausführbar machen. Paketquellen haben sich hierfür als unzuverlässig erwiesen.'
+cancel_operation: Abbrechen
+cancel_unresponsive: Der laufende Schritt reagiert nicht auf die Abbruchbitte. Er läuft möglicherweise im Hintergrund zu Ende - das Fenster ist wieder bedienbar, und die Zustandsanzeige aktualisiert sich, sobald er endet.
+cancelling: Wird abgebrochen...
 check_compose_file_exists_fix: Stelle sicher, dass die App-Dateien unter install_dir liegen und der Compose-Dateiname in der Konfiguration mit der echten Datei übereinstimmt.
 check_compose_file_exists_meaning: Diese App wird über eine Docker-Compose-Datei gesteuert, und die konfigurierte Datei existiert am angezeigten Pfad nicht.
 check_docker_running_fix: 'Starte Docker Desktop oder den docker-Dienst (Linux: ''sudo systemctl start docker'') und führe die Systemprüfung erneut aus. Falls Docker fehlt, installiere es zuerst.'
@@ -125,6 +128,7 @@ not_reachable_after: '{app} nicht erreichbar nach {timeout}s ({detail}).'
 nothing_to_uninstall: Nichts zu deinstallieren (kein Container vorhanden).
 open_browser: Im Browser öffnen
 open_install_guide: Installationsanleitung öffnen
+operation_cancelled: Abgebrochen. Es läuft jetzt nichts; bereits heruntergeladene oder gebaute Teile bleiben im Zwischenspeicher und beschleunigen den nächsten Versuch. ({detail})
 port_changed: Port auf {port} geändert.
 port_free: Port {port} ist frei.
 port_invalid: Port muss zwischen {min} und {max} liegen.
@@ -182,6 +186,7 @@ uninstall_partial: 'Teilweise entfernt: {count} Container konnte(n) nicht entfer
 uninstalling: Deinstallation gestartet...
 update_app: Aktualisieren
 update_available: 'Update verfügbar: {tag} - {url}'
+update_cancelled_stopped: Aktualisierung abgebrochen - die App ist jetzt GESTOPPT, weil die Aktualisierung sie vor dem Holen der neuen Version stoppt. Drücke Start, um die vorherige Version zu starten; ihr Image ist noch auf diesem Rechner. ({detail})
 update_done: '{app} wurde aktualisiert und läuft.'
 update_fetching: Neueste Version wird geladen...
 update_health_failed: 'Aktualisiert, aber {app} ist nicht erreichbar: {detail}. {hint}'

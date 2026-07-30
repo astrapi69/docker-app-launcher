@@ -25,6 +25,9 @@ build_timeout: O tempo limite da construção do Docker foi excedido.
 building: Construindo imagem (pode levar alguns minutos na primeira vez)...
 buildx_missing: 'A construção do Docker Compose delega ao buildx e precisa de buildx {required} ou mais recente, mas nenhum plugin buildx foi encontrado. Instale o buildx: baixe o binário para a sua plataforma nas releases do docker/buildx, coloque-o em {path} e torne-o executável com ''chmod +x {path}''. Pacotes de distribuição têm se mostrado pouco confiáveis para isso.'
 buildx_too_old: 'A construção do Docker Compose delega ao buildx e precisa de buildx {required} ou mais recente, mas está instalado buildx {found}. Instale um buildx mais recente: baixe o binário para a sua plataforma nas releases do docker/buildx, coloque-o em {path} e torne-o executável com ''chmod +x {path}''. Pacotes de distribuição têm se mostrado pouco confiáveis para isso.'
+cancel_operation: Cancelar
+cancel_unresponsive: A etapa em execução não responde ao pedido de cancelamento. Ela pode terminar em segundo plano - a janela volta a ser utilizável e o estado será atualizado assim que terminar.
+cancelling: Cancelando...
 check_compose_file_exists_fix: Garanta que os arquivos do aplicativo estejam em install_dir e que o nome do arquivo compose corresponda ao arquivo real.
 check_compose_file_exists_meaning: Este aplicativo é controlado por um arquivo Docker Compose, e o arquivo configurado não existe no caminho mostrado.
 check_docker_running_fix: 'Inicie o Docker Desktop ou o serviço docker (Linux: ''sudo systemctl start docker'') e execute a verificação novamente. Se o Docker não estiver instalado, instale-o primeiro.'
@@ -125,6 +128,7 @@ not_reachable_after: '{app} não acessível após {timeout}s ({detail}).'
 nothing_to_uninstall: Nada para desinstalar (nenhum contêiner presente).
 open_browser: Abrir no navegador
 open_install_guide: Abrir guia de instalação
+operation_cancelled: Cancelado. Nada está em execução agora; as partes já baixadas ou construídas ficam em cache e aceleram a próxima tentativa. ({detail})
 port_changed: Porta alterada para {port}.
 port_free: A porta {port} está livre.
 port_invalid: A porta deve estar entre {min} e {max}.
@@ -182,6 +186,7 @@ uninstall_partial: 'Removido parcialmente: {count} contêiner(es) não pôde(pud
 uninstalling: Desinstalação iniciada...
 update_app: Atualizar
 update_available: 'Atualização disponível: {tag} - {url}'
+update_cancelled_stopped: Atualização cancelada - o aplicativo está PARADO agora, porque a atualização o para antes de buscar a nova versão. Pressione Iniciar para executar a versão anterior; a imagem dela ainda está nesta máquina. ({detail})
 update_done: '{app} foi atualizado e está em execução.'
 update_fetching: Obtendo a versão mais recente...
 update_health_failed: 'Atualizado, mas {app} não está acessível: {detail}. {hint}'

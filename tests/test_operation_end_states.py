@@ -57,6 +57,17 @@ def _result_for(outcome: str) -> tuple[bool, str]:
     }[outcome]
 
 
+def _finish(app, action: str, outcome: str) -> None:
+    """Drive the outcome the way the window experiences it: results come
+    through _on_result; the unresponsive-cancel exit comes from the
+    watchdog (#98) - a cancel request the operation ignores must still end
+    in idle, never in a forever-'cancelling' state."""
+    if outcome == "cancel_unresponsive":
+        app._on_cancel_unresponsive(action)
+    else:
+        app._on_result(action, _result_for(outcome))
+
+
 class TestSyncPin:
     def test_enumeration_is_the_registered_set(self) -> None:
         assert set(ui_model.LONG_RUNNING_ACTIONS) == {
@@ -69,7 +80,7 @@ class TestSyncPin:
             "change_port",
             "change_internal_port",
         }, "a new long-running action must be registered here AND covered below"
-        assert ui_model.OPERATION_OUTCOMES == ("success", "failure", "cancelled")
+        assert ui_model.OPERATION_OUTCOMES == ("success", "failure", "cancelled", "cancel_unresponsive")
 
 
 class TestEveryOutcomeEndsIdle:
@@ -84,7 +95,7 @@ class TestEveryOutcomeEndsIdle:
         assert app._progress_frame.winfo_ismapped(), "precondition: progress visible while running"
 
         # Act: the operation ends with this outcome.
-        app._on_result(action, _result_for(outcome))
+        _finish(app, action, outcome)
         app.update()
 
         # Assert: DEFINED idle state - progress gone and stopped, window
@@ -94,3 +105,64 @@ class TestEveryOutcomeEndsIdle:
         assert str(app._buttons["install"]["state"]) != "disabled" or True
         # The decisive operability check: busy is off, a next action could start.
         assert not app._build_in_progress
+
+
+class TestCancelControl:
+    """#98: the cancel control - visible only for cancellable operations,
+    double-click inert, the watchdog is the cancelling state's own exit,
+    and an aborted outcome becomes visible to --doctor / the bundle."""
+
+    def test_visible_only_for_cancellable_actions(self, app) -> None:
+        app._show_cancel_for("install")
+        app.update()
+        assert app._cancel_btn.winfo_ismapped(), "cancellable action must show the control"
+        app._hide_progress()
+        app._show_cancel_for("stop")
+        app.update()
+        assert not app._cancel_btn.winfo_ismapped(), "no control where a real abort is impossible"
+
+    def test_click_requests_and_double_click_is_inert(self, app) -> None:
+        app._current_action = "install"
+        app._show_cancel_for("install")
+        app.update()
+        app._on_cancel_click()
+        assert app._cancel_build.is_set()
+        assert str(app._cancel_btn["state"]) == "disabled", "second click must be inert"
+        label_after_first = app._cancel_btn.cget("text")
+        app._cancel_btn.invoke()  # disabled: no-op
+        assert app._cancel_btn.cget("text") == label_after_first
+        app._cancel_watchdog_stop()
+
+    def test_watchdog_is_the_exit_of_the_cancelling_state(self, app, monkeypatch) -> None:
+        from docker_app_launcher import ui_model as um
+
+        monkeypatch.setattr(um, "CANCEL_WATCHDOG_SECONDS", 0)
+        app._current_action = "install"
+        app._set_busy(True)
+        app._show_cancel_for("install")
+        app._update_progress(None, "pulling...")
+        app.update()
+        app._on_cancel_click()
+        app.update()  # fires the 0ms watchdog
+        assert not app._progress_frame.winfo_ismapped(), "unresponsive cancel must still end in idle"
+        assert not app._build_in_progress
+        from docker_app_launcher.install_manifest import last_aborted_operation
+
+        aborted = last_aborted_operation(app._cfg)
+        assert aborted is not None and aborted["outcome"] == "cancel_unresponsive"
+
+    def test_cancelled_result_is_recorded_for_diagnosis(self, app) -> None:
+        app._current_action = "update"
+        app._cancel_build.set()
+        app._on_result("update", (False, "cancelled by user"))
+        from docker_app_launcher.install_manifest import last_aborted_operation
+
+        aborted = last_aborted_operation(app._cfg)
+        assert aborted is not None and aborted["outcome"] == "cancelled" and aborted["action"] == "update"
+
+    def test_busy_never_disables_the_cancel_control(self, app) -> None:
+        app._show_cancel_for("install")
+        app.update()
+        app._set_busy(True)
+        assert str(app._cancel_btn["state"]) == "normal", "the one way OUT of busy must stay clickable"
+        app._set_busy(False)

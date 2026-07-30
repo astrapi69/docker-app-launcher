@@ -63,6 +63,7 @@ def main() -> int:
         errors.append("assistant contract missing entirely (pre-#81 window?)")
     else:
         expected_elements = [
+            "cancel_button",
             "copy_diagnosis_button",
             "copy_support_bundle_button",
             "doctor_checklist",
@@ -78,12 +79,15 @@ def main() -> int:
             "copy_diagnosis",
             "copy_support_bundle",
             "update_app",
+            "cancel_operation",
+            "cancelling",
             "show_details",
             "hide_details",
             "what_it_means",
             "what_to_do",
         }
-        for label_field in ("system_check", "copy_diagnosis", "copy_support_bundle", "update_app", "log_toggle"):
+        label_fields = ("system_check", "copy_diagnosis", "copy_support_bundle", "update_app", "log_toggle", "cancel")
+        for label_field in label_fields:
             label = str(assistant.get(label_field, ""))
             if not label.strip():
                 errors.append(f"assistant label {label_field} is empty")

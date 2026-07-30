@@ -244,3 +244,15 @@ and `app_version` point at the new release.
   the CLI, and the diagnostics (`--doctor`, `--support-bundle`, `--json`).
 - [docs/environment-matrix.md](environment-matrix.md) for the supported and
   tested environment cells per mode.
+
+
+## Container filesystem is ephemeral per start
+
+Since the `--force-recreate` fix, every launcher start/update REPLACES
+the compose container (deterministic across Compose generations). Rule
+for consumer apps: anything that must survive a start belongs in a
+NAMED VOLUME (like the data dir example above). Files your app writes
+elsewhere inside the container - caches, scratch files, in-container
+logs - are discarded on every start. Measured 2026-07-30: an
+outside-volume file is gone after start(), the named-volume file
+survives.

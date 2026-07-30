@@ -397,6 +397,27 @@ Seed cells shipped now:
   standalone install+build cells - the extra real-container churn made the
   single-daemon runner flaky (stop-not-verified / compose recreate races).
 
+- COMPOSE RECREATE FINDING (2026-07-30, measured twice): a SUCCESSFUL
+  BUILD IS NO PROOF AN UPDATE HAPPENED. Whether `docker compose up
+  --build -d` recreated the container onto the rebuilt image depended on
+  the user's Compose generation: the CI runner's Compose restarted the
+  OLD container (rebuilt image sat unused; upstream docker/compose#9308 -
+  the image identity is not part of the recreate decision), while a
+  current local Compose (v5.1.4) recreated correctly. User-visible
+  before the fix: the launcher reported success, the health endpoint
+  answered from the old container, and the app showed its OLD version.
+  Since the `--force-recreate` fix the launcher's start/update replace
+  the container deterministically on EVERY Compose generation.
+  MEASURED side effect of that fix (2026-07-30, real daemon): a file
+  written inside the container OUTSIDE any named volume is gone after
+  start(), the named-volume file survives, and the updated content is
+  served - in-container writes outside named volumes are ephemeral per
+  start. Checked against the reference consumer (adaptive-learner): all
+  persistence is anchored to its data-dir named volume by design (DB,
+  uploads, config overlays), no file logging outside - NO finding, the
+  behavior change is safe there and documented in
+  docs/consumer-integration.md as a consumer rule.
+
 Cells enumerated for follow-up (need the corresponding gap fix or heavier
 provisioning, tracked by their gap issue):
 

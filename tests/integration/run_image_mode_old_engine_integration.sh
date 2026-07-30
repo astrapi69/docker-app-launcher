@@ -17,22 +17,37 @@ trap cleanup EXIT
 cleanup
 
 echo "=== starting pinned old engine: docker:${ENGINE_TAG} ==="
-docker run -d --privileged --name "$NAME" -e DOCKER_TLS_CERTDIR= \
-  "docker:${ENGINE_TAG}" dockerd --host=tcp://0.0.0.0:2375 --host=unix:///var/run/docker.sock --tls=false >/dev/null
-
-for _ in $(seq 1 60); do
-  if docker exec "$NAME" docker version >/dev/null 2>&1; then break; fi
-  sleep 1
-done
-# The dind daemon occasionally dies right after start on shared runners
-# (storage-driver probe). A dead container would otherwise surface as an
-# opaque "container is not running" on the NEXT exec - fail here with the
-# daemon's own log instead, so a flake is diagnosable from the CI output.
-if [ "$(docker inspect -f '{{.State.Running}}' "$NAME")" != "true" ]; then
-  echo "FAIL: the dind engine container died during startup - daemon log:"
+# CAUSE-LEVEL stabilization (#93 companion): the dind daemon can die right
+# after start on shared runners. The original wait loop fell through after
+# 60 tries WITHOUT failing, so the next exec hit a dead engine with an
+# opaque "container is not running". Now: capability-checked readiness
+# (docker version over the socket), a hard aliveness check, ONE bounded
+# restart attempt, and the daemon's own log on every failed attempt. A
+# real failure is distinguishable from a flake: flake = attempt 1 WARN
+# with log, attempt 2 green (the WARN stays visible in a green run);
+# real = both attempts down WITH the daemon log, or the cell's tests
+# failing after a ready engine.
+start_engine() {
+  docker rm -f "$NAME" >/dev/null 2>&1 || true
+  docker run -d --privileged --name "$NAME" -e DOCKER_TLS_CERTDIR= \
+    "docker:${ENGINE_TAG}" dockerd --host=tcp://0.0.0.0:2375 --host=unix:///var/run/docker.sock --tls=false >/dev/null
+  for _ in $(seq 1 60); do
+    if docker exec "$NAME" docker version >/dev/null 2>&1; then return 0; fi
+    sleep 1
+  done
+  return 1
+}
+for attempt in 1 2; do
+  if start_engine && [ "$(docker inspect -f '{{.State.Running}}' "$NAME")" = "true" ]; then
+    break
+  fi
+  echo "WARN: dind engine did not come up (attempt $attempt) - daemon log:"
   docker logs "$NAME" 2>&1 | tail -40
-  exit 1
-fi
+  if [ "$attempt" = "2" ]; then
+    echo "FAIL: the dind engine did not start after 2 attempts"
+    exit 1
+  fi
+done
 docker exec "$NAME" docker version --format 'engine ready: {{.Server.Version}} (API {{.Server.APIVersion}})'
 
 echo "=== provisioning the distro profile (engine only, no client plugins) ==="

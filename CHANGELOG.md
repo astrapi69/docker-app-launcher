@@ -6,6 +6,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-07-30
+
+Highlight: a REAL user-facing fix - on some Compose generations an app
+update built the new image but silently kept running the OLD one (the
+launcher reported success, health answered from the old container). The
+launcher now force-recreates on every compose start, deterministically
+across Compose generations. Consumers should bump their pin even if they
+plan to move to image mode.
+
 ### Added
 
 - **One-step update: `--update` and a GUI Update button (#92).** From a
@@ -93,6 +102,26 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   so the update action is Stop-then-Start (README documents it; a
   single-action update is tracked separately).
 
+
+- **GHCR measured on the old engine + registry-refusal classification
+  (#87).** The old-engine cell now also pulls a public GHCR image
+  (anonymous token flow differs from Docker Hub's) credential-free, and
+  a refused pull (missing or private repository) is classified into a
+  message naming the registry access and the `use_registry_credentials`
+  path for private images — never a raw library error. 5/5 green on the
+  pinned 20.10.24 engine.
+- **The image mode's old-engine promise is now MEASURED, not argued
+  (#84).** A new CI job (`image-mode-old-engine`) runs both acquisition
+  sources — registry pull and local archive load, each followed by a
+  container start and an HTTP check — against a PINNED
+  `docker:20.10.24-dind` engine (API 1.41) that the runner first proves
+  free of any compose plugin, legacy docker-compose, and buildx (the dind
+  convenience image bundles the client plugins; the cell strips them to
+  model the real `docker.io` distro profile). First measurement
+  2026-07-29: green. This resolves the "Known limitation" stated in the
+  0.23.0 notes and unblocks consumers switching their distribution to the
+  image mode.
+
 ### Fixed
 
 - **Compose rebuild now runs the freshly built image (`--force-recreate`).**
@@ -114,27 +143,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   bind probe now sets SO_REUSEADDR on POSIX - TIME_WAIT remnants of a
   just-stopped app no longer read as occupied, matching how docker-proxy
   itself publishes ports. Found live by the #88 matrix run.
-
-### Added
-
-- **GHCR measured on the old engine + registry-refusal classification
-  (#87).** The old-engine cell now also pulls a public GHCR image
-  (anonymous token flow differs from Docker Hub's) credential-free, and
-  a refused pull (missing or private repository) is classified into a
-  message naming the registry access and the `use_registry_credentials`
-  path for private images — never a raw library error. 5/5 green on the
-  pinned 20.10.24 engine.
-- **The image mode's old-engine promise is now MEASURED, not argued
-  (#84).** A new CI job (`image-mode-old-engine`) runs both acquisition
-  sources — registry pull and local archive load, each followed by a
-  container start and an HTTP check — against a PINNED
-  `docker:20.10.24-dind` engine (API 1.41) that the runner first proves
-  free of any compose plugin, legacy docker-compose, and buildx (the dind
-  convenience image bundles the client plugins; the cell strips them to
-  model the real `docker.io` distro profile). First measurement
-  2026-07-29: green. This resolves the "Known limitation" stated in the
-  0.23.0 notes and unblocks consumers switching their distribution to the
-  image mode.
 
 ## [0.23.0] - 2026-07-29
 
@@ -1078,7 +1086,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - CLI ↔ GUI parity: both route through the same actions.
 - 160+ tests (no display required), mypy strict, ruff clean.
 
-[Unreleased]: https://github.com/astrapi69/docker-app-launcher/compare/v0.23.0...HEAD
+[Unreleased]: https://github.com/astrapi69/docker-app-launcher/compare/v0.24.0...HEAD
+[0.24.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.23.0...v0.24.0
 [0.23.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.22.0...v0.23.0
 [0.22.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.21.1...v0.22.0
 [0.21.1]: https://github.com/astrapi69/docker-app-launcher/compare/v0.21.0...v0.21.1

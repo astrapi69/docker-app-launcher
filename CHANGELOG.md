@@ -6,14 +6,32 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.25.1] - 2026-07-30
+
+Documentation patch: the artifact's own README now describes what 0.25.0
+ships. Three user-doc gaps (cancel, the concurrency guard, a feature list
+stale since ~0.16) had been found by a question, not a mechanism - this
+release closes the gaps AND installs the mechanism.
+
 ### Added
 
 - User-doc coverage check over the enumerable capability sets (#106):
   every CLI flag, assistant element and guard user-note must have a
   mention in README/quickstart or an individually reasoned exception;
-  the check counts and names what it measured. Found and fixed the
-  undocumented `--log-level` flag on its first run. Release checklist
-  gained an evidence-bound line for capabilities outside those sets.
+  the check counts and names what it measured (30 entries), goes RED on
+  the pre-fix docs for all three of this week's gaps, and found a
+  fourth on its first run - the undocumented `--log-level` flag, fixed
+  here. Known limit named in the suite: it proves a mention exists, not
+  that it is still correct. The release checklist gained an
+  evidence-bound line for capabilities outside the enumerable sets.
+
+### Fixed
+
+- User docs: cancel semantics (per-operation honesty, kept layers,
+  update-cancel leaves the app stopped), the concurrency guard and its
+  two user-visible notes, the assistant/update/diagnostics entries in
+  the README feature list, and the `--log-level` flag - none of which
+  were documented anywhere a user reads.
 
 ## [0.25.0] - 2026-07-30
 
@@ -1167,7 +1185,8 @@ plan to move to image mode.
 - CLI ↔ GUI parity: both route through the same actions.
 - 160+ tests (no display required), mypy strict, ruff clean.
 
-[Unreleased]: https://github.com/astrapi69/docker-app-launcher/compare/v0.25.0...HEAD
+[Unreleased]: https://github.com/astrapi69/docker-app-launcher/compare/v0.25.1...HEAD
+[0.25.1]: https://github.com/astrapi69/docker-app-launcher/compare/v0.25.0...v0.25.1
 [0.25.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.24.0...v0.25.0
 [0.24.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.23.0...v0.24.0
 [0.23.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.22.0...v0.23.0

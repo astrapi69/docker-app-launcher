@@ -6,6 +6,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- User-doc coverage check over the enumerable capability sets (#106):
+  every CLI flag, assistant element and guard user-note must have a
+  mention in README/quickstart or an individually reasoned exception;
+  the check counts and names what it measured. Found and fixed the
+  undocumented `--log-level` flag on its first run. Release checklist
+  gained an evidence-bound line for capabilities outside those sets.
+
 ## [0.25.0] - 2026-07-30
 
 Highlight: the operation lifecycle grew up. The progress bar used to keep

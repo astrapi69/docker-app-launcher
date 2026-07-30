@@ -65,6 +65,7 @@ docker-app-launcher --uninstall               # remove containers/images
 docker-app-launcher --cleanup                 # remove stale leftovers
 docker-app-launcher --open                    # open the app in the browser
 docker-app-launcher --debug ...               # verbose logging to stdout + launcher-debug.log
+docker-app-launcher --log-level DEBUG ...     # set the log level (DEBUG, INFO, WARNING, ERROR)
 ```
 
 **Machine-readable output**: `--json` turns `--doctor`, `--status`,

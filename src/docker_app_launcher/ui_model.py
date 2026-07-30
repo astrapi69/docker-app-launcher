@@ -395,6 +395,16 @@ ASSISTANT_ELEMENTS: tuple[str, ...] = (
 # explanation texts (check_<id>_meaning / check_<id>_fix) in all 11 catalogs.
 # Parity is enforced PER ID by tests/test_i18n.py - a new error-capable id
 # without both texts fails the suite, never ships with an empty card.
+# The concurrency guard's user-visible notes (#106): every key listed here
+# must have a mention in the user docs. tests/test_user_docs_coverage.py
+# enforces that AND pins this tuple to the i18n keys actually used in
+# check_pending_operation - a new guard note cannot ship undocumented.
+GUARD_USER_NOTE_KEYS: tuple[str, ...] = (
+    "guard_unavailable",
+    "pending_expired_unconfirmed",
+    "operation_pending_blocked",
+)
+
 ERROR_CHECK_IDS: tuple[str, ...] = (
     "docker_running",
     "install_dir",

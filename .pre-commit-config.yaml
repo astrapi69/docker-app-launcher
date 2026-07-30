@@ -43,7 +43,8 @@ repos:
   # protection, enabled). PINNED: an unpinned oracle drifts, and the
   # dangerous direction is silent - a newer version that detects less
   # reports nothing about the lowered bar (same class as the unpinned
-  # complexity tool in the governance repo).
+  # complexity tool in the governance repo). Bump ONLY together with
+  # GITLEAKS_VERSION + GITLEAKS_SHA256 in .github/workflows/ci.yml (#99).
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.30.1
     hooks:

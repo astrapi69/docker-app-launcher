@@ -138,13 +138,27 @@ jobs:
       - name: Run gitleaks (pinned, fail closed, measured set)
         env:
           # SAME pin as .pre-commit-config.yaml - a second version would be
-          # a second oracle with its own silent drift. Bump both together.
+          # a second oracle with its own silent drift. Bump both together,
+          # ALWAYS together with the checksum below.
           GITLEAKS_VERSION: "8.30.1"
+          # sha256 of gitleaks_<version>_linux_x64.tar.gz (#99): pins the
+          # BYTES, not just the release name - a swapped artifact under the
+          # same tag must fail here, hard. Origin: the official release
+          # asset gitleaks_8.30.1_checksums.txt, cross-checked against an
+          # independent download (both 551f6fc8... on 2026-07-30). Next
+          # bump: fetch .../vX.Y.Z/gitleaks_X.Y.Z_checksums.txt, take the
+          # linux_x64.tar.gz line, verify one independent download matches.
+          # Hand-held on purpose: neither the project nor the runner offers
+          # an established verified-procurement mechanism.
+          GITLEAKS_SHA256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
         run: |
           set -euo pipefail
-          # Contract point 3: fail CLOSED - a missing tool or a version
+          # Contract point 3: fail CLOSED - a missing tool, a missing or
+          # empty expected checksum, a checksum mismatch or a version
           # mismatch is a hard failure, never a silently skipped scan.
+          [ -n "${GITLEAKS_SHA256:-}" ] || { echo "::error::expected checksum is missing - refusing to run an unverified scanner"; exit 1; }
           curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" -o gitleaks.tgz
+          echo "${GITLEAKS_SHA256}  gitleaks.tgz" | sha256sum -c - || { echo "::error::artifact checksum mismatch - the bytes under this release changed"; exit 1; }
           tar xzf gitleaks.tgz gitleaks
           ./gitleaks version | grep -qx "${GITLEAKS_VERSION}" || { echo "::error::gitleaks version mismatch - the pin drifted"; exit 1; }
           ./gitleaks git . --redact 2>&1 | tee scan.log

@@ -117,6 +117,43 @@ jobs:
               exit 1
             }
 
+  secret-scan:
+    # Third stage of the secret defense (#96, closing the #95 residual gap):
+    # server push protection covers PROVIDER patterns only; the generic
+    # patterns live in the local pre-commit hook, which a bypassed commit
+    # skips - and agents commit here. This stage cannot be disabled locally.
+    # Honest scope: it does NOT prevent disclosure (auto-push has already
+    # published); it shortens time-to-knowledge from unbounded to minutes.
+    # RETIREMENT CONDITION: if GitHub's non-provider pattern set becomes
+    # enable-able on this repo, this stage is redundant - remove it then.
+    name: Secret scan (full history)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Full history: a secret that arrived via a bypassed hook is not
+          # necessarily in the last commit.
+          fetch-depth: 0
+
+      - name: Run gitleaks (pinned, fail closed, measured set)
+        env:
+          # SAME pin as .pre-commit-config.yaml - a second version would be
+          # a second oracle with its own silent drift. Bump both together.
+          GITLEAKS_VERSION: "8.30.1"
+        run: |
+          set -euo pipefail
+          # Contract point 3: fail CLOSED - a missing tool or a version
+          # mismatch is a hard failure, never a silently skipped scan.
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" -o gitleaks.tgz
+          tar xzf gitleaks.tgz gitleaks
+          ./gitleaks version | grep -qx "${GITLEAKS_VERSION}" || { echo "::error::gitleaks version mismatch - the pin drifted"; exit 1; }
+          ./gitleaks git . --redact 2>&1 | tee scan.log
+          # Contract point 4: report WHAT was measured and refuse an empty
+          # set - zero commits scanned must never read as a clean tree.
+          COMMITS=$(grep -oE '[0-9]+ commits scanned' scan.log | grep -oE '^[0-9]+' || echo 0)
+          echo "checked set: ${COMMITS} commits"
+          [ "${COMMITS}" -gt 0 ] || { echo "::error::scan covered zero commits - an empty set must not read as green"; exit 1; }
+
   image-mode-old-engine:
     # The image mode's central promise MEASURED (#84): a PINNED 20.10-class
     # engine (docker:20.10.24-dind), provisioned to the distro profile (no

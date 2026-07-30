@@ -79,8 +79,16 @@ reason - no blanket exceptions for files, directories or rules
 (precedent: the reworded comment in crypto.py in the governance repo,
 where the TEXT changed rather than teaching the checker to ignore
 comments). A real secret that reached public history counts as
-COMPROMISED and gets replaced, never excepted. History baseline
-2026-07-30: 169 commits scanned, zero findings.
+COMPROMISED and gets replaced, never excepted. CI - the SAME pinned
+gitleaks runs over the FULL history on every push (#96, ci.yml job
+"Secret scan (full history)"; bump both pins together). Honest scope of
+that stage: it does NOT prevent disclosure - with auto-push the
+publication has already happened - it shortens time-to-knowledge from
+unbounded to minutes and cannot be disabled locally. Same hit policy as
+the local hook, no softer CI variant. Retirement condition: if GitHub's
+non-provider pattern set becomes enable-able on this repo, the CI stage
+is redundant and gets removed. History baseline 2026-07-30: 169 commits
+scanned, zero findings.
 
 ## Conventions
 

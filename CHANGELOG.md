@@ -6,6 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.26.0] - 2026-07-31
+
+Security release. Anyone shipping this launcher should update and tell
+their users: until now the app was published on every network interface
+while the documentation promised localhost.
+
 ### Breaking Changes
 
 - **The published port now binds to localhost by default (#111).** In
@@ -1239,7 +1245,8 @@ plan to move to image mode.
 - CLI ↔ GUI parity: both route through the same actions.
 - 160+ tests (no display required), mypy strict, ruff clean.
 
-[Unreleased]: https://github.com/astrapi69/docker-app-launcher/compare/v0.25.2...HEAD
+[Unreleased]: https://github.com/astrapi69/docker-app-launcher/compare/v0.26.0...HEAD
+[0.26.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.25.2...v0.26.0
 [0.25.2]: https://github.com/astrapi69/docker-app-launcher/compare/v0.25.1...v0.25.2
 [0.25.1]: https://github.com/astrapi69/docker-app-launcher/compare/v0.25.0...v0.25.1
 [0.25.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.24.0...v0.25.0

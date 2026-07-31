@@ -238,3 +238,15 @@ launcher again whenever you want to stop it or check on it. If you
 close while something is installing or updating, you are asked first:
 that step ends, nothing is deleted, and downloaded parts stay for the
 next attempt.
+
+
+## "Reachable from every network" — what that means
+
+If **Check system** shows that the app is reachable from every network,
+it means other devices on your network (a shared office or student WiFi,
+for example) can open it too. The app has no password, so anyone who
+reaches it can read and change your data and use your provider keys.
+Normally the launcher publishes the app for **this computer only**, so
+you should not see this. If you do, the card tells you what to change;
+if you turned network access on deliberately, nothing is broken — just
+keep it to networks you trust.

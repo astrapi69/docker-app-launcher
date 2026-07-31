@@ -236,6 +236,16 @@ def _remove_existing(client: Any, name: str) -> None:
 
 def _classified_detail(exc: Exception, config: LauncherConfig | None = None) -> str:
     """Human detail via the #44 exception classification - never duplicated."""
+    # Matching on the class NAME, because the exception is raised deep inside
+    # docker-py's auth resolution and importing it here would tie this module
+    # to a private path. MEASURED (docker-py 7.2.0, real daemon, #110):
+    # client.api.build() with a broken credsStore raises
+    # docker.credentials.errors.StoreError UNWRAPPED - this match is correct
+    # for the launcher's path. AuthConfig.resolve_authconfig() instead WRAPS it
+    # in DockerException, where this match does NOT fire; nothing here takes
+    # that path today. tests/docker/test_credential_error_identity.py pins the
+    # library's class identity, so a rename or move in an upgrade fails loudly
+    # instead of silently degrading to an echoed library error.
     if type(exc).__name__ == "StoreError":
         # A broken credsStore/credHelpers entry in ~/.docker/config.json (#77):
         # name the fix, never just echo the library error.

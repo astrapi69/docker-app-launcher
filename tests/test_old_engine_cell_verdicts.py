@@ -85,6 +85,37 @@ class TestResourcesAreMeasuredBeforeTheStart:
         )
 
 
+class TestTheMeasuredCauseIsRecognized:
+    """#109 was diagnosed, not guessed: the disk hypothesis was refuted by
+    measurement (86 GB and 18.4M inodes free while the start failed), and the
+    real cause is the dind wrapper's cgroup-v2 nesting race - upstream's own
+    comment says writing subtree_control fails with EBUSY while processes
+    remain in the root cgroup, the move that prevents it tolerates failure,
+    the write does not, and the wrapper runs under set -e."""
+
+    def test_the_signature_is_classified_as_infrastructure(self, script_text: str) -> None:
+        assert "known_cgroup_race" in script_text, "the measured cause is not recognized at all"
+        race = script_text.index("known_cgroup_race() {")
+        body = script_text[race : race + 300]
+        assert "subtree_control" in body and "sed: write error" in body, (
+            "the classifier must match the signature that actually appeared in the logs"
+        )
+
+    def test_the_race_verdict_is_infrastructure_not_a_finding(self, script_text: str) -> None:
+        idx = script_text.index("cgroup-v2 nesting race $ATTEMPTS times")
+        block = script_text[idx - 200 : idx + 400]
+        assert "INFRASTRUCTURE" in block and "exit 2" in block
+        assert "measured NOTHING" in block, "it must say the run proved nothing about the engine generation"
+
+    def test_the_refuted_hypothesis_is_recorded_with_its_numbers(self, script_text: str) -> None:
+        """A refuted hypothesis is evidence too - the next reader must not retry it."""
+        assert "86 GB" in script_text and "18.4M inodes" in script_text
+
+    def test_a_race_gets_more_than_one_retry(self, script_text: str) -> None:
+        match = re.search(r"^ATTEMPTS=(\d+)", script_text, re.MULTILINE)
+        assert match and int(match.group(1)) >= 3, "a known race deserves a bounded retry budget above 2"
+
+
 class TestTheStaleClassificationIsGone:
     def test_the_disproven_flake_rule_is_no_longer_claimed(self, script_text: str) -> None:
         """It said 'both attempts down = real'. The evidence in #109 disproves it."""

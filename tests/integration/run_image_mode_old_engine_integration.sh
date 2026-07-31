@@ -31,7 +31,11 @@ free_kb() { df -Pk "$1" 2>/dev/null | awk 'NR==2 {print $4}'; }
 free_inodes() { df -Pi "$1" 2>/dev/null | awk 'NR==2 {print $4}'; }
 # Below this the runner is treated as exhausted rather than as a measurement
 # of the engine generation. 2 GiB: the pinned dind image alone unpacks to
-# ~300 MB and the cell pulls a probe image on top.
+# ~300 MB and the cell pulls a probe image on top. MEASURED 2026-07-31: the
+# runner had 86 GB and 18.4M inodes free while the start failed, so
+# exhaustion is NOT what has been happening - see the cgroup race below.
+# The measurement stays because it is what refuted the hypothesis, and a
+# future exhaustion must not be mistaken for the race.
 MIN_FREE_KB=2097152
 MIN_FREE_INODES=50000
 
@@ -40,6 +44,24 @@ report_resources() {
   df -Ph "$DOCKER_ROOT" / 2>/dev/null || true
   echo "free inodes on $DOCKER_ROOT: $(free_inodes "$DOCKER_ROOT")"
   docker system df 2>/dev/null || true
+}
+
+# The MEASURED cause of the intermittent failures (#109). docker:20.10-dind
+# routes through /usr/local/bin/dind, whose cgroup-v2 nesting block says it
+# itself:
+#   # move the processes from the root group to the /init group,
+#   # otherwise writing subtree_control fails with EBUSY.
+#   xargs -rn1 < /sys/fs/cgroup/cgroup.procs > /sys/fs/cgroup/init/cgroup.procs || :
+#   sed -e 's/ / +/g' -e 's/^/+/' < /sys/fs/cgroup/cgroup.controllers \
+#       > /sys/fs/cgroup/cgroup.subtree_control
+# The move tolerates failure, the WRITE does not, and the wrapper runs under
+# `set -e`: any process still in the root cgroup at that instant makes the
+# write return EBUSY, sed reports "write error", and the container dies
+# before dockerd ever starts. A race - which is why the same tree was red
+# and green four minutes apart, and why the daemon log carries no dockerd
+# line at all.
+known_cgroup_race() {
+  grep -qE "sed: write error|subtree_control" "$1" 2>/dev/null
 }
 
 resources_exhausted() {
@@ -83,15 +105,28 @@ start_engine() {
   done
   return 1
 }
-for attempt in 1 2; do
+DAEMON_LOG="$(mktemp)"
+ATTEMPTS=3
+for attempt in $(seq 1 "$ATTEMPTS"); do
   if start_engine && [ "$(docker inspect -f '{{.State.Running}}' "$NAME")" = "true" ]; then
     break
   fi
-  echo "WARN: dind engine did not come up (attempt $attempt) - daemon log:"
-  docker logs "$NAME" 2>&1 | tail -40
+  docker logs "$NAME" > "$DAEMON_LOG" 2>&1 || true
+  echo "WARN: dind engine did not come up (attempt $attempt/$ATTEMPTS) - daemon log:"
+  tail -40 "$DAEMON_LOG"
   echo "container exit code: $(docker inspect -f '{{.State.ExitCode}}' "$NAME" 2>/dev/null || echo unknown)"
   report_resources "after failed attempt $attempt"
-  if [ "$attempt" = "2" ]; then
+  if known_cgroup_race "$DAEMON_LOG"; then
+    echo "  cause: the known cgroup-v2 nesting race in the dind wrapper (see above)."
+  fi
+  if [ "$attempt" = "$ATTEMPTS" ]; then
+    if known_cgroup_race "$DAEMON_LOG"; then
+      echo "VERDICT: ENGINE-NEVER-STARTED / INFRASTRUCTURE - the dind wrapper lost its"
+      echo "  cgroup-v2 nesting race $ATTEMPTS times (EBUSY on cgroup.subtree_control),"
+      echo "  so the engine never ran and this run measured NOTHING about the engine"
+      echo "  generation. Do not read it as a finding (#109)."
+      exit 2
+    fi
     if resources_exhausted; then
       echo "VERDICT: ENGINE-NEVER-STARTED / INFRASTRUCTURE - the runner is out of"
       echo "  disk space or inodes (see the measurement above), so this run measured"
@@ -99,10 +134,12 @@ for attempt in 1 2; do
       echo "  do not re-run until green without looking: see #109."
       exit 2
     fi
-    echo "VERDICT: ENGINE-NEVER-STARTED / UNDIAGNOSED - resources were sufficient,"
-    echo "  so the cause is unknown. Full daemon log above; this needs a human (#109)."
+    echo "VERDICT: ENGINE-NEVER-STARTED / UNDIAGNOSED - resources were sufficient and"
+    echo "  the log carries no known signature, so the cause is unknown. Full daemon"
+    echo "  log above; this needs a human (#109)."
     exit 1
   fi
+  sleep "$attempt"
 done
 docker exec "$NAME" docker version --format 'engine ready: {{.Server.Version}} (API {{.Server.APIVersion}})'
 

@@ -27,6 +27,7 @@ suite and the old-engine cell; this full matrix runs nightly and on demand.
 from __future__ import annotations
 
 import os
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -68,6 +69,7 @@ volumes:
 _OPERATIONS = [
     "install",
     "install_when_installed",
+    "bind_address",
     "app_logs",
     "stop",
     "start_stopped_stack",
@@ -156,6 +158,24 @@ def _drive_full_operation_set(mode: str, tmp_path: Path) -> None:
     ok, msg = lifecycle.install(config)
     assert ok, f"[{mode}] install-when-installed must be graceful: {msg}"
     checked.append("install_when_installed")
+    # #111 at the RUNNING container: the published port must bind to localhost
+    # in the modes the launcher publishes itself. Measured before the fix as
+    # 0.0.0.0 AND :: - an app without authentication reachable from the whole
+    # network. Compose publishes from the app's own file, so there the launcher
+    # only reports what it finds.
+    binding = subprocess.run(
+        ["docker", "inspect", "-f", "{{json .NetworkSettings.Ports}}", config.container_name],
+        capture_output=True,
+        text=True,
+        check=False,
+    ).stdout.strip()
+    if mode in ("image", "dockerfile"):
+        assert '"HostIp":"127.0.0.1"' in binding, f"[{mode}] published on a non-localhost interface: {binding}"
+        assert '"HostIp":"0.0.0.0"' not in binding, f"[{mode}] published on ALL interfaces (#111): {binding}"
+        assert '"HostIp":"::"' not in binding, f"[{mode}] published on ALL IPv6 interfaces (#111): {binding}"
+    else:
+        print(f"[{mode}] compose published: {binding} (the app's compose file decides)")
+    checked.append("bind_address")
 
     ok, text = lifecycle.app_logs(config)
     assert ok, f"[{mode}] app_logs failed: {text}"

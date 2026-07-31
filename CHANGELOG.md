@@ -6,6 +6,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Breaking Changes
+
+- **The published port now binds to localhost by default (#111).** In
+  `image` and `dockerfile` mode the launcher used to publish on `0.0.0.0`
+  AND `::` — every interface — while the documentation said localhost.
+  MEASURED at the running container, not derived from source. Apps
+  without authentication were therefore reachable from the whole network.
+  **If your installation is deliberately reached from other machines it
+  breaks with this release. Way back: set `"bind_address": "0.0.0.0"` in
+  the launcher config and reinstall or restart.** In `compose` mode the
+  app's compose file decides, unchanged; `--doctor` now reports the actual
+  binding (`bind_address_open`) in every mode.
+
+### Fixed
+
+
 ## [0.25.2] - 2026-07-31
 
 Device finding, fixed at the cause: the launcher could not be closed at

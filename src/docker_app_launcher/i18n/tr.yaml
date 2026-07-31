@@ -28,6 +28,8 @@ buildx_too_old: 'Docker Compose derlemesi buildx''e devreder ve buildx {required
 cancel_operation: İptal
 cancel_unresponsive: Çalışan adım iptal isteğine yanıt vermiyor. Arka planda tamamlanabilir - pencere yeniden kullanılabilir ve adım biter bitmez durum görüntüsü güncellenir.
 cancelling: İptal ediliyor...
+check_bind_address_open_fix: 'Bunu istemediysen: başlatıcı yapılandırmasında "bind_address" değerini "127.0.0.1" yap ve uygulamayı yeniden başlat. Compose modunda portu uygulamanın kendi compose dosyası yayımlar - oradaki ports satırını "127.0.0.1:PORT:..." olarak değiştir. Ağ erişimini bilerek istediysen bir sorun yok; yalnızca güvendiğin ağlarda kullan.'
+check_bind_address_open_meaning: Uygulama, yalnızca bu bilgisayardan değil, bu bilgisayarın bağlı olduğu her ağdan erişilebilir durumda. Parola koruması yok; ona erişebilen herkes verilerini okuyup değiştirebilir ve sağlayıcı anahtarlarını kullanabilir.
 check_compose_file_exists_fix: Uygulama dosyalarının install_dir altında olduğundan ve compose dosya adının gerçek dosyayla eşleştiğinden emin olun.
 check_compose_file_exists_meaning: Bu uygulama bir Docker Compose dosyasıyla yönetiliyor ve yapılandırılan dosya gösterilen yolda yok.
 check_docker_running_fix: 'Docker Desktop''ı veya docker hizmetini başlatın (Linux: ''sudo systemctl start docker''), sonra sistem denetimini yeniden çalıştırın. Docker kurulu değilse önce kurun.'

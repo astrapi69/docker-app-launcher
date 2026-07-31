@@ -135,6 +135,26 @@ def collect_doctor_report(config: LauncherConfig) -> DoctorReport:
         published = _published_ports_of_running(config)
         if published:
             checks.append(CheckResult("published_ports", "info", f"published (docker): {published}"))
+            # #111: report WHICH interface the running container is actually on.
+            # In image/dockerfile mode the launcher binds to localhost unless the
+            # config opens it; in compose mode the APP's compose file decides and
+            # the launcher can only surface what it finds - which is exactly why
+            # this reads the running container instead of the config.
+            if "0.0.0.0:" in published or "[::]:" in published or ":::" in published:
+                where = (
+                    "the app's compose file publishes it"
+                    if mode == "compose"
+                    else f"bind_address is {config.bind_address!r}"
+                )
+                checks.append(
+                    CheckResult(
+                        "bind_address_open",
+                        "warn",
+                        f"reachable from EVERY network on this machine, not just from this "
+                        f"computer ({where}). Anyone who can reach it can use it; the launcher "
+                        f"cannot add authentication the app does not have. Published: {published}",
+                    )
+                )
             if str(port) not in published:
                 checks.append(
                     CheckResult(

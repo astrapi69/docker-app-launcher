@@ -128,6 +128,15 @@ class LauncherConfig:
     # Container-internal port the published host port maps onto; 0 = same
     # as the resolved host port.
     container_port: int = 0
+    # Host interface the published port binds to, for the modes the launcher
+    # publishes itself (image, dockerfile). Default LOCALHOST (#111): the
+    # measurement showed docker-py's bare-int port form publishes on 0.0.0.0
+    # AND ::, i.e. every interface, while the docs promised localhost. Apps
+    # without authentication are then reachable from the whole network.
+    # Set "0.0.0.0" to open deliberately - the launcher warns visibly at that
+    # moment. In compose mode the APP's compose file decides, so this field
+    # does not apply there (--doctor reports what compose actually bound).
+    bind_address: str = "127.0.0.1"
     # Named volumes: {volume_name: container_mount_path}.
     container_volumes: dict[str, str] = field(default_factory=dict)
     container_env: dict[str, str] = field(default_factory=dict)

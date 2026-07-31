@@ -93,7 +93,8 @@ class TestDockerfileUp:
         run = client.containers.run_kwargs
         assert run["image"] == dcfg.image_name
         assert run["name"] == dcfg.container_name
-        assert run["ports"] == {"8080/tcp": 8080}  # container_port=0 -> same as host
+        # container_port=0 -> same host port; localhost-pinned tuple, never a bare int (#111)
+        assert run["ports"] == {"8080/tcp": ("127.0.0.1", 8080)}
         assert run["volumes"] == {"solo-data": {"bind": "/app/data", "mode": "rw"}}
         assert run["environment"] == {"SOLO_DEBUG": "false"}
         assert run["restart_policy"] == {"Name": "unless-stopped"}
@@ -104,7 +105,8 @@ class TestDockerfileUp:
         client = _FakeClient([{"stream": "ok\n"}])
         _wire(monkeypatch, client)
         dockerfile_backend.up(dcfg)
-        assert client.containers.run_kwargs["ports"] == {"80/tcp": 8080}
+        # localhost-pinned tuple, never a bare int (#111)
+        assert client.containers.run_kwargs["ports"] == {"80/tcp": ("127.0.0.1", 8080)}
 
     def test_build_error_is_the_detail(self, dcfg, monkeypatch) -> None:
         client = _FakeClient([{"stream": "Step 1/2\n"}, {"errorDetail": {"message": "COPY failed: nope"}}])

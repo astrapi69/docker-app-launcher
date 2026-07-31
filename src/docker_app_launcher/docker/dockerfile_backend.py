@@ -216,7 +216,7 @@ def _run_container(client: Any, config: LauncherConfig) -> tuple[int, str]:
         config.image_name,
         name=config.container_name,
         detach=True,
-        ports={f"{container_port}/tcp": host_port},
+        ports={f"{container_port}/tcp": port_binding(config, host_port)},
         volumes={name: {"bind": mount, "mode": "rw"} for name, mount in config.container_volumes.items()},
         environment=dict(config.container_env),
         restart_policy={"Name": config.restart_policy} if config.restart_policy else None,
@@ -232,6 +232,38 @@ def _remove_existing(client: Any, name: str) -> None:
         return
     logger.info("removing existing container %s before recreate", name)
     stale.remove(force=True)
+
+
+# The one place that decides WHICH interface a published port binds to (#111).
+# Both API-driven modes (image, dockerfile) route through it, so the rule cannot
+# drift apart between them.
+#
+# Measured, not derived: docker-py's bare-int form
+# ``ports={"80/tcp": 8080}`` publishes on 0.0.0.0 AND :: - every interface -
+# while the docs promised localhost. An app without authentication is then
+# reachable from the whole network. The tuple form pins the interface.
+LOCALHOST_BIND = "127.0.0.1"
+OPEN_BINDS = ("0.0.0.0", "::", "*")
+
+
+def port_binding(config: LauncherConfig, host_port: int) -> tuple[str, int] | int:
+    """``(interface, port)`` for docker-py, warning loudly when it opens up.
+
+    The warning sits HERE, at the moment of opening, rather than on a
+    reference page nobody reads while typing a config value.
+    """
+    address = (config.bind_address or LOCALHOST_BIND).strip()
+    if address in OPEN_BINDS:
+        logger.warning(
+            "publishing %s on %s: the app is reachable from EVERY network this "
+            "machine is on, not just from this computer. Anyone who can reach it "
+            "can use it - the launcher cannot add authentication the app does not "
+            "have. Set bind_address to 127.0.0.1 to undo this.",
+            host_port,
+            address,
+        )
+        return (address, host_port)
+    return (address, host_port)
 
 
 def _classified_detail(exc: Exception, config: LauncherConfig | None = None) -> str:

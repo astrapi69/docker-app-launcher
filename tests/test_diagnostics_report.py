@@ -34,6 +34,10 @@ KNOWN_CHECK_IDS = {
     "launcher_port",
     "state",
     "published_ports",
+    # #111: warns when the RUNNING container is reachable from every network.
+    # Registered as API because consumers parse these ids - and because a
+    # security-relevant signal must not appear and vanish unnoticed.
+    "bind_address_open",
     "port_drift",
     "health_reachable",
     "last_operation_aborted",

@@ -28,6 +28,8 @@ buildx_too_old: 'Der Docker-Compose-Build delegiert an buildx und benötigt buil
 cancel_operation: Abbrechen
 cancel_unresponsive: Der laufende Schritt reagiert nicht auf die Abbruchbitte. Er läuft möglicherweise im Hintergrund zu Ende - das Fenster ist wieder bedienbar, und die Zustandsanzeige aktualisiert sich, sobald er endet.
 cancelling: Wird abgebrochen...
+check_bind_address_open_fix: 'Falls das nicht beabsichtigt war: "bind_address" in der Launcher-Konfiguration auf "127.0.0.1" setzen und die App neu starten. Im Compose-Modus veröffentlicht die Compose-Datei der App den Port - dort die ports-Zeile auf "127.0.0.1:PORT:..." ändern. Falls der Netzzugriff gewollt ist, ist nichts kaputt; nutze ihn nur in Netzen, denen du vertraust.'
+check_bind_address_open_meaning: Die App ist aus jedem Netzwerk erreichbar, in dem dieser Rechner ist, nicht nur von diesem Rechner. Sie hat keinen Passwortschutz, also kann jeder, der sie erreicht, deine Daten lesen und ändern und deine Anbieterschlüssel nutzen.
 check_compose_file_exists_fix: Stelle sicher, dass die App-Dateien unter install_dir liegen und der Compose-Dateiname in der Konfiguration mit der echten Datei übereinstimmt.
 check_compose_file_exists_meaning: Diese App wird über eine Docker-Compose-Datei gesteuert, und die konfigurierte Datei existiert am angezeigten Pfad nicht.
 check_docker_running_fix: 'Starte Docker Desktop oder den docker-Dienst (Linux: ''sudo systemctl start docker'') und führe die Systemprüfung erneut aus. Falls Docker fehlt, installiere es zuerst.'

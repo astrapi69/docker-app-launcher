@@ -455,6 +455,9 @@ ERROR_CHECK_IDS: tuple[str, ...] = (
     "readiness_blocker",
     "port_drift",
     "health_reachable",
+    # #111: security-relevant, so it gets a real card rather than a bare line -
+    # the user must be able to read what network exposure means and what to do.
+    "bind_address_open",
 )
 
 # Non-color status markers (accessibility: a state must be readable without

@@ -100,6 +100,18 @@ operation's result is unknown, run Check system; "the concurrency guard
 cannot work" = its marker file is not writable — with default settings
 this should never appear.
 
+**Which interface the app is published on** (0.26.0): in `image` and
+`dockerfile` mode the launcher binds the published port to **localhost**
+(`127.0.0.1`) — the app is reachable from this computer only. To expose
+it on the network deliberately, set `bind_address` (e.g. `"0.0.0.0"` for
+every interface, or one specific address); the launcher then logs a
+warning naming what that means and how to undo it. In `compose` mode the
+app's own compose file decides, so the launcher reports the actual
+binding in `--doctor` (`bind_address_open`) instead of overruling it.
+
+> The app itself has no authentication. Anyone who can reach the port can
+> use it, and the launcher cannot add a lock the app does not have.
+
 **Closing the launcher** (0.25.2): the window's X always has a way out.
 When a system tray is available the X sends a RUNNING app to the tray
 and the tray menu carries Quit; when no tray can dock — a frozen bundle

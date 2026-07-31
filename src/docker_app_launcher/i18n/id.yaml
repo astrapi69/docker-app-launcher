@@ -28,6 +28,8 @@ buildx_too_old: 'Build Docker Compose mendelegasikan ke buildx dan memerlukan bu
 cancel_operation: Batalkan
 cancel_unresponsive: Langkah yang berjalan tidak merespons permintaan pembatalan. Ia mungkin selesai di latar belakang - jendela dapat dipakai lagi, dan status akan diperbarui begitu selesai.
 cancelling: Membatalkan...
+check_bind_address_open_fix: 'Jika ini tidak disengaja: atur "bind_address" menjadi "127.0.0.1" di konfigurasi peluncur lalu mulai ulang aplikasi. Pada mode compose, berkas compose aplikasi sendiri yang menerbitkan port - ubah baris ports di sana menjadi "127.0.0.1:PORT:...". Jika akses jaringan memang disengaja, tidak ada yang rusak; pakai hanya di jaringan yang kamu percaya.'
+check_bind_address_open_meaning: Aplikasi dapat dijangkau dari setiap jaringan yang terhubung ke komputer ini, bukan hanya dari komputer ini. Aplikasi tidak punya perlindungan kata sandi, jadi siapa pun yang menjangkaunya bisa membaca dan mengubah datamu serta memakai kunci penyedia milikmu.
 check_compose_file_exists_fix: Pastikan berkas aplikasi ada di install_dir dan nama berkas compose dalam konfigurasi cocok dengan berkas sebenarnya.
 check_compose_file_exists_meaning: Aplikasi ini dikendalikan oleh berkas Docker Compose, dan berkas yang dikonfigurasi tidak ada di jalur yang ditampilkan.
 check_docker_running_fix: 'Jalankan Docker Desktop atau layanan docker (Linux: ''sudo systemctl start docker''), lalu jalankan pemeriksaan sistem lagi. Jika Docker belum terpasang, pasang dulu.'

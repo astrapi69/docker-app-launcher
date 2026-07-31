@@ -28,6 +28,8 @@ buildx_too_old: 'Docker Compose 빌드는 buildx에 위임되며 buildx {require
 cancel_operation: 취소
 cancel_unresponsive: 실행 중인 단계가 취소 요청에 응답하지 않습니다. 백그라운드에서 완료될 수 있습니다 - 창은 다시 사용할 수 있으며, 끝나는 즉시 상태 표시가 갱신됩니다.
 cancelling: 취소하는 중...
+check_bind_address_open_fix: '의도한 것이 아니라면: 런처 설정에서 "bind_address"를 "127.0.0.1"로 바꾸고 앱을 다시 시작하세요. compose 모드에서는 앱의 compose 파일이 포트를 공개하므로 그곳의 ports 줄을 "127.0.0.1:포트:..."로 바꾸세요. 네트워크 접근이 의도한 것이라면 문제될 것은 없습니다. 신뢰하는 네트워크에서만 사용하세요.'
+check_bind_address_open_meaning: 앱이 이 컴퓨터에서만이 아니라 이 컴퓨터가 연결된 모든 네트워크에서 접근 가능합니다. 비밀번호 보호가 없으므로 접근할 수 있는 사람은 누구나 데이터를 읽고 바꾸며 제공자 키를 사용할 수 있습니다.
 check_compose_file_exists_fix: 앱 파일이 install_dir에 있는지, 설정의 compose 파일 이름이 실제 파일과 일치하는지 확인하세요.
 check_compose_file_exists_meaning: 이 앱은 Docker Compose 파일로 제어되는데, 설정된 파일이 표시된 경로에 없습니다.
 check_docker_running_fix: 'Docker Desktop 또는 docker 서비스를 시작한 뒤(Linux: ''sudo systemctl start docker'') 시스템 점검을 다시 실행하세요. 설치되어 있지 않다면 먼저 설치하세요.'

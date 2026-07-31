@@ -28,6 +28,8 @@ buildx_too_old: 'The Docker Compose build delegates to buildx and needs buildx {
 cancel_operation: Cancel
 cancel_unresponsive: The running step is not responding to the cancel request. It may still finish in the background - the window is usable again, and the state display refreshes as soon as it ends.
 cancelling: Cancelling...
+check_bind_address_open_fix: 'If you did not intend this: set "bind_address" to "127.0.0.1" in the launcher config and restart the app. In compose mode the app''s own compose file publishes the port - change the ports line there to "127.0.0.1:PORT:...". If you DID intend network access, nothing is broken; keep it only on networks you trust.'
+check_bind_address_open_meaning: The app is reachable from every network this computer is on, not just from this computer. It has no password protection, so anyone who can reach it can read and change your data and use your provider keys.
 check_compose_file_exists_fix: Make sure the app files are present under install_dir and the compose file name in the config matches the real file.
 check_compose_file_exists_meaning: This app is driven by a Docker Compose file, and the configured file does not exist at the shown path.
 check_docker_running_fix: 'Start Docker Desktop or the docker service (Linux: ''sudo systemctl start docker''), then run the system check again. If Docker is not installed, install it first.'

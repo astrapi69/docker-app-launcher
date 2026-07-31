@@ -28,6 +28,8 @@ buildx_too_old: 'La construcción de Docker Compose delega en buildx y necesita 
 cancel_operation: Cancelar
 cancel_unresponsive: El paso en curso no responde a la solicitud de cancelación. Puede terminar en segundo plano - la ventana vuelve a ser utilizable y el estado se actualizará en cuanto termine.
 cancelling: Cancelando...
+check_bind_address_open_fix: 'Si no era tu intención: pon "bind_address" en "127.0.0.1" en la configuración del lanzador y reinicia la aplicación. En modo compose es el propio archivo compose el que publica el puerto: cambia allí la línea ports a "127.0.0.1:PUERTO:...". Si querías acceso por red, no hay nada roto; úsalo solo en redes de confianza.'
+check_bind_address_open_meaning: La aplicación es accesible desde cualquier red en la que esté este ordenador, no solo desde este ordenador. No tiene protección por contraseña, así que quien pueda alcanzarla puede leer y cambiar tus datos y usar tus claves de proveedor.
 check_compose_file_exists_fix: Asegúrate de que los archivos de la aplicación estén en install_dir y de que el nombre del archivo compose coincida con el archivo real.
 check_compose_file_exists_meaning: Esta aplicación se controla con un archivo de Docker Compose y el archivo configurado no existe en la ruta mostrada.
 check_docker_running_fix: 'Inicia Docker Desktop o el servicio docker (Linux: ''sudo systemctl start docker'') y vuelve a ejecutar la comprobación. Si Docker no está instalado, instálalo primero.'

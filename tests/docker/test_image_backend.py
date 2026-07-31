@@ -106,7 +106,7 @@ class TestImageUp:
         assert any("abc123: Downloading" in line for line in seen), "layer progress must reach the panel"
         run = client.containers.run_kwargs
         assert run["image"] == "ghcr.io/owner/app:2.0.0"
-        assert run["ports"] == {"8080/tcp": 8080}
+        assert run["ports"] == {"8080/tcp": ("127.0.0.1", 8080)}  # localhost-pinned tuple, never a bare int (#111)
         assert client.closed
 
     def test_digest_reference_parses(self, pcfg, monkeypatch) -> None:

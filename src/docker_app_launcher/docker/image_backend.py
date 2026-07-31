@@ -34,6 +34,7 @@ from docker_app_launcher.docker.dockerfile_backend import (
     _classified_detail,
     _disable_registry_auth,
     _remove_existing,
+    port_binding,
 )
 from docker_app_launcher.launcher_settings import resolve_port
 
@@ -225,7 +226,7 @@ def _run_pulled_container(client: Any, config: LauncherConfig) -> tuple[int, str
         config.image_reference,
         name=config.container_name,
         detach=True,
-        ports={f"{container_port}/tcp": host_port},
+        ports={f"{container_port}/tcp": port_binding(config, host_port)},
         volumes={name: {"bind": mount, "mode": "rw"} for name, mount in config.container_volumes.items()},
         environment=dict(config.container_env),
         restart_policy={"Name": config.restart_policy} if config.restart_policy else None,

@@ -28,6 +28,8 @@ buildx_too_old: 'Docker Compose のビルドは buildx に委譲され、buildx 
 cancel_operation: キャンセル
 cancel_unresponsive: 実行中のステップがキャンセル要求に応答していません。バックグラウンドで完了する可能性があります。ウィンドウは再び操作でき、終了し次第、状態表示が更新されます。
 cancelling: キャンセル中...
+check_bind_address_open_fix: '意図していない場合: ランチャー設定の "bind_address" を "127.0.0.1" にしてアプリを再起動してください。compose モードではアプリ自身の compose ファイルがポートを公開します。そこの ports 行を "127.0.0.1:ポート:..." に変更してください。ネットワークアクセスが意図的なら問題はありません。信頼できるネットワークでのみ使用してください。'
+check_bind_address_open_meaning: このアプリは、このコンピューターからだけでなく、このコンピューターが接続しているすべてのネットワークから到達できます。パスワード保護がないため、到達できる人は誰でもあなたのデータを読み書きし、プロバイダーキーを使用できます。
 check_compose_file_exists_fix: アプリのファイルが install_dir にあり、設定の compose ファイル名が実際のファイルと一致しているか確認してください。
 check_compose_file_exists_meaning: このアプリは Docker Compose ファイルで制御されますが、設定されたファイルが表示されたパスに存在しません。
 check_docker_running_fix: 'Docker Desktop または docker サービスを起動し（Linux: ''sudo systemctl start docker''）、システムチェックを再実行してください。未インストールの場合は先にインストールしてください。'

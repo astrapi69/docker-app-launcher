@@ -183,6 +183,8 @@ tooltip_no_log: Δεν υπάρχει ακόμη αρχείο καταγραφή
 tooltip_not_installed: Η εφαρμογή δεν έχει εγκατασταθεί ακόμη
 tooltip_not_running: Η εφαρμογή δεν εκτελείται
 tooltip_only_running: Διαθέσιμο μόνο όταν εκτελείται η εφαρμογή
+tray_missing_extra: 'Χωρίς εικονίδιο στην περιοχή ειδοποιήσεων: το πρόσθετο ''tray'' δεν είναι εγκατεστημένο. Εγκατάσταση: pip install "docker-app-launcher[tray]"'
+tray_no_desktop_support: 'Χωρίς εικονίδιο: αυτή η επιφάνεια εργασίας δεν προσφέρει χρησιμοποιήσιμη περιοχή ειδοποιήσεων. Στο GNOME την παρέχει η επέκταση ''AppIndicator and KStatusNotifierItem Support''.'
 tray_open: Άνοιγμα
 tray_quit: Έξοδος
 uninstall: Απεγκατάσταση

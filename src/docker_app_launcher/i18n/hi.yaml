@@ -183,6 +183,8 @@ tooltip_no_log: कॉपी करने के लिए अभी कोई �
 tooltip_not_installed: ऐप अभी तक इंस्टॉल नहीं है
 tooltip_not_running: ऐप नहीं चल रहा है
 tooltip_only_running: केवल तभी उपलब्ध जब ऐप चल रहा हो
+tray_missing_extra: 'ट्रे आइकन नहीं: ''tray'' अतिरिक्त पैकेज इंस्टॉल नहीं है। इंस्टॉल करें: pip install "docker-app-launcher[tray]"'
+tray_no_desktop_support: 'ट्रे आइकन नहीं: यह डेस्कटॉप उपयोग योग्य ट्रे क्षेत्र नहीं देता। GNOME में ''AppIndicator and KStatusNotifierItem Support'' एक्सटेंशन यह देता है।'
 tray_open: खोलें
 tray_quit: बंद करें
 uninstall: अनइंस्टॉल करें

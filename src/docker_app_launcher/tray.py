@@ -16,6 +16,7 @@ never depend on ``pystray`` being present.
 from __future__ import annotations
 
 import logging
+import sys
 import threading
 from collections.abc import Callable
 from pathlib import Path
@@ -101,6 +102,35 @@ def try_minimize_to_background(root: Any, tray_controller: Any) -> str:
     return "iconify"
 
 
+def is_frozen() -> bool:
+    """True when running from a PyInstaller-style bundle (#107).
+
+    The frozen artifact ships WITHOUT the tray extra on purpose (bundle size,
+    plus a docked icon would additionally depend on a desktop shell extension
+    on GNOME - a conditional promise is worse than none). So in a bundle the
+    absent tray is a documented property, not a defect, and neither the log
+    nor the user may call it "missing".
+    """
+    return bool(getattr(sys, "frozen", False))
+
+
+def background_fallback_reason() -> str | None:
+    """i18n key explaining why no tray icon appeared, or None when it needs none.
+
+    Two causes are worth explaining, both of them fixable by whoever hit them:
+    a source install without the extra, and a system that cannot dock an icon.
+    The frozen bundle is neither - it is the documented artifact property, so
+    it returns None (#107, narrowed after the tray decision).
+    """
+    if is_frozen():
+        return None
+    if not HAS_TRAY:
+        return "tray_missing_extra"
+    if _TRAY_BACKEND in _UNRELIABLE_BACKENDS or _TRAY_BACKEND is None:
+        return "tray_no_desktop_support"
+    return None
+
+
 def log_diagnostics(config: LauncherConfig) -> None:
     """Log tray-availability breadcrumbs, one per step (visible under ``--debug``).
 
@@ -116,6 +146,11 @@ def log_diagnostics(config: LauncherConfig) -> None:
             logger.debug("Tray: AppIndicator unavailable; fell back to %s (unreliable) -> taskbar", _TRAY_BACKEND)
         else:
             logger.debug("Tray: AppIndicator unavailable; fell back to %s", _TRAY_BACKEND)
+    elif is_frozen():
+        # NOT "missing": the bundle deliberately ships without it, and the X
+        # closes the launcher in that case (#107/#108). Saying "missing" here
+        # would send the next investigation after a defect that is not one.
+        logger.debug("Tray: not part of this build (the frozen bundle ships without the tray extra on purpose)")
     else:
         logger.debug("Tray: pystray + Pillow import: FAILED (%s) -> will fall back to taskbar", _IMPORT_ERROR)
     if not config.icon_path:

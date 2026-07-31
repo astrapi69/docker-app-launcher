@@ -277,6 +277,11 @@ class TestClose:
         assert app.close() is True  # closeEvent accepted
 
     def test_close_backgrounds_running_app(self, app, qapp, gui_state, monkeypatch) -> None:
+        # Tray fact PINNED - see the ctk twin: a developer desktop has a tray,
+        # a headless runner does not, and it decides the outcome.
+        from docker_app_launcher import tray
+
+        monkeypatch.setattr(tray, "tray_available", lambda: True)
         gui_state["value"] = "running"
         app._cfg.tray_enabled = True
         app._cfg.tray_minimize_on_close = True
@@ -284,6 +289,32 @@ class TestClose:
         monkeypatch.setattr(app, "_go_background", lambda *, via_close: called.append(via_close))
         assert app.close() is False  # closeEvent ignored, window stays alive
         assert called == [True]
+
+    def test_close_quits_running_app_without_a_tray(self, app, qapp, gui_state, monkeypatch) -> None:
+        """#108: no tray means no Quit control - the X must end the launcher."""
+        from docker_app_launcher import tray
+
+        monkeypatch.setattr(tray, "tray_available", lambda: False)
+        gui_state["value"] = "running"
+        app._cfg.tray_enabled = True
+        app._cfg.tray_minimize_on_close = True
+        monkeypatch.setattr(app, "_go_background", lambda **_kw: pytest.fail("no tray - backgrounding traps the user"))
+        assert app.close() is True  # closeEvent accepted
+
+    def test_tray_menu_quit_really_quits_while_running(self, app, qapp, gui_state, monkeypatch) -> None:
+        """#108 second finding: _quit routes through close(), which re-judged
+        the exit and backgrounded the window - the tray's Quit was a no-op."""
+        from docker_app_launcher import tray
+
+        monkeypatch.setattr(tray, "tray_available", lambda: True)
+        gui_state["value"] = "running"
+        app._cfg.tray_enabled = True
+        app._cfg.tray_minimize_on_close = True
+        monkeypatch.setattr(
+            app, "_go_background", lambda **_kw: pytest.fail("an explicit quit must not background the window")
+        )
+        app._quit()
+        assert app._quitting is True
 
     def test_pystray_adapter_methods(self, app) -> None:
         # try_minimize_to_background duck-types withdraw/iconify; the Qt

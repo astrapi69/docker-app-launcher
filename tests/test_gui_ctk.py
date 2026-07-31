@@ -172,6 +172,13 @@ class TestClose:
         assert called == [True]
 
     def test_close_backgrounds_running_app(self, app, gui_state, monkeypatch) -> None:
+        # The tray fact is PINNED, not inherited from the machine: it decides
+        # the outcome, and it differs between a developer desktop and a
+        # headless runner (contract point 5 - the verdict must mean the same
+        # thing everywhere).
+        from docker_app_launcher import tray
+
+        monkeypatch.setattr(tray, "tray_available", lambda: True)
         gui_state["value"] = "running"
         app._cfg.tray_enabled = True
         app._cfg.tray_minimize_on_close = True
@@ -179,6 +186,20 @@ class TestClose:
         monkeypatch.setattr(app, "_go_background", lambda *, via_close: called.append(via_close))
         app._on_close()
         assert called == [True]
+
+    def test_close_quits_running_app_without_a_tray(self, app, gui_state, monkeypatch) -> None:
+        """#108: no tray means no Quit control - the X must end the launcher."""
+        from docker_app_launcher import tray
+
+        monkeypatch.setattr(tray, "tray_available", lambda: False)
+        gui_state["value"] = "running"
+        app._cfg.tray_enabled = True
+        app._cfg.tray_minimize_on_close = True
+        quit_calls: list[bool] = []
+        monkeypatch.setattr(app, "_quit", lambda: quit_calls.append(True))
+        monkeypatch.setattr(app, "_go_background", lambda **_kw: pytest.fail("no tray - backgrounding traps the user"))
+        app._on_close()
+        assert quit_calls == [True]
 
 
 class TestRunGuard:

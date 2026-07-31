@@ -989,6 +989,9 @@ if HAS_QT:
                     self._log(self._t("background_tray"))
             else:
                 self._log(self._t("closed_minimized") if via_close else self._t("background_iconified"))
+                reason = tray.background_fallback_reason()
+                if reason is not None:
+                    self._log(self._t(reason))
 
         def _restore_window(self) -> None:
             self._stop_tray()

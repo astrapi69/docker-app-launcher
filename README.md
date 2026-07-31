@@ -111,6 +111,13 @@ names what happens: the step ends, already downloaded or built parts
 stay cached, nothing is deleted, and the next start shows the current
 state.
 
+**No tray icon?** The launcher says why, in the panel: either the
+`tray` extra is not installed (with the pip command), or the desktop
+offers no usable tray area (on GNOME the "AppIndicator and
+KStatusNotifierItem Support" extension provides one). A frozen bundle
+that ships without the extra on purpose says nothing — there the X
+closes the launcher and the behaviour is complete, not degraded.
+
 **Support bundle**: a human-readable document, never an opaque archive —
 it states first what it contains, so you can review it before sending.
 It carries versions, mode, state, port, health, the exact image identity

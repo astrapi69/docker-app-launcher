@@ -27,6 +27,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- The taskbar fallback names its cause (#107): a source install without
+  the `tray` extra gets the pip command, a desktop without a usable tray
+  area gets the GNOME extension hint. A frozen bundle shipping without
+  the extra reports nothing - there it is a documented artifact property,
+  and the log no longer calls the extra "missing" either.
 - Enumerated exit paths (`ui_model.EXIT_PATHS` / `EXIT_CONDITIONS`) with
   a check that every condition the launcher actually runs under keeps at
   least one way out, plus a frozen-contract section: an artifact that

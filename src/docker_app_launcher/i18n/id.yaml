@@ -183,6 +183,8 @@ tooltip_no_log: Belum ada log untuk disalin
 tooltip_not_installed: Aplikasi belum terpasang
 tooltip_not_running: Aplikasi tidak berjalan
 tooltip_only_running: Hanya tersedia saat aplikasi berjalan
+tray_missing_extra: 'Tidak ada ikon baki sistem: ekstra ''tray'' belum terpasang. Pasang dengan: pip install "docker-app-launcher[tray]"'
+tray_no_desktop_support: 'Tanpa ikon: desktop ini tidak menyediakan area baki sistem yang dapat dipakai. Di GNOME, ekstensi ''AppIndicator and KStatusNotifierItem Support'' menyediakannya.'
 tray_open: Buka
 tray_quit: Keluar
 uninstall: Hapus pemasangan

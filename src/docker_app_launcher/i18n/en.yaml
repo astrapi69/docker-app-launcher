@@ -183,6 +183,8 @@ tooltip_no_log: No log to copy yet
 tooltip_not_installed: App is not installed yet
 tooltip_not_running: App is not running
 tooltip_only_running: Only available while the app is running
+tray_missing_extra: 'No tray icon: the ''tray'' extra is not installed. Install it with: pip install "docker-app-launcher[tray]"'
+tray_no_desktop_support: 'No tray icon: this desktop does not offer a usable tray area. On GNOME the ''AppIndicator and KStatusNotifierItem Support'' extension provides one.'
 tray_open: Open
 tray_quit: Quit
 uninstall: Uninstall

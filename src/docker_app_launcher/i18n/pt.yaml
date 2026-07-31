@@ -183,6 +183,8 @@ tooltip_no_log: Ainda não há registro para copiar
 tooltip_not_installed: O aplicativo ainda não está instalado
 tooltip_not_running: O aplicativo não está em execução
 tooltip_only_running: Disponível apenas enquanto o aplicativo está em execução
+tray_missing_extra: 'Sem ícone na bandeja: o extra ''tray'' não está instalado. Instale com: pip install "docker-app-launcher[tray]"'
+tray_no_desktop_support: 'Sem ícone na bandeja: esta área de trabalho não oferece uma bandeja utilizável. No GNOME, a extensão ''AppIndicator and KStatusNotifierItem Support'' fornece uma.'
 tray_open: Abrir
 tray_quit: Sair
 uninstall: Desinstalar

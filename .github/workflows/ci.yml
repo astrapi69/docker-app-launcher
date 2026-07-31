@@ -192,7 +192,22 @@ jobs:
         run: poetry install --with dev
 
       - name: Run the old-engine cell (pinned dind, proven plugin-free)
-        run: tests/integration/run_image_mode_old_engine_integration.sh
+        # Exit 2 means ENGINE-NEVER-STARTED / INFRASTRUCTURE: the runner ran
+        # out of space or inodes, so the cell measured NOTHING about the engine
+        # generation (#109). It still fails the job - "could not check" is not
+        # "nothing to find" - but the summary says which of the two it was, so
+        # nobody re-runs a real finding away.
+        run: |
+          set +e
+          tests/integration/run_image_mode_old_engine_integration.sh
+          status=$?
+          set -e
+          if [ "$status" = "2" ]; then
+            echo "::error::Old-engine cell: INFRASTRUCTURE (runner exhausted) - this run measured nothing about the engine generation. See #109 before re-running."
+          elif [ "$status" != "0" ]; then
+            echo "::error::Old-engine cell failed with exit $status - read the VERDICT line in the log before re-running."
+          fi
+          exit $status
 
   cross-platform-smoke:
     # G9 (#58): no macOS or Windows automation existed - the PyPI/pipx install

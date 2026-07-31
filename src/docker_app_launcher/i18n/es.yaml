@@ -141,6 +141,7 @@ port_occupied: El puerto {port} está ocupado.
 port_restarting: Puerto cambiado. Reiniciando {app}...
 port_set: Puerto establecido en {port}.
 problem_found: Problema encontrado
+quit_during_operation: '''{action}'' aún se está ejecutando. Salir cancela este paso: las partes ya descargadas o construidas permanecen en la caché, no se borra nada y el próximo inicio muestra el estado actual. ¿Salir de todos modos?'
 ready: Instalación completada. {app} está listo.
 repo_url_not_cloned: 'Nota: repo_url ({url}) solo se usa para enlaces/comprobaciones de actualización - el launcher no lo clona. install_dir debe apuntar a un checkout local.'
 restore_defaults: Restaurar valores predeterminados

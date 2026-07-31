@@ -268,3 +268,29 @@ in a frozen bundle: the launcher will still work (the guard opens
 deliberately and visibly), but users will see the "concurrency guard
 cannot work" note on every operation. The frozen render-probe contract
 checks this anchor on every CI push.
+
+
+## The tray in frozen bundles, and what it means for closing (0.25.2)
+
+The `tray` extra (pystray + Pillow) is worth several megabytes that
+every end user downloads, and on GNOME a docked icon additionally needs
+the "AppIndicator and KStatusNotifierItem Support" shell extension - a
+conditional promise is worse than none. A frozen bundle may therefore
+legitimately ship WITHOUT the tray; if you do that, do not declare the
+`tray` extra as a dependency either - one statement, not two that
+contradict each other.
+
+The behaviour is complete either way, because the close policy follows
+the runtime fact, not the build intent:
+
+- **No tray** (frozen bundle without the extra, or no desktop support):
+  the X closes the launcher. The app keeps running in Docker.
+- **Tray available**: the X sends a running app to the tray, whose menu
+  carries Quit.
+
+This condition is what makes "no tray in the binary" a complete
+decision rather than only an intended one - without it the window could
+only be ended through the task manager (#108). The frozen render-probe
+contract asserts it per push: a bundle that reports
+`close_policy_when_running: "background"` with `tray_available: false`
+fails CI.

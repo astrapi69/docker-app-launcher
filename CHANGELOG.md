@@ -6,6 +6,32 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The launcher could not be closed at all without a tray (#108).**
+  Device finding on Ubuntu AND Windows: the window disappeared, the
+  process kept running, and only the task manager ended it. The X kept a
+  RUNNING app alive and backgrounded the window, but the only Quit
+  control lives in the tray menu - so without a tray (a frozen bundle
+  shipping without the `tray` extra, or a desktop without tray support)
+  the window iconified forever with no way out anywhere in the UI. The
+  keep-alive decision now follows the RUNTIME tray fact: no tray means
+  the X closes the launcher. The app keeps running in Docker either way.
+  Second finding, Qt only: `_quit()` routes through `close()`, so the
+  tray menu's Quit was re-judged by `closeEvent` and backgrounded the
+  window instead of ending it - an explicit quit is now marked as such.
+- Quitting while an operation is in flight asks first and says what
+  happens (the step ends, cached parts stay, nothing is deleted, the
+  next start shows the current state), records the outcome for
+  `--doctor`, and clears the concurrency marker.
+
+### Added
+
+- Enumerated exit paths (`ui_model.EXIT_PATHS` / `EXIT_CONDITIONS`) with
+  a check that every condition the launcher actually runs under keeps at
+  least one way out, plus a frozen-contract section: an artifact that
+  would background a running app without a tray fails CI (#108).
+
 ## [0.25.1] - 2026-07-30
 
 Documentation patch: the artifact's own README now describes what 0.25.0

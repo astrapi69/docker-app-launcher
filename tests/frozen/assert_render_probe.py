@@ -114,6 +114,29 @@ def main() -> int:
                 "progress must be hidden at idle - a visible bar with nothing running is the #97 stuck-activity class"
             )
 
+    # #108: the artifact must always have a way OUT. The frozen bundle ships
+    # without the tray extra on purpose, so its close policy has to be "quit";
+    # a "background" here reproduces the device finding (a window that only
+    # the task manager could end).
+    exit_contract = contract.get("exit")
+    if not isinstance(exit_contract, dict):
+        errors.append("exit contract missing - the artifact does not report how the launcher can be closed (#108)")
+    else:
+        policy = exit_contract.get("close_policy_when_running")
+        tray_available = exit_contract.get("tray_available")
+        paths = exit_contract.get("exit_paths") or []
+        if policy not in ("quit", "background"):
+            errors.append(f"unknown close policy {policy!r} - expected 'quit' or 'background' (#108)")
+        elif policy == "background" and not tray_available:
+            errors.append(
+                "the running app would be backgrounded although no tray can dock - "
+                "that is the #108 trap: the window could only be ended through the task manager"
+            )
+        if not paths:
+            errors.append(
+                f"no exit path under tray_available={tray_available!r} - every condition needs a way out (#108)"
+            )
+
     if errors:
         print("FROZEN BINARY CONTRACT VIOLATIONS:")
         for error in errors:

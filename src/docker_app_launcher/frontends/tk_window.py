@@ -539,6 +539,7 @@ class LauncherApp(tk.Tk):
         self._cancel_watchdog_id = None
         self._hide_progress()
         self._build_in_progress = False
+        self._current_action = None  # nothing in flight -> a quit needs no confirmation (#108)
         self._set_busy(False)
         arming_failure = lockfile.write_pending_operation(self._cfg, action_id)
         if arming_failure is not None:
@@ -1172,6 +1173,7 @@ class LauncherApp(tk.Tk):
         keep_alive = should_keep_alive_on_close(
             actions.get_state(self._cfg),
             minimize_enabled=self._cfg.tray_enabled and self._cfg.tray_minimize_on_close,
+            tray_available=tray.tray_available(),
         )
         if not keep_alive:
             self._quit()
@@ -1221,9 +1223,30 @@ class LauncherApp(tk.Tk):
             self._tray = None
 
     def _quit(self) -> None:
+        """The one funnel for every exit (X without tray, tray menu Quit).
+
+        While a long-running operation is in flight, quitting ENDS it - the
+        worker is a thread of this process - so the user is asked first and
+        told what state the app is left in (#108 part 3, the same honesty the
+        cancel messages carry). The pending-operation marker dies with the PID
+        by construction, so a quit never leaves the guard blocking.
+        """
+        running = self._current_action
+        if running is not None and running in ui_model.LONG_RUNNING_ACTIONS:
+            label = ui_model.action_display_name(self._cfg, running)
+            if not messagebox.askyesno(
+                self._cfg.app_name,
+                self._t("quit_during_operation", action=label),
+                parent=self,
+            ):
+                return
+            self._cancel_build.set()
+            self._record_cancel_outcome(running, "cancelled")
+            logger.info("quit during a running operation (%s): cancelled by the user", running)
         with contextlib.suppress(tk.TclError):
             actions.set_window_geometry(self._cfg, self.winfo_geometry())
         self._stop_tray()
+        lockfile.clear_pending_operation(self._cfg)
         self.destroy()
 
 

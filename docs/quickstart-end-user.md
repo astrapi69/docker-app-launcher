@@ -226,3 +226,15 @@ before. If a cancelled step stops answering, the window frees itself
 after a few seconds and tells you; new operations wait until the old one
 reports back (at most 10 minutes), and restarting the launcher also
 clears this. Your data is kept in all of these cases.
+
+
+## Closing the launcher
+
+Close the window with the X as usual. If your system has a tray area
+and the app is running, the launcher moves there instead of closing —
+its tray menu has an entry to quit. Without a tray the X simply closes
+the launcher. In both cases the app itself keeps running; start the
+launcher again whenever you want to stop it or check on it. If you
+close while something is installing or updating, you are asked first:
+that step ends, nothing is deleted, and downloaded parts stay for the
+next attempt.

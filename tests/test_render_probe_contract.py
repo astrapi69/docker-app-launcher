@@ -55,6 +55,11 @@ def _valid_contract() -> dict[str, object]:
             "guard_marker_writable": True,
             "guard_marker_dir": "/home/user/.probe-app",
         },
+        "exit": {
+            "tray_available": False,
+            "close_policy_when_running": "quit",
+            "exit_paths": ["window_close"],
+        },
     }
 
 
@@ -124,3 +129,46 @@ class TestAssistantContract:
         assert isinstance(assistant, dict)
         del assistant["guard_marker_writable"]
         assert _judge(contract).returncode == 1
+
+
+class TestExitContract:
+    """#108: the judge must reject an artifact without a way out."""
+
+    def test_missing_exit_section_fails(self) -> None:
+        contract = _valid_contract()
+        del contract["exit"]
+        result = _judge(contract)
+        assert result.returncode == 1 and "exit contract missing" in result.stdout
+
+    def test_background_without_a_tray_fails(self) -> None:
+        """The recorded RED: exactly the device finding, in contract form."""
+        contract = _valid_contract()
+        contract["exit"] = {
+            "tray_available": False,
+            "close_policy_when_running": "background",
+            "exit_paths": ["window_close"],
+        }
+        result = _judge(contract)
+        assert result.returncode == 1 and "#108 trap" in result.stdout
+
+    def test_background_with_a_tray_passes(self) -> None:
+        contract = _valid_contract()
+        contract["exit"] = {
+            "tray_available": True,
+            "close_policy_when_running": "background",
+            "exit_paths": ["tray_menu_quit"],
+        }
+        result = _judge(contract)
+        assert result.returncode == 0, result.stdout
+
+    def test_no_exit_path_fails(self) -> None:
+        contract = _valid_contract()
+        contract["exit"] = {"tray_available": False, "close_policy_when_running": "quit", "exit_paths": []}
+        result = _judge(contract)
+        assert result.returncode == 1 and "no exit path" in result.stdout
+
+    def test_unknown_policy_fails(self) -> None:
+        contract = _valid_contract()
+        contract["exit"] = {"tray_available": False, "close_policy_when_running": "maybe", "exit_paths": ["x"]}
+        result = _judge(contract)
+        assert result.returncode == 1 and "unknown close policy" in result.stdout

@@ -141,6 +141,7 @@ port_occupied: Port {port} sedang dipakai.
 port_restarting: Port diubah. Memulai ulang {app}...
 port_set: Port disetel ke {port}.
 problem_found: Masalah ditemukan
+quit_during_operation: '''{action}'' masih berjalan. Keluar akan membatalkan langkah ini: bagian yang sudah diunduh atau dibangun tetap tersimpan di cache, tidak ada yang dihapus, dan mulai berikutnya menampilkan keadaan saat ini. Tetap keluar?'
 ready: Pemasangan selesai. {app} siap.
 repo_url_not_cloned: 'Catatan: repo_url ({url}) hanya untuk tautan/pemeriksaan pembaruan - launcher tidak meng-clone-nya. install_dir harus menunjuk ke checkout lokal.'
 restore_defaults: Pulihkan default

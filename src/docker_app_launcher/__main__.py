@@ -13,7 +13,7 @@ import logging
 import sys
 from collections.abc import Sequence
 
-from docker_app_launcher import __version__, actions, i18n, lockfile, snap
+from docker_app_launcher import __version__, actions, i18n, lockfile, snap, tray, ui_model
 from docker_app_launcher.config import LauncherConfig
 from docker_app_launcher.logging_setup import setup_logging
 
@@ -148,6 +148,24 @@ def run_render_probe(config: LauncherConfig) -> int:
             # unavailable note. Probed by ARMING for real, then cleaning up.
             "guard_marker_writable": _probe_guard_marker(config),
             "guard_marker_dir": str(config.config_path),
+        },
+        # #108 at the BUILT artifact: the tray is what decides whether the X
+        # closes the launcher or backgrounds it. The frozen bundle ships
+        # without the tray extra ON PURPOSE, so the artifact must report a
+        # close policy of "quit" - a "background" here would be the device
+        # finding again (window only endable through the task manager).
+        "exit": {
+            "tray_available": tray.tray_available(),
+            "close_policy_when_running": (
+                "background"
+                if ui_model.should_keep_alive_on_close(
+                    "running",
+                    minimize_enabled=config.tray_enabled and config.tray_minimize_on_close,
+                    tray_available=tray.tray_available(),
+                )
+                else "quit"
+            ),
+            "exit_paths": sorted(ui_model.exit_paths_for("tray_available" if tray.tray_available() else "no_tray")),
         },
     }
     app.destroy()

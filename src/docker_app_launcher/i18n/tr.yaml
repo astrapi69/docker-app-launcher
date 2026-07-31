@@ -141,6 +141,7 @@ port_occupied: '{port} bağlantı noktası dolu.'
 port_restarting: Bağlantı noktası değiştirildi. {app} yeniden başlatılıyor...
 port_set: Bağlantı noktası {port} olarak ayarlandı.
 problem_found: Sorun bulundu
+quit_during_operation: '''{action}'' hâlâ çalışıyor. Çıkmak bu adımı iptal eder: indirilen veya derlenen parçalar önbellekte kalır, hiçbir şey silinmez ve bir sonraki başlatma güncel durumu gösterir. Yine de çıkılsın mı?'
 ready: Kurulum tamamlandı. {app} hazır.
 repo_url_not_cloned: 'Not: repo_url ({url}) yalnızca bağlantılar/güncelleme denetimleri içindir - launcher onu klonlamaz. install_dir yerel bir checkout''u göstermelidir.'
 restore_defaults: Varsayılanları geri yükle

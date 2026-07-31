@@ -141,6 +141,7 @@ port_occupied: Port {port} is occupied.
 port_restarting: Port changed. Restarting {app}...
 port_set: Port set to {port}.
 problem_found: Problem found
+quit_during_operation: '''{action}'' is still running. Quitting ends this step - already downloaded or built parts stay cached, nothing is deleted, and the next start shows the current state. Quit anyway?'
 ready: Installation complete. {app} is ready.
 repo_url_not_cloned: 'Note: repo_url ({url}) is only used for links/update checks - the launcher does not clone it. install_dir must point at a local checkout.'
 restore_defaults: Restore defaults

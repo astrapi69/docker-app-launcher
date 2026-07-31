@@ -145,7 +145,9 @@ BUTTON_LABELS = {
     "info": "about",
 }
 
-# The X is the only way to close the window, so there is no cancel/close button.
+# The X is the only close control in the window; there is no separate close
+# button. Which is exactly why the close policy must always leave an exit -
+# see should_keep_alive_on_close and EXIT_PATHS (#108).
 # Every button is always visible; this table decides enabled vs disabled per
 # state. ``no_docker`` disables everything (the docker-help panel takes over);
 # ``cleanup`` + ``copy_log`` are enabled whenever Docker is up (stale artifacts
@@ -356,15 +358,54 @@ def should_minimize_to_tray(state: str, *, tray_available: bool, tray_enabled: b
     return state == "running" and tray_enabled and tray_available
 
 
-def should_keep_alive_on_close(state: str, *, minimize_enabled: bool) -> bool:
+def should_keep_alive_on_close(state: str, *, minimize_enabled: bool, tray_available: bool = False) -> bool:
     """Whether the X button should keep the launcher alive instead of quitting.
 
-    True while the app is RUNNING and the app opts in (``minimize_enabled``):
-    the window then goes to the tray, or - when the tray is unavailable - is
-    minimized to the taskbar (never silently killed). When the app is not
-    running, or the app opted out, the X quits the launcher.
+    True only while the app is RUNNING, the app opts in (``minimize_enabled``)
+    AND a tray can actually dock (``tray_available``) - because the tray menu
+    is the only place that carries Quit. Without a tray the X CLOSES the
+    launcher (#108): the device finding was a window that minimized to the
+    taskbar forever, came back on click, and could only be ended through the
+    task manager. Closing is safe - the app runs in Docker and keeps running;
+    the launcher is a control window, not the app's host process.
+
+    ``tray_available`` defaults to False so a caller that does not know about
+    trays gets the exit rather than the trap.
     """
-    return state == "running" and minimize_enabled
+    return state == "running" and minimize_enabled and tray_available
+
+
+# --- #108: every way OUT of the application ---------------------------------
+# Fourth exit-less state found on a device (after the progress bar #97, the
+# cancelling state #98 and the pending block #100), and the worst: the
+# application itself. So the ways out are ENUMERATED, together with the
+# conditions they must work under - a new exit path or a new condition has to
+# appear here or tests/test_close_always_has_an_exit.py fails.
+EXIT_CONDITIONS: tuple[str, ...] = ("tray_available", "no_tray")
+
+# path id -> the conditions under which this path ENDS the process. The
+# invariant the suite proves: EVERY condition is covered by at least one path.
+EXIT_PATHS: dict[str, tuple[str, ...]] = {
+    # The X: quits without a tray; with a tray it backgrounds instead, and
+    # the tray menu then carries the exit.
+    "window_close": ("no_tray",),
+    # The tray menu's Quit entry - only exists while an icon is docked.
+    "tray_menu_quit": ("tray_available",),
+}
+
+
+def action_display_name(config: LauncherConfig, action_id: str) -> str:
+    """Localized name of an action for user messages (falls back to the id)."""
+    key = BUTTON_LABELS.get(action_id, action_id)
+    text = i18n.t(key, config)
+    return action_id if text == key else text
+
+
+def exit_paths_for(condition: str) -> tuple[str, ...]:
+    """Which exit paths end the process under ``condition``. Never empty."""
+    if condition not in EXIT_CONDITIONS:
+        raise ValueError(f"unknown exit condition: {condition!r}")
+    return tuple(path for path, conditions in EXIT_PATHS.items() if condition in conditions)
 
 
 # --- #81: assistant presentation layer -------------------------------------

@@ -100,6 +100,17 @@ operation's result is unknown, run Check system; "the concurrency guard
 cannot work" = its marker file is not writable — with default settings
 this should never appear.
 
+**Closing the launcher** (0.25.2): the window's X always has a way out.
+When a system tray is available the X sends a RUNNING app to the tray
+and the tray menu carries Quit; when no tray can dock — a frozen bundle
+without the `tray` extra, or a desktop without tray support — the X
+CLOSES the launcher. The app itself keeps running in Docker either way;
+the launcher is a control window, not the app's host process. Quitting
+while an install, update or acquisition is in flight asks first and
+names what happens: the step ends, already downloaded or built parts
+stay cached, nothing is deleted, and the next start shows the current
+state.
+
 **Support bundle**: a human-readable document, never an opaque archive —
 it states first what it contains, so you can review it before sending.
 It carries versions, mode, state, port, health, the exact image identity

@@ -95,6 +95,7 @@ if HAS_QT:
             self._cancel_build = threading.Event()
             self._current_action: str | None = None
             self._build_in_progress = False
+            self._quitting = False  # an explicit quit must not be re-judged by closeEvent (#108)
             self._invoke.connect(lambda fn: fn())
 
             self.setWindowTitle(window_title(config))
@@ -510,6 +511,7 @@ if HAS_QT:
             self._cancel_watchdog = None
             self._hide_progress()
             self._build_in_progress = False
+            self._current_action = None  # nothing in flight -> a quit needs no confirmation (#108)
             self._set_busy(False)
             arming_failure = lockfile.write_pending_operation(self._cfg, action_id)
             if arming_failure is not None:
@@ -946,13 +948,23 @@ if HAS_QT:
             keep_alive = should_keep_alive_on_close(
                 actions.get_state(self._cfg),
                 minimize_enabled=self._cfg.tray_enabled and self._cfg.tray_minimize_on_close,
+                tray_available=tray.tray_available(),
             )
-            if not keep_alive:
-                self._stop_tray()
-                event.accept()
+            # _quit() routes through close(), so an explicit quit (tray menu)
+            # must not be re-judged here: with a docked tray and a running app
+            # keep_alive is True and the window would background itself INSTEAD
+            # of quitting - the tray's Quit entry never ended the process (#108,
+            # second finding, Qt only).
+            if keep_alive and not self._quitting:
+                event.ignore()
+                self._go_background(via_close=True)
                 return
-            event.ignore()
-            self._go_background(via_close=True)
+            if not self._quitting and not self._confirm_quit_during_operation():
+                event.ignore()
+                return
+            self._stop_tray()
+            lockfile.clear_pending_operation(self._cfg)
+            event.accept()
 
         def _background_controller(self) -> tray.TrayController:
             return tray.TrayController(
@@ -990,10 +1002,36 @@ if HAS_QT:
                 self._tray = None
 
         def _quit(self) -> None:
+            """The one funnel for every exit - see the tk window for the rules (#108)."""
+            if not self._confirm_quit_during_operation():
+                return
             with contextlib.suppress(Exception):
                 actions.set_window_geometry(self._cfg, f"{self.width()}x{self.height()}+{self.x()}+{self.y()}")
+            self._quitting = True
             self._stop_tray()
             self.close()
+
+        def _confirm_quit_during_operation(self) -> bool:
+            """Ask before quitting ENDS a running operation; False = stay open."""
+            running = self._current_action
+            if running is None or running not in ui_model.LONG_RUNNING_ACTIONS:
+                return True
+            from PySide6.QtWidgets import QMessageBox
+
+            label = ui_model.action_display_name(self._cfg, running)
+            answer = QMessageBox.question(
+                self,
+                self._cfg.app_name,
+                self._t("quit_during_operation", action=label),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                return False
+            self._cancel_build.set()
+            self._record_cancel_outcome(running, "cancelled")
+            logger.info("quit during a running operation (%s): cancelled by the user", running)
+            return True
 
 
 def run(config: LauncherConfig, *, debug: bool = False) -> int:

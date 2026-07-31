@@ -301,15 +301,20 @@ class TestAdvancedPorts:
 
 
 class TestShouldKeepAliveOnClose:
-    def test_running_and_enabled_keeps_alive(self) -> None:
-        assert gui.should_keep_alive_on_close("running", minimize_enabled=True) is True
+    # This class used to assert keep-alive WITHOUT a tray - it encoded the
+    # #108 trap as expected behaviour (the device could only be freed through
+    # the task manager). The full matrix and its reasoning now live in
+    # tests/test_close_always_has_an_exit.py.
+    def test_running_and_enabled_keeps_alive_only_with_a_tray(self) -> None:
+        assert gui.should_keep_alive_on_close("running", minimize_enabled=True, tray_available=True) is True
+        assert gui.should_keep_alive_on_close("running", minimize_enabled=True, tray_available=False) is False
 
     def test_running_but_disabled_quits(self) -> None:
-        assert gui.should_keep_alive_on_close("running", minimize_enabled=False) is False
+        assert gui.should_keep_alive_on_close("running", minimize_enabled=False, tray_available=True) is False
 
     def test_not_running_quits(self) -> None:
-        assert gui.should_keep_alive_on_close("stopped", minimize_enabled=True) is False
-        assert gui.should_keep_alive_on_close("not_installed", minimize_enabled=True) is False
+        assert gui.should_keep_alive_on_close("stopped", minimize_enabled=True, tray_available=True) is False
+        assert gui.should_keep_alive_on_close("not_installed", minimize_enabled=True, tray_available=True) is False
 
 
 class TestShouldMinimizeToTray:

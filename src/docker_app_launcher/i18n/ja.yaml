@@ -141,6 +141,7 @@ port_occupied: ポート {port} は使用中です。
 port_restarting: ポートを変更しました。{app} を再起動しています...
 port_set: ポートを {port} に設定しました。
 problem_found: 問題が見つかりました
+quit_during_operation: '''{action}'' は実行中です。終了するとこのステップは中止されます。ダウンロード済みまたはビルド済みの部分はキャッシュに残り、何も削除されません。次回の起動時に現在の状態が表示されます。終了しますか？'
 ready: インストールが完了しました。{app} の準備が整いました。
 repo_url_not_cloned: '注: repo_url（{url}）はリンク/更新チェック専用で、ランチャーはクローンしません。install_dir はローカルのチェックアウトを指す必要があります。'
 restore_defaults: 既定値に戻す

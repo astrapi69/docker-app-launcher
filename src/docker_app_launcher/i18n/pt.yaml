@@ -141,6 +141,7 @@ port_occupied: A porta {port} está ocupada.
 port_restarting: Porta alterada. Reiniciando {app}...
 port_set: Porta definida como {port}.
 problem_found: Problema encontrado
+quit_during_operation: '''{action}'' ainda está em execução. Sair cancela esta etapa: as partes já baixadas ou construídas permanecem em cache, nada é excluído e o próximo início mostra o estado atual. Sair mesmo assim?'
 ready: Instalação concluída. {app} está pronto.
 repo_url_not_cloned: 'Nota: repo_url ({url}) é usado apenas para links/verificações de atualização - o launcher não o clona. install_dir deve apontar para um checkout local.'
 restore_defaults: Restaurar padrões

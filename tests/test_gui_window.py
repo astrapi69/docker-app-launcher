@@ -671,11 +671,28 @@ class TestBackgroundAndClose:
         assert app._t("background_iconified") in app._status.get("1.0", "end")
 
     def test_close_via_x_backgrounds_running_app(self, app, gui_state, monkeypatch) -> None:
+        # The tray fact is PINNED, never inherited from the machine running
+        # the tests: it decides the outcome and differs between a developer
+        # desktop (AppIndicator present) and a headless runner (contract
+        # point 5 - the verdict must mean the same thing everywhere).
+        monkeypatch.setattr(tray, "tray_available", lambda: True)
         gui_state["value"] = "running"
         app._cfg.tray_enabled = True
         app._cfg.tray_minimize_on_close = True
         called: list[bool] = []
         monkeypatch.setattr(app, "_go_background", lambda *, via_close: called.append(via_close))
+        app._on_close()
+        assert called == [True]
+
+    def test_close_via_x_quits_running_app_without_a_tray(self, app, gui_state, monkeypatch) -> None:
+        """#108: the tray menu carries the only Quit - without a tray the X must end it."""
+        monkeypatch.setattr(tray, "tray_available", lambda: False)
+        gui_state["value"] = "running"
+        app._cfg.tray_enabled = True
+        app._cfg.tray_minimize_on_close = True
+        called: list[bool] = []
+        monkeypatch.setattr(app, "_quit", lambda: called.append(True))
+        monkeypatch.setattr(app, "_go_background", lambda **_kw: pytest.fail("no tray - backgrounding traps the user"))
         app._on_close()
         assert called == [True]
 

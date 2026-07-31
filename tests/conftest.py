@@ -179,3 +179,19 @@ def _prefer_invisible_display() -> None:
 
 
 _prefer_invisible_display()
+
+
+@pytest.fixture(autouse=True)
+def _deterministic_tray(monkeypatch):
+    """Pin tray availability to False for every test (#108).
+
+    Tray availability is an ENVIRONMENT fact: a developer desktop has
+    AppIndicator, a headless CI runner does not. Three close-behaviour tests
+    silently measured that difference instead of the code - green locally,
+    red on the runner, in a suite whose whole point is that a verdict means
+    the same thing everywhere (contract point 5). Tests that need a tray now
+    have to say so, and then they say it for every machine.
+    """
+    from docker_app_launcher import tray
+
+    monkeypatch.setattr(tray, "tray_available", lambda: False)

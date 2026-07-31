@@ -60,6 +60,13 @@ def _config(tmp_path: Path, archive: str = "", reference: str = _REF) -> Launche
         install_dir=str(tmp_path),
         default_port=_PORT,
         container_port=80,
+        # DELIBERATELY open (#111): this cell reaches the published port from
+        # OUTSIDE the dind engine's network namespace (DAL_OLD_ENGINE_HTTP_HOST
+        # is the dind container's IP), which the localhost default correctly
+        # forbids. The default itself is pinned in tests/docker/test_bind_address.py
+        # and at a running container in the lifecycle matrix; what this cell
+        # measures is the image mode on an OLD ENGINE, not the bind policy.
+        bind_address="0.0.0.0",
         locale="en",
     ).resolve()
 

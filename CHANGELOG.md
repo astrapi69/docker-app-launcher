@@ -6,6 +6,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.25.2] - 2026-07-31
+
+Device finding, fixed at the cause: the launcher could not be closed at
+all without a system tray - the window disappeared, the process kept
+running, and only the task manager ended it. Anyone shipping a frozen
+bundle without the `tray` extra should update.
+
 ### Fixed
 
 - **The launcher could not be closed at all without a tray (#108).**
@@ -1216,7 +1223,8 @@ plan to move to image mode.
 - CLI ↔ GUI parity: both route through the same actions.
 - 160+ tests (no display required), mypy strict, ruff clean.
 
-[Unreleased]: https://github.com/astrapi69/docker-app-launcher/compare/v0.25.1...HEAD
+[Unreleased]: https://github.com/astrapi69/docker-app-launcher/compare/v0.25.2...HEAD
+[0.25.2]: https://github.com/astrapi69/docker-app-launcher/compare/v0.25.1...v0.25.2
 [0.25.1]: https://github.com/astrapi69/docker-app-launcher/compare/v0.25.0...v0.25.1
 [0.25.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.24.0...v0.25.0
 [0.24.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.23.0...v0.24.0

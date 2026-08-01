@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from docker_app_launcher import __main__, doctor
+from docker_app_launcher import __main__, check_ids, doctor
 from docker_app_launcher.config import LauncherConfig
 from docker_app_launcher.diagnostics_report import (
     CheckResult,
@@ -18,30 +18,12 @@ from docker_app_launcher.diagnostics_report import (
 )
 from docker_app_launcher.docker.tool_versions import ToolVersions
 
-# The stable check-id API (#86): additive evolution only. A collector that
-# emits an id NOT in this set fails the coverage test below - new checks must
-# be registered here consciously, never slipped in.
-KNOWN_CHECK_IDS = {
-    "config_identity",
-    "install_dir",
-    "compose_file_exists",
-    "image_source_declared",
-    "dockerfile_exists",
-    "docker_running",
-    "toolchain_versions",
-    "readiness",
-    "readiness_blocker",
-    "launcher_port",
-    "state",
-    "published_ports",
-    # #111: warns when the RUNNING container is reachable from every network.
-    # Registered as API because consumers parse these ids - and because a
-    # security-relevant signal must not appear and vanish unnoticed.
-    "bind_address_open",
-    "port_drift",
-    "health_reachable",
-    "last_operation_aborted",
-}
+# The stable check-id API (#86) now lives in the SHIPPED package
+# (src/docker_app_launcher/check_ids.py, #81): an interface consumers parse
+# cannot live where shipped code cannot import it. Re-exported here so the
+# existing importers keep working AND so this stops being an independent
+# copy that can drift - the whole point of the move.
+KNOWN_CHECK_IDS = set(check_ids.KNOWN_CHECK_IDS)
 
 
 @pytest.fixture

@@ -30,6 +30,11 @@ Callback = Callable[..., Any]
 # lock-step with the YAML files by ``test_i18n`` (``available_languages()``).
 SUPPORTED_LOCALES = ["de", "en", "el", "es", "fr", "hi", "ja", "ko", "pt", "tr", "id"]
 
+# What ``appearance`` may be set to (#118). Kept here rather than imported
+# from ``appearance`` so the config module stays free of that import cycle;
+# a test pins the two lists against each other.
+APPEARANCE_CHOICES = ("system", "light", "dark")
+
 # Native-script display labels for the language picker (a language is shown in
 # its own script - "Ελληνικά", not "Greek").
 LOCALE_LABELS = {
@@ -197,6 +202,10 @@ class LauncherConfig:
     # registered under the ``docker_app_launcher.frontends`` entry-point group.
     # All frontends share the same behaviour tables (:mod:`ui_model`).
     gui_backend: str = "tk"
+    # Light, dark, or follow the system (#118). "system" asks the OS through
+    # its own tools (XDG portal / defaults / reg), three-valued; where the
+    # system says nothing the launcher renders light and LOGS that it did.
+    appearance: str = "system"
 
     # === Single instance ===
     single_instance: bool = True
@@ -292,6 +301,11 @@ class LauncherConfig:
             self.releases_url = f"{self.repo_url.rstrip('/')}/releases/latest"
         if self.locale == "auto":
             self.locale = detect_system_locale()
+        if self.appearance not in APPEARANCE_CHOICES:
+            raise ValueError(
+                f"appearance must be one of {', '.join(APPEARANCE_CHOICES)}, got {self.appearance!r} "
+                "(#118 - an unreadable value must fail here, not resolve to a silent default)"
+            )
         if self.deployment_mode not in ("", "compose", "dockerfile", "image"):
             raise ValueError(
                 f"deployment_mode must be 'compose', 'dockerfile' or 'image', got {self.deployment_mode!r} "

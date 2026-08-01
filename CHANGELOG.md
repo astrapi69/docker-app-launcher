@@ -6,6 +6,26 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.27.0] - 2026-08-01
+
+Fixes a shipped defect on the main installation path: in `image` mode —
+the mode end users get since the installation route changed — every host
+port change failed, and the user was left with a stopped app, a persisted
+port, and an error message about a file their app never had.
+
+### Changed
+
+- **Internal-port changes are refused outside `compose` mode, with the
+  reason (#112).** USER-VISIBLE BEHAVIOR CHANGE. In `image` and
+  `dockerfile` mode they previously fell into the Compose detour below, or
+  answered "unknown internal port" — naming the wrong cause and sending
+  any later investigation in the wrong direction. The internal port is
+  carried by the env keys the compose file reads, so outside `compose`
+  mode there is nothing to change: it belongs to the image itself and only
+  a new app version can change it. The launcher now says exactly that, in
+  all 11 languages. Consumers in `image`/`dockerfile` mode should not
+  offer the expert internal-port panel (`show_advanced_ports`) at all.
+
 ### Added
 
 - **The internal-port rebuild can be cancelled (#101).** It was the one
@@ -15,6 +35,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   in all three frontends. The cancel message is honest about the state it
   leaves: the app is STOPPED and the new internal port is already saved,
   so Start rebuilds with it — the build cache stays and speeds that up.
+- `actions.change_internal_port()` takes a keyword-only `should_cancel`
+  predicate (defaults to `None`, so existing callers are unaffected).
+- **The old-engine cell can be pointed at a real consumer image (#89).**
+  `DAL_OLD_ENGINE_GHCR_REF`, `DAL_OLD_ENGINE_GHCR_CONTAINER_PORT` and
+  `DAL_OLD_ENGINE_GHCR_PATH` override the generic default for a one-time
+  measurement; the default stays a generic public image, so the test suite
+  never depends on a consumer release. The cell now also reports WHAT it
+  measured (reference, resolved digest, size, port, path, response), so a
+  run whose override silently failed to apply is distinguishable from a
+  run against the real image.
 
 ### Fixed
 
@@ -29,12 +59,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   cannot silently reopen the interface the 0.26.0 fix closed. The port
   change is part of the real per-mode lifecycle matrix now, with the
   binding measured after it as well as after install.
-- **Internal-port changes say why they are compose-only (#112).** In
-  `image` and `dockerfile` mode they fell into the same Compose detour, or
-  answered "unknown internal port" — naming the wrong cause. The launcher
-  now refuses with the actual reason: the internal port belongs to the
-  image there, so only a new app version changes it.
-
 ## [0.26.0] - 2026-07-31
 
 Security release. Anyone shipping this launcher should update and tell
@@ -1274,7 +1298,8 @@ plan to move to image mode.
 - CLI ↔ GUI parity: both route through the same actions.
 - 160+ tests (no display required), mypy strict, ruff clean.
 
-[Unreleased]: https://github.com/astrapi69/docker-app-launcher/compare/v0.26.0...HEAD
+[Unreleased]: https://github.com/astrapi69/docker-app-launcher/compare/v0.27.0...HEAD
+[0.27.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.26.0...v0.27.0
 [0.26.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.25.2...v0.26.0
 [0.25.2]: https://github.com/astrapi69/docker-app-launcher/compare/v0.25.1...v0.25.2
 [0.25.1]: https://github.com/astrapi69/docker-app-launcher/compare/v0.25.0...v0.25.1

@@ -162,11 +162,31 @@ xvfb-run -a make preview-tour
 There is nothing to see that way — but it is how CI runs the same windows,
 and it proves the states still open.
 
-## Where this goes next
+## Pictures from the CI run — no local setup at all
 
-Screenshots taken during the CI run and attached to it, so the visible
-state can be judged without any local setup at all:
-[#116](https://github.com/astrapi69/docker-app-launcher/issues/116).
+Every CI run photographs the window and attaches the images. Open the run
+on GitHub, scroll to **Artifacts**, download **`gui-screenshots`**. Inside:
+
+* `preview_<frontend>_<n>_<state>.png` — the six preview states, for `tk`,
+  `ctk` and `qt`. The window title in the picture carries the same
+  `[n/N] <state>` marker, so a screenshot pulled out of the folder still
+  names what it shows.
+* the older per-state and per-language shots (`not_installed_de.png`,
+  `qt_running_en.png`, …)
+* `MANIFEST.md` — which states are `[real]` and which are `[fed]`, so a
+  folder of PNGs can answer the one question that decides whether a picture
+  is evidence.
+
+Kept for 30 days. The images are taken in a dark palette applied by the
+test helper — that is **not** the product's appearance; the launcher itself
+has no theme setting yet ([#118](https://github.com/astrapi69/docker-app-launcher/issues/118)).
+
+To produce the same set locally:
+
+```bash
+make screenshots        # -> test-screenshots/
+```
+
 Deliberately **not** an automatic image comparison — three toolkits with
 different font rendering produce more false alarms than insight. The
 pictures are for people.

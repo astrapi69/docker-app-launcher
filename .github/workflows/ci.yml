@@ -68,6 +68,11 @@ jobs:
         with:
           name: gui-screenshots
           path: test-screenshots/
+          # Explicit, not the 90-day default (#116): pictures in EVERY run cost
+          # storage, and their value is short-lived - you look at them while the
+          # change is fresh. Measured before setting this: 29 images = 549 KB,
+          # the preview states add 18 more.
+          retention-days: 30
           if-no-files-found: ignore
 
       - name: Upload coverage to Codecov

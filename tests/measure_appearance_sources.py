@@ -99,24 +99,40 @@ def macos_interface_style() -> tuple[str, str]:
     return (DARK if "dark" in out.lower() else LIGHT), out
 
 
-def windows_apps_use_light_theme() -> tuple[str, str]:
-    rc, out = _run(
-        [
-            "reg",
-            "query",
-            r"HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
-            "/v",
-            "AppsUseLightTheme",
-        ]
-    )
+def _windows_personalize(value: str) -> tuple[str, str]:
+    """One value under Personalize. 0 = dark, 1 = light, absent = never set.
+
+    Absent must stay UNKNOWN: Windows writes these values only once the user
+    has touched the setting, so "no value" means "never chosen", not "light".
+    """
+    rc, out = _run(["reg", "query", r"HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize", "/v", value])
+    if rc == TOOL_MISSING:
+        return UNKNOWN, out
     if rc != 0:
-        return UNKNOWN, f"value not readable: {out}"
+        return UNKNOWN, f"value absent - never set by the user, NOT light: {out}"
     tail = out.split()[-1] if out.split() else ""
+    flat = out.replace("\n", " | ")
     if tail in ("0x0", "0"):
-        return DARK, out.replace("\n", " | ")
+        return DARK, flat
     if tail in ("0x1", "1"):
-        return LIGHT, out.replace("\n", " | ")
-    return UNKNOWN, out.replace("\n", " | ")
+        return LIGHT, flat
+    return UNKNOWN, flat
+
+
+def windows_apps_use_light_theme() -> tuple[str, str]:
+    """What APPLICATIONS should use - this is the one a launcher window follows."""
+    return _windows_personalize("AppsUseLightTheme")
+
+
+def windows_system_uses_light_theme() -> tuple[str, str]:
+    """What the SHELL (taskbar, start menu) uses - separate, and NOT ours.
+
+    Measured as its own line because the two can differ: Windows lets the user
+    pick a dark shell with light apps and vice versa. Reading the wrong one
+    would produce a confident answer to a question nobody asked - the defect
+    class this whole measurement is about.
+    """
+    return _windows_personalize("SystemUsesLightTheme")
 
 
 def darkdetect_theme() -> tuple[str, str]:
@@ -148,22 +164,29 @@ def qt_colour_scheme() -> tuple[str, str]:
         return UNKNOWN, f"{type(exc).__name__}: {exc}"
 
 
+# Per source: does it survive FREEZING? A detection that only works from a
+# source checkout does not help the main path, which ships as a PyInstaller
+# bundle without the ctk/qt extras.
 _SOURCES = {
-    "xdg_portal (linux)": xdg_portal,
-    "gsettings color-scheme (linux)": gsettings_color_scheme,
-    "macos AppleInterfaceStyle": macos_interface_style,
-    "windows AppsUseLightTheme": windows_apps_use_light_theme,
-    "darkdetect (via ctk)": darkdetect_theme,
-    "qt styleHints": qt_colour_scheme,
+    "xdg_portal (linux)": (xdg_portal, "frozen-safe: stdlib + gdbus from the OS"),
+    "gsettings color-scheme (linux)": (gsettings_color_scheme, "frozen-safe: stdlib + gsettings from the OS"),
+    "macos AppleInterfaceStyle": (macos_interface_style, "frozen-safe: stdlib + defaults from the OS"),
+    "windows AppsUseLightTheme": (windows_apps_use_light_theme, "frozen-safe: stdlib + reg from the OS"),
+    "windows SystemUsesLightTheme": (windows_system_uses_light_theme, "frozen-safe: stdlib + reg from the OS"),
+    "darkdetect (via ctk)": (darkdetect_theme, "NOT frozen-safe: python package, ships only with the ctk extra"),
+    "qt styleHints": (qt_colour_scheme, "NOT frozen-safe: python package, ships only with the qt extra"),
 }
 
 
 def main() -> int:
     print(f"platform: {platform.system()} {platform.release()} | python {sys.version.split()[0]}")
-    for name, probe in _SOURCES.items():
+    for name, (probe, frozen) in _SOURCES.items():
         verdict, detail = probe()
         print(f"  {name:<32} {verdict:<8} {detail}")
+        print(f"  {'':<32} {'':<8} [{frozen}]")
     print("\nRequired reading: 'unknown' must never be reported as 'light' (#118).")
+    print("Three-valued on purpose: light / dark / unknown. Two values force the")
+    print("unknown case onto one of the others - which is how darkdetect fails.")
     return 0
 
 

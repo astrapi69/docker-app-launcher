@@ -115,6 +115,7 @@ install: Pasang
 install_needs_network: Pemasangan membutuhkan koneksi internet sekarang untuk mengunduh image dasar. Aplikasinya sendiri berjalan luring setelah terpasang.
 installing: '{app} sedang disiapkan...'
 internal_port_changed: Port internal {name} diubah menjadi {port}.
+internal_port_compose_only: 'Port internal hanya dapat diubah dalam mode penerapan compose; aplikasi ini berjalan dalam mode {mode}. Di sana port internal adalah bagian dari image itu sendiri, jadi hanya versi aplikasi baru yang dapat mengubahnya.'
 internal_port_confirm: Mengubah port internal memerlukan pembangunan ulang image Docker (2-5 menit). Lanjutkan?
 internal_port_field: 'Port {name} (internal):'
 internal_port_rebuilding: Port internal diubah. Membangun ulang image (ini bisa memakan beberapa menit)...

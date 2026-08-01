@@ -125,6 +125,30 @@ def up(
         _close(client)
 
 
+def recreate(config: LauncherConfig) -> tuple[int, str]:
+    """Recreate the container from the ALREADY acquired image: ``(rc, detail)``.
+
+    The no-acquire half of :func:`up`, for changes that only affect how the
+    container is CREATED (the published host port, #112). Re-pulling a
+    multi-hundred-MB image to move a host port would be exactly the wait the
+    compose path avoids by recreating without a rebuild. Publishing goes
+    through :func:`_run_pulled_container`, so the bind address cannot drift
+    away from install/start (#111).
+    """
+    try:
+        client = py_client.get_client()
+    except Exception as exc:  # noqa: BLE001 - classified, never a raw traceback
+        return 1, _classified_detail(exc, config)
+    if not config.use_registry_credentials:
+        _disable_registry_auth(client)
+    try:
+        return _run_pulled_container(client, config)
+    except Exception as exc:  # noqa: BLE001 - classified, never a raw traceback
+        return 1, _classify_pull_error(exc, config)
+    finally:
+        _close(client)
+
+
 def _acquire_image(
     client: Any,
     config: LauncherConfig,

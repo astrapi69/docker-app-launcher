@@ -8,9 +8,14 @@ nature (proven twice: the #77 sentinel was correct for the build path and
 broke the pull path; the #78 dispatch fell from a successful image acquire
 into the compose build):
 
-    install -> install again (already installed) -> logs -> stop ->
-    start (restart a STOPPED stack) -> update (one-step, from running) ->
-    stop -> uninstall -> stop/uninstall when nothing runs
+    install -> install again (already installed) -> change the host port ->
+    logs -> stop -> start (restart a STOPPED stack) ->
+    update (one-step, from running) -> stop -> uninstall ->
+    stop/uninstall when nothing runs
+
+The published binding is measured after install AND after the port change
+(#111 x #112): the recreate that moves the port is a second place where the
+interface could silently widen.
 
 The checked set is enumerated in ``_OPERATIONS`` and asserted complete at
 the end of every mode run - no silently skipped operation. The one-step
@@ -70,6 +75,8 @@ _OPERATIONS = [
     "install",
     "install_when_installed",
     "bind_address",
+    "change_port",
+    "bind_address_after_port_change",
     "app_logs",
     "stop",
     "start_stopped_stack",
@@ -143,6 +150,35 @@ def _mode_config(mode: str, tmp_path: Path):
     ).resolve()
 
 
+def _published_binding(config: Any) -> str:
+    """What the RUNNING container really publishes, straight from the daemon."""
+    return subprocess.run(
+        ["docker", "inspect", "-f", "{{json .NetworkSettings.Ports}}", config.container_name],
+        capture_output=True,
+        text=True,
+        check=False,
+    ).stdout.strip()
+
+
+def _assert_binding(mode: str, config: Any, *, stage: str) -> None:
+    """#111 at the RUNNING container: the published port must bind to localhost
+    in the modes the launcher publishes itself. Measured before the fix as
+    0.0.0.0 AND :: - an app without authentication reachable from the whole
+    network. Compose publishes from the app's own file, so there the launcher
+    only reports what it finds.
+
+    ``stage`` names WHEN this was measured, because the same container can be
+    correct after install and wrong after a recreate (#112).
+    """
+    binding = _published_binding(config)
+    if mode in ("image", "dockerfile"):
+        assert '"HostIp":"127.0.0.1"' in binding, f"[{mode}] non-localhost interface after {stage}: {binding}"
+        assert '"HostIp":"0.0.0.0"' not in binding, f"[{mode}] ALL interfaces after {stage} (#111): {binding}"
+        assert '"HostIp":"::"' not in binding, f"[{mode}] ALL IPv6 interfaces after {stage} (#111): {binding}"
+    else:
+        print(f"[{mode}] compose published after {stage}: {binding} (the app's compose file decides)")
+
+
 def _drive_full_operation_set(mode: str, tmp_path: Path) -> None:
     from docker_app_launcher.docker import lifecycle
 
@@ -158,24 +194,27 @@ def _drive_full_operation_set(mode: str, tmp_path: Path) -> None:
     ok, msg = lifecycle.install(config)
     assert ok, f"[{mode}] install-when-installed must be graceful: {msg}"
     checked.append("install_when_installed")
-    # #111 at the RUNNING container: the published port must bind to localhost
-    # in the modes the launcher publishes itself. Measured before the fix as
-    # 0.0.0.0 AND :: - an app without authentication reachable from the whole
-    # network. Compose publishes from the app's own file, so there the launcher
-    # only reports what it finds.
-    binding = subprocess.run(
-        ["docker", "inspect", "-f", "{{json .NetworkSettings.Ports}}", config.container_name],
-        capture_output=True,
-        text=True,
-        check=False,
-    ).stdout.strip()
-    if mode in ("image", "dockerfile"):
-        assert '"HostIp":"127.0.0.1"' in binding, f"[{mode}] published on a non-localhost interface: {binding}"
-        assert '"HostIp":"0.0.0.0"' not in binding, f"[{mode}] published on ALL interfaces (#111): {binding}"
-        assert '"HostIp":"::"' not in binding, f"[{mode}] published on ALL IPv6 interfaces (#111): {binding}"
-    else:
-        print(f"[{mode}] compose published: {binding} (the app's compose file decides)")
+    _assert_binding(mode, config, stage="install")
     checked.append("bind_address")
+
+    # The host-port change per mode (#112). It failed in image and dockerfile
+    # mode against a real daemon - on a compose file the app never had - and the
+    # mocked suite could not see it, because change_port had no mode branch to
+    # mock. The published port is the proof: persisting alone is not a change.
+    new_port = config.default_port + 100
+    ok, msg = lifecycle.change_port(config, new_port)
+    assert ok, f"[{mode}] change_port failed: {msg}"
+    assert lifecycle.get_state(config) == "running", f"[{mode}] not running after the port change"
+    binding = _published_binding(config)
+    assert f'"HostPort":"{new_port}"' in binding, f"[{mode}] still published on the old port: {binding}"
+    checked.append("change_port")
+
+    # The release manager's condition on the #112 fix: the recreate that
+    # publishes the NEW port must carry the bind address too - otherwise a port
+    # change silently republishes on 0.0.0.0 while the config still says
+    # 127.0.0.1, and the #111 fix is undone by a detour nobody looks at.
+    _assert_binding(mode, config, stage="port change")
+    checked.append("bind_address_after_port_change")
 
     ok, text = lifecycle.app_logs(config)
     assert ok, f"[{mode}] app_logs failed: {text}"

@@ -115,6 +115,7 @@ install: インストール
 install_needs_network: インストールにはベースイメージをダウンロードするためのインターネット接続が今必要です。アプリ自体はインストール後オフラインで動作します。
 installing: '{app} をセットアップしています...'
 internal_port_changed: 内部ポート {name} を {port} に変更しました。
+internal_port_compose_only: '内部ポートを変更できるのは compose デプロイモードだけです。このアプリは {mode} モードで動作しています。そのモードでは内部ポートはイメージ自体に含まれるため、新しいアプリのバージョンでしか変更できません。'
 internal_port_confirm: 内部ポートの変更には Docker イメージの再ビルドが必要です（2〜5分）。続行しますか？
 internal_port_field: '{name} ポート（内部）:'
 internal_port_rebuilding: 内部ポートを変更しました。イメージを再ビルドしています（数分かかる場合があります）...

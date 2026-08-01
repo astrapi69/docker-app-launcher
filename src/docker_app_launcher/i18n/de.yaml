@@ -115,6 +115,7 @@ install: Installieren
 install_needs_network: Die Installation braucht jetzt eine Internetverbindung, um die Basis-Images herunterzuladen. Die App selbst läuft nach der Installation offline.
 installing: '{app} wird eingerichtet...'
 internal_port_changed: Interner Port {name} auf {port} geändert.
+internal_port_compose_only: 'Interne Ports lassen sich nur im Compose-Bereitstellungsmodus ändern; diese App läuft im Modus {mode}. Dort gehört der interne Port zum Abbild selbst, ihn ändert also nur eine neue App-Version.'
 internal_port_confirm: Eine interne Port-Änderung erfordert einen Rebuild der Docker-Images (2-5 Minuten). Fortfahren?
 internal_port_field: '{name}-Port (intern):'
 internal_port_rebuilding: Interner Port geändert. Images werden neu gebaut (kann einige Minuten dauern)...

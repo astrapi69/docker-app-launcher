@@ -115,6 +115,7 @@ install: Kur
 install_needs_network: Kurulum, temel imgeleri indirmek için şimdi internet bağlantısına ihtiyaç duyuyor. Uygulamanın kendisi kurulduktan sonra çevrimdışı çalışır.
 installing: '{app} kuruluyor...'
 internal_port_changed: '{name} dahili bağlantı noktası {port} olarak değiştirildi.'
+internal_port_compose_only: 'Dahili bağlantı noktaları yalnızca compose dağıtım modunda değiştirilebilir; bu uygulama {mode} modunda çalışıyor. Orada dahili bağlantı noktası imajın kendisine aittir, bu yüzden onu yalnızca yeni bir uygulama sürümü değiştirebilir.'
 internal_port_confirm: Dahili bir bağlantı noktasını değiştirmek Docker imajlarının yeniden derlenmesini gerektirir (2-5 dakika). Devam edilsin mi?
 internal_port_field: '{name} bağlantı noktası (dahili):'
 internal_port_rebuilding: Dahili bağlantı noktası değiştirildi. İmajlar yeniden derleniyor (bu birkaç dakika sürebilir)...

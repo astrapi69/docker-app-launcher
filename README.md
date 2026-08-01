@@ -165,6 +165,15 @@ Everything is configurable. Only `app_name` is required — the rest is derived
 > optional expert fields — omit them and the launcher behaves exactly as before
 > (single host port, no advanced panel).
 
+**Changing ports at runtime.** The host port can be changed in every
+deployment mode while the app runs: the launcher persists it and recreates
+the container on the new port — without a rebuild and without re-downloading
+the image, and always on the configured `bind_address` (#112). Internal ports
+are **compose-only**: they are carried by the env keys the compose file reads,
+so in `image` and `dockerfile` mode the launcher refuses the change and says
+why — there the internal port belongs to the image itself and only a new app
+version can change it.
+
 ### Deployment modes
 
 The launcher supports three deployment modes (`deployment_mode`, #51, #78).

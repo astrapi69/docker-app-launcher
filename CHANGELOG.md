@@ -6,6 +6,25 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The host-port change now works in every deployment mode (#112).** It
+  took the Compose path unconditionally, so in `image` and `dockerfile`
+  mode it failed with `open .../docker-compose.prod.yml: no such file or
+  directory` — a compose file the app never had. The port was persisted
+  while the running container kept the old one. Measured against a real
+  daemon, not derived. The two API-driven modes now recreate the container
+  through the engine API — no rebuild, no re-download — and publish through
+  the same `port_binding()` helper install and start use, so a port change
+  cannot silently reopen the interface the 0.26.0 fix closed. The port
+  change is part of the real per-mode lifecycle matrix now, with the
+  binding measured after it as well as after install.
+- **Internal-port changes say why they are compose-only (#112).** In
+  `image` and `dockerfile` mode they fell into the same Compose detour, or
+  answered "unknown internal port" — naming the wrong cause. The launcher
+  now refuses with the actual reason: the internal port belongs to the
+  image there, so only a new app version changes it.
+
 ## [0.26.0] - 2026-07-31
 
 Security release. Anyone shipping this launcher should update and tell

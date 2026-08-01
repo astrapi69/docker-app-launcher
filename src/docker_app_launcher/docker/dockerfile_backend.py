@@ -147,6 +147,28 @@ def up(
         _close(client)
 
 
+def recreate(config: LauncherConfig) -> tuple[int, str]:
+    """Recreate the container from the ALREADY built image: ``(rc, detail)``.
+
+    The no-rebuild half of :func:`up`, for changes that only affect how the
+    container is CREATED (the published host port, #112). The image is
+    untouched, so this takes seconds instead of the minutes a rebuild costs -
+    the same trade the compose path makes with ``up -d`` instead of
+    ``up --build -d``. Publishing goes through :func:`_run_container`, so the
+    bind address cannot drift away from install/start (#111).
+    """
+    try:
+        client = py_client.get_client()
+    except Exception as exc:  # noqa: BLE001 - classified, never a raw traceback
+        return 1, _classified_detail(exc, config)
+    try:
+        return _run_container(client, config)
+    except Exception as exc:  # noqa: BLE001 - classified, never a raw traceback
+        return 1, _classified_detail(exc, config)
+    finally:
+        _close(client)
+
+
 def _build(
     client: Any,
     config: LauncherConfig,

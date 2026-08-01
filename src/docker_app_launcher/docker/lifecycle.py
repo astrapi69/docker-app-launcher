@@ -146,6 +146,13 @@ def change_internal_port(
     When the stack is not running this only persists (a later build picks it up).
     Returns ``(ok, message)``.
     """
+    if config.effective_deployment_mode != "compose":
+        # Compose-only by nature, and it says so FIRST (#112): the internal port
+        # is carried by env keys the compose file reads. The other modes have no
+        # such file, so the old code fell into the same compose detour the host-
+        # port change did; an empty key map would answer 'unknown internal port',
+        # which names the wrong cause.
+        return False, _t(config, "internal_port_compose_only", mode=config.effective_deployment_mode)
     if name not in config.env_internal_port_keys:
         return False, _t(config, "internal_port_unknown", name=name)
     valid, reason = _validate_internal_port(port)
@@ -217,6 +224,13 @@ def change_port(
        minutes a rebuild would cost;
     3. health-check on the NEW port and report reachability.
 
+    Step 2 is per MODE (#112): compose recreates through its file, the two
+    API-driven modes recreate the single container through the engine API.
+    ``change_port`` used to take the compose path unconditionally, so image and
+    dockerfile mode failed on a compose file the app never had - measured
+    against a real daemon, the port was persisted while the running container
+    kept the old one.
+
     When the stack is not running this only persists the port (a later
     start/install picks it up). Returns ``(ok, message)``.
     """
@@ -229,9 +243,11 @@ def change_port(
 
     was_running = get_state(config) == "running"
     if was_running:
-        compose_error = _ensure_compose(config)
-        if compose_error is not None:
-            return compose_error
+        # BEFORE the stop, not after: a gate that fires later leaves the user
+        # with a stopped app and a persisted port they cannot serve.
+        recreate_error = _ensure_recreate_ready(config)
+        if recreate_error is not None:
+            return recreate_error
         stopped, stop_msg = stop(config)
         if not stopped:
             return False, stop_msg
@@ -243,14 +259,9 @@ def change_port(
         return True, msg
 
     _notify(on_step, _t(config, "port_restarting"))
-    try:
-        rc, tail = _stream_compose(config, "up", "-d", on_output=on_output, timeout=float(config.start_timeout))
-    except FileNotFoundError:
-        return False, _t(config, "docker_unavailable")
-    except subprocess.TimeoutExpired:
-        return False, _t(config, "start_timeout")
-    if rc != 0:
-        return False, _t(config, "start_failed", detail=tail)
+    recreated = _recreate_for_port(config, on_output=on_output)
+    if recreated is not None:
+        return recreated
     if get_state(config) != "running":
         return False, _t(config, "start_no_container")
 
@@ -391,6 +402,46 @@ def _ensure_dockerfile_ready(config: LauncherConfig) -> tuple[bool, str] | None:
     if blockers:
         return False, build_readiness.join_blockers(blockers)
     return None
+
+
+def _ensure_recreate_ready(config: LauncherConfig) -> tuple[bool, str] | None:
+    """The per-mode gate for a NO-BUILD recreate (the host-port change, #112).
+
+    What the recreate really needs, not a proxy for it: compose mode needs a
+    usable compose frontend, the two API-driven modes need docker-py - and
+    NEITHER needs the build toolchain, because no image is built or acquired
+    here. ``None`` when the recreate can run, else the actionable result.
+    """
+    mode = config.effective_deployment_mode
+    if mode == "compose":
+        return _ensure_compose(config)
+    if py_client.available():
+        return None
+    key = "image_mode_needs_dockerpy" if mode == "image" else "dockerfile_mode_needs_dockerpy"
+    return False, _t(config, key)
+
+
+def _recreate_for_port(config: LauncherConfig, *, on_output: OutputFn | None) -> tuple[bool, str] | None:
+    """Recreate the running stack on the persisted port: ``None`` on success.
+
+    Deliberately NO build and NO image acquisition in any mode - only the
+    published host port changed, so this must take seconds. Both API modes go
+    through their backend's ``recreate``, which publishes via
+    ``port_binding(config, host_port)``; a port change therefore cannot
+    republish on a wider interface than install/start did (#111).
+    """
+    mode = config.effective_deployment_mode
+    if mode in ("image", "dockerfile"):
+        backend = image_backend if mode == "image" else dockerfile_backend
+        rc, detail = backend.recreate(config)
+        return None if rc == 0 else (False, _t(config, "start_failed", detail=detail))
+    try:
+        rc, tail = _stream_compose(config, "up", "-d", on_output=on_output, timeout=float(config.start_timeout))
+    except FileNotFoundError:
+        return False, _t(config, "docker_unavailable")
+    except subprocess.TimeoutExpired:
+        return False, _t(config, "start_timeout")
+    return None if rc == 0 else (False, _t(config, "start_failed", detail=tail))
 
 
 def _stream_compose(

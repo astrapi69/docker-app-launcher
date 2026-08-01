@@ -332,7 +332,7 @@ if HAS_CTK:
             return frame
 
         def _show_problem_card(self, card: dict[str, str]) -> None:
-            self._problem_title.configure(text=f"✗ {card['title']}: {card['id']}")
+            self._problem_title.configure(text=f"{card['symbol']} {card['title']}: {card['id']}")
             self._problem_message.configure(text=card["message"])
             self._problem_meaning.configure(text=card["meaning"])
             self._problem_fix.configure(text=card["fix"])

@@ -214,5 +214,6 @@ update_stopping: Διακοπή του {app} για ενημέρωση...
 updating: Ενημέρωση image (μερικά λεπτά μετά από αλλαγές κώδικα, αλλιώς δευτερόλεπτα)...
 verify_clean: 'Επαλήθευση: δεν βρέθηκαν containers ✓'
 verify_remain: 'Επαλήθευση: {count} container(s) απομένουν ✗'
+warning_found: Βρέθηκε προειδοποίηση
 what_it_means: Τι σημαίνει αυτό;
 what_to_do: Τι μπορείτε να κάνετε

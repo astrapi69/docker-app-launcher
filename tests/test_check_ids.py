@@ -130,21 +130,77 @@ class TestSecondEmitterFileIsCovered:
         assert check_ids.is_known("config_identity")
 
 
-class TestTheKnownGapIsNamedNotHidden:
-    def test_error_capability_is_deliberately_absent_here(self) -> None:
-        """#127 lives on: which ids are error-capable is NOT answered here.
+class TestTheGapWasClosedDeliberately:
+    """The guard that used to hold this gap OPEN, rewritten rather than deleted.
 
-        Today that question is answered by set arithmetic over two
-        hand-maintained literals that never read an emitted status - and it
-        answers wrongly for bind_address_open. Deriving it belongs with that
-        fix; a move that must change nothing must not smuggle it in.
-        """
-        assert not hasattr(check_ids, "ERROR_CAPABLE_CHECK_IDS")
-        assert "error" not in check_ids.__doc__.split("Deliberately NOT here")[0].lower() or True
-        assert "Deliberately NOT here" in check_ids.__doc__
+    While the registry moved, this class asserted that error-capability was
+    NOT answered here - so the convenient path (filling it in silently on the
+    next touch) was blocked. #127 then decided it explicitly, and the decision
+    was a concept and not a line: a warning is a state the user must know
+    about, not a lesser error. The guard now records that the change happened
+    on purpose, which is the only honest successor to a guard that has served.
+    """
+
+    def test_explanation_need_is_derived_from_emitted_statuses(self) -> None:
+        derived = tuple(
+            check_id
+            for check_id in check_ids.KNOWN_CHECK_IDS
+            if check_ids.CHECK_STATUSES[check_id] & check_ids.EXPLAINABLE_STATUSES
+        )
+        assert derived == check_ids.NEEDS_EXPLANATION_IDS
+
+    def test_a_warning_needs_explaining_too(self) -> None:
+        # The case that motivated it: 22 texts that could never be shown.
+        assert "bind_address_open" in check_ids.NEEDS_EXPLANATION_IDS
+        assert check_ids.CHECK_STATUSES["bind_address_open"] == frozenset({"warn"})
+
+    def test_the_reason_stays_in_the_module(self) -> None:
+        assert "DERIVED here now (#127)" in check_ids.__doc__
 
 
 @pytest.mark.parametrize("check_id", check_ids.KNOWN_CHECK_IDS)
 def test_every_registered_id_is_actually_emitted(check_id: str) -> None:
     """Per id, so a failure names WHICH one drifted rather than a set diff."""
     assert check_id in _emitted_ids(), f"{check_id} is registered but no longer emitted anywhere in src/"
+
+
+class TestStatusesComeFromBehaviour:
+    """#127: the declared status set is pinned against the emitting source.
+
+    Declared in the package because a frozen bundle cannot parse its own
+    source - so the declaration is the API and this is the witness, the same
+    double-entry shape the registry itself uses.
+    """
+
+    @staticmethod
+    def _emitted_statuses() -> dict[str, set[str]]:
+        import re
+        from collections import defaultdict
+
+        found: dict[str, set[str]] = defaultdict(set)
+        for path in _SRC.rglob("*.py"):
+            text = path.read_text(encoding="utf-8")
+            for match in re.finditer(r'CheckResult\(\s*"([a-z_]+)",\s*([^,]+),', text):
+                found[match.group(1)].update(re.findall(r'"(ok|error|warn|info)"', match.group(2)))
+            for match in re.finditer(r'CheckResult\(\s*(_[A-Z_]+),\s*("[a-z]+")', text):
+                constant = re.search(rf'^{match.group(1)} = "([a-z_]+)"', text, re.M)
+                if constant:
+                    found[constant.group(1)].add(match.group(2).strip('"'))
+        return found
+
+    def test_every_declared_status_set_matches_the_source(self) -> None:
+        emitted = self._emitted_statuses()
+        for check_id, declared in check_ids.CHECK_STATUSES.items():
+            assert set(declared) == emitted[check_id], (
+                f"{check_id}: declared {sorted(declared)}, source emits {sorted(emitted[check_id])}"
+            )
+
+    def test_the_declaration_covers_every_registered_id(self) -> None:
+        assert set(check_ids.CHECK_STATUSES) == set(check_ids.KNOWN_CHECK_IDS)
+
+    def test_warn_is_a_status_of_its_own(self) -> None:
+        # The whole concept fix: a warning is a state the user must know
+        # about, not a lesser error. bind_address_open is the only emitter of
+        # it, so this pins the case that motivated the change.
+        assert check_ids.CHECK_STATUSES["bind_address_open"] == frozenset({"warn"})
+        assert "warn" in check_ids.EXPLAINABLE_STATUSES

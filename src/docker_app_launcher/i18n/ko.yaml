@@ -214,5 +214,6 @@ update_stopping: 업데이트를 위해 {app}을(를) 중지하는 중...
 updating: 이미지 업데이트 중 (코드 변경 후에는 몇 분, 그 외에는 몇 초)...
 verify_clean: '검증: 컨테이너를 찾을 수 없습니다 ✓'
 verify_remain: '검증: 컨테이너 {count}개가 남아 있습니다 ✗'
+warning_found: 경고가 있습니다
 what_it_means: 무슨 뜻인가요?
 what_to_do: 할 수 있는 일

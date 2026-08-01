@@ -214,5 +214,6 @@ update_stopping: 更新のため {app} を停止しています...
 updating: イメージを更新中（コード変更後は数分、それ以外は数秒）...
 verify_clean: '検証: コンテナは見つかりませんでした ✓'
 verify_remain: '検証: {count} 個のコンテナが残っています ✗'
+warning_found: 警告があります
 what_it_means: これはどういう意味？
 what_to_do: できること

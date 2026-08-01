@@ -134,23 +134,28 @@ class TestPerCheckIdExplanationParity:
                         missing.append(f"{code}:{key}")
         assert not missing, f"explanation texts missing or empty: {missing}"
 
-    def test_error_check_ids_cover_the_doctor_error_checks(self) -> None:
-        # The checked set: every id the doctor can emit as "error" must be in
-        # ERROR_CHECK_IDS - otherwise its card would render empty.
-        from docker_app_launcher.ui_model import ERROR_CHECK_IDS
-        from tests.test_diagnostics_report import KNOWN_CHECK_IDS
+    def test_the_explanation_set_is_DERIVED_from_emitted_statuses(self) -> None:
+        """#127: computed from behaviour, not from two hand-maintained lists.
 
-        info_only = {
-            "config_identity",
-            "toolchain_versions",
-            "launcher_port",
-            "state",
-            "published_ports",
-            "readiness",
-            "last_operation_aborted",
-        }
-        error_capable = KNOWN_CHECK_IDS - info_only
-        assert error_capable == set(ERROR_CHECK_IDS), (
-            f"ERROR_CHECK_IDS out of sync with the doctor's error-capable ids: "
-            f"missing {error_capable - set(ERROR_CHECK_IDS)}, stale {set(ERROR_CHECK_IDS) - error_capable}"
+        The old version did set arithmetic over KNOWN_CHECK_IDS minus a literal
+        ``info_only`` set, and never read a status the doctor actually emits.
+        It therefore reported bind_address_open as error-capable - it is the
+        only ``warn`` emitter in the project - and the missing explanation card
+        looked like a decision rather than a defect.
+
+        A gate that computes from literals is a fourth copy of the id set, not
+        an assurance over it.
+        """
+        from docker_app_launcher import check_ids
+        from docker_app_launcher.ui_model import ERROR_CHECK_IDS
+
+        derived = tuple(
+            check_id
+            for check_id in check_ids.KNOWN_CHECK_IDS
+            if check_ids.CHECK_STATUSES[check_id] & check_ids.EXPLAINABLE_STATUSES
         )
+        assert tuple(ERROR_CHECK_IDS) == derived
+        # The one the old arithmetic got wrong, named so a regression is
+        # recognisable rather than merely red.
+        assert check_ids.CHECK_STATUSES["bind_address_open"] == frozenset({"warn"})
+        assert "bind_address_open" in derived, "a warning needs explaining as much as an error does"

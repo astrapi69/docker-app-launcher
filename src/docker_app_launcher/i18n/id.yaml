@@ -214,5 +214,6 @@ update_stopping: Menghentikan {app} untuk pembaruan...
 updating: Memperbarui image (beberapa menit setelah perubahan kode, beberapa detik jika tidak)...
 verify_clean: 'Verifikasi: tidak ada kontainer ditemukan ✓'
 verify_remain: 'Verifikasi: {count} kontainer tersisa ✗'
+warning_found: Peringatan ditemukan
 what_it_means: Apa artinya ini?
 what_to_do: Yang bisa Anda lakukan

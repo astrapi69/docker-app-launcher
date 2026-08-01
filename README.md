@@ -67,7 +67,18 @@ docker-app-launcher --open                    # open the app in the browser
 docker-app-launcher --debug ...               # verbose logging to stdout + launcher-debug.log
 docker-app-launcher --log-level DEBUG ...     # set the log level (DEBUG, INFO, WARNING, ERROR)
 docker-app-launcher --preview fresh           # open the window in a UI state, just to LOOK at it
+docker-app-launcher --gui-backend qt          # pick the window toolkit for this start
 ```
+
+**Choosing the toolkit** (`--gui-backend NAME`, 0.28): overrides the
+config's `gui_backend` for one start — no config file needed to see another
+frontend. An unknown name is refused with the known ones listed, and a
+frontend whose extra is not installed is refused with the `pip install`
+line that fixes it; both exit `2`. The name is validated even on a
+CLI-only run, so a typo cannot sit unnoticed until the next time someone
+opens the window. There is deliberately no fixed choice list on the flag:
+frontends can also arrive as entry points, and a hardcoded list would
+refuse a valid one.
 
 **Preview** (`--preview <state>`, 0.28): opens the window in a named UI
 state so its LOOK can be judged — the one thing every other check here

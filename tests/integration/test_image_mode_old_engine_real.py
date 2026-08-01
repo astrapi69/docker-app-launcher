@@ -43,12 +43,24 @@ pytestmark = [
 _REF = "traefik/whoami:v1.10"
 # The SAME app from GHCR (#87): users of GHCR-publishing consumers hit its
 # anonymous token flow, which differs from Docker Hub's - measured, not assumed.
-_GHCR_REF = "ghcr.io/traefik/whoami:v1.10"
+#
+# The DEFAULT is deliberately a generic public image: this cell must never
+# depend on a consumer release being published (#89). The three knobs point it
+# at a REAL consumer reference for a one-time measurement - the result belongs
+# in the issue, not in the default:
+#
+#   DAL_OLD_ENGINE_GHCR_REF="ghcr.io/owner/app:1.2.3" \
+#   DAL_OLD_ENGINE_GHCR_CONTAINER_PORT=18001 \
+#   DAL_OLD_ENGINE_GHCR_PATH=/api/health \
+#     tests/integration/run_image_mode_old_engine_integration.sh
+_GHCR_REF = os.environ.get("DAL_OLD_ENGINE_GHCR_REF", "ghcr.io/traefik/whoami:v1.10")
+_GHCR_CONTAINER_PORT = int(os.environ.get("DAL_OLD_ENGINE_GHCR_CONTAINER_PORT", "80"))
+_GHCR_PATH = os.environ.get("DAL_OLD_ENGINE_GHCR_PATH", "/")
 _PORT = 18124
 _HTTP_HOST = os.environ.get("DAL_OLD_ENGINE_HTTP_HOST", "127.0.0.1")
 
 
-def _config(tmp_path: Path, archive: str = "", reference: str = _REF) -> LauncherConfig:
+def _config(tmp_path: Path, archive: str = "", reference: str = _REF, container_port: int = 80) -> LauncherConfig:
     from docker_app_launcher.config import LauncherConfig
 
     return LauncherConfig(
@@ -59,7 +71,7 @@ def _config(tmp_path: Path, archive: str = "", reference: str = _REF) -> Launche
         image_archive=archive,
         install_dir=str(tmp_path),
         default_port=_PORT,
-        container_port=80,
+        container_port=container_port,
         # DELIBERATELY open (#111): this cell reaches the published port from
         # OUTSIDE the dind engine's network namespace (DAL_OLD_ENGINE_HTTP_HOST
         # is the dind container's IP), which the localhost default correctly
@@ -71,15 +83,20 @@ def _config(tmp_path: Path, archive: str = "", reference: str = _REF) -> Launche
     ).resolve()
 
 
-def _http_ok() -> bool:
+def _http_ok(path: str = "/") -> bool:
     for _ in range(30):
         try:
-            with urllib.request.urlopen(f"http://{_HTTP_HOST}:{_PORT}/", timeout=2) as r:
+            with urllib.request.urlopen(f"http://{_HTTP_HOST}:{_PORT}{path}", timeout=2) as r:
                 if r.status == 200:
                     return True
         except Exception:  # noqa: BLE001 - retry until the container answers
             time.sleep(0.5)
     return False
+
+
+def _http_body(path: str = "/") -> str:
+    with urllib.request.urlopen(f"http://{_HTTP_HOST}:{_PORT}{path}", timeout=5) as r:
+        return str(r.read().decode("utf-8", "replace"))
 
 
 def _client() -> Any:
@@ -141,13 +158,29 @@ class TestGhcrRegistrySource:
                 client.images.remove(_GHCR_REF, force=True)
         finally:
             client.close()
-        config = _config(tmp_path, reference=_GHCR_REF)
+        config = _config(tmp_path, reference=_GHCR_REF, container_port=_GHCR_CONTAINER_PORT)
         assert config.use_registry_credentials is False, "the pull must be credential-free"
         lines: list[str] = []
         rc, detail = image_backend.up(config, on_output=lines.append)
         assert rc == 0, f"anonymous GHCR pull failed on the old engine: {detail}"
         assert any("Pull" in ln or "Download" in ln for ln in lines), "layer progress must stream"
-        assert _http_ok(), "published endpoint did not answer after the GHCR pull"
+        assert _http_ok(_GHCR_PATH), f"published endpoint did not answer after the GHCR pull ({_GHCR_REF})"
+        # Say WHAT was measured, not just that it passed: with the reference
+        # overridable (#89), a green run whose default silently applied would
+        # look exactly like a green run against the consumer's real image.
+        # The digest is the identity the pull actually resolved to.
+        client = _client()
+        try:
+            image = client.images.get(_GHCR_REF)
+            print(
+                f"MEASURED anonymous GHCR pull: reference={_GHCR_REF} "
+                f"repo_digests={image.attrs.get('RepoDigests')} "
+                f"size_on_disk={image.attrs.get('Size')} "
+                f"container_port={_GHCR_CONTAINER_PORT} path={_GHCR_PATH} "
+                f"response={_http_body(_GHCR_PATH)[:200]!r}"
+            )
+        finally:
+            client.close()
         client = _client()
         try:
             _cleanup(client)

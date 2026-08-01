@@ -16,12 +16,13 @@ EXACTLY the set the tests carried - proven by
 module against an independently written baseline literal and against what the
 doctor really emits.
 
-Deliberately NOT here: which ids are error-capable. That question is answered
-today by set arithmetic over two hand-maintained literals which never read a
-status the doctor actually emits - and it answers wrongly (#127: the security
-warning is the only ``warn`` emitter in the project, is listed as
-error-capable, and its explanation card can therefore never render). Deriving
-it belongs with that fix, not with a move that must change nothing.
+Which ids need explanation texts is DERIVED here now (#127), from the statuses
+each id actually emits - see :data:`CHECK_STATUSES` and
+:data:`NEEDS_EXPLANATION_IDS`. It was deliberately left out of the move
+itself: the old answer was set arithmetic over two hand-maintained literals
+that never read an emitted status, it got the reason wrong for the security
+warning, and correcting that is a behaviour change which had no business
+riding along with a move that must change nothing.
 """
 
 from __future__ import annotations
@@ -46,6 +47,47 @@ KNOWN_CHECK_IDS: tuple[str, ...] = (
     "bind_address_open",
     "port_drift",
     "health_reachable",
+)
+
+#: Which statuses each check id can actually carry, MEASURED from the emitting
+#: source and pinned there (tests/test_check_ids.py). Declared here because a
+#: frozen bundle cannot parse its own source - the test is the witness, this is
+#: the API.
+#:
+#: This exists because the old answer to "which ids need explanation texts" was
+#: set arithmetic over two hand-maintained literals that never read an emitted
+#: status (#127). It got the count right and the reason wrong: it called
+#: bind_address_open error-capable, when in fact it is the only ``warn`` emitter
+#: in the project - which is why its explanation card could never render.
+CHECK_STATUSES: dict[str, frozenset[str]] = {
+    "config_identity": frozenset({"info"}),
+    "install_dir": frozenset({"info", "ok", "error"}),
+    "compose_file_exists": frozenset({"ok", "error"}),
+    "image_source_declared": frozenset({"ok", "error"}),
+    "dockerfile_exists": frozenset({"ok", "error"}),
+    "docker_running": frozenset({"ok", "error"}),
+    "toolchain_versions": frozenset({"info"}),
+    "readiness_blocker": frozenset({"error"}),
+    "readiness": frozenset({"ok"}),
+    "launcher_port": frozenset({"info"}),
+    "state": frozenset({"info"}),
+    "last_operation_aborted": frozenset({"info"}),
+    "published_ports": frozenset({"info"}),
+    "bind_address_open": frozenset({"warn"}),
+    "port_drift": frozenset({"error"}),
+    "health_reachable": frozenset({"ok", "error"}),
+}
+
+#: Statuses that need a "what does this mean" / "what you can do" card. A
+#: warning is not a lesser error - it is a state the user must know about, and
+#: it needs explaining just as much.
+EXPLAINABLE_STATUSES: frozenset[str] = frozenset({"error", "warn"})
+
+#: DERIVED, not listed: every id that can carry an explainable status. The
+#: whole point - a new id gets its texts demanded because of what it emits,
+#: not because someone remembered to add it to a list.
+NEEDS_EXPLANATION_IDS: tuple[str, ...] = tuple(
+    check_id for check_id in KNOWN_CHECK_IDS if CHECK_STATUSES[check_id] & EXPLAINABLE_STATUSES
 )
 
 #: Error classes the ACTION path can end in (install/start/update/port change),

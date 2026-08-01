@@ -214,5 +214,6 @@ update_stopping: Güncelleme için {app} durduruluyor...
 updating: İmaj güncelleniyor (kod değişikliklerinden sonra birkaç dakika, aksi halde saniyeler)...
 verify_clean: 'Doğrulama: konteyner bulunamadı ✓'
 verify_remain: 'Doğrulama: {count} konteyner kaldı ✗'
+warning_found: Uyarı bulundu
 what_it_means: Bu ne anlama geliyor?
 what_to_do: Ne yapabilirsiniz

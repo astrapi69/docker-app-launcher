@@ -214,5 +214,6 @@ update_stopping: '{app} wird zum Aktualisieren gestoppt...'
 updating: Image wird aktualisiert (nach Code-Änderungen einige Minuten, sonst Sekunden)...
 verify_clean: 'Verifizierung: keine Container gefunden ✓'
 verify_remain: 'Verifizierung: {count} Container verbleiben ✗'
+warning_found: Warnung gefunden
 what_it_means: Was bedeutet das?
 what_to_do: Was du tun kannst

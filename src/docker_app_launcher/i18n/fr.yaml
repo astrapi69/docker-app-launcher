@@ -214,5 +214,6 @@ update_stopping: Arrêt de {app} pour la mise à jour...
 updating: Mise à jour de l'image (quelques minutes après des changements de code, sinon quelques secondes)...
 verify_clean: 'Vérification : aucun conteneur trouvé ✓'
 verify_remain: 'Vérification : {count} conteneur(s) restant(s) ✗'
+warning_found: Avertissement détecté
 what_it_means: Qu'est-ce que cela signifie ?
 what_to_do: Ce que vous pouvez faire

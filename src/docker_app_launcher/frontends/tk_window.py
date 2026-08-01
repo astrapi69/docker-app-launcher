@@ -404,7 +404,7 @@ class LauncherApp(tk.Tk):
         return frame
 
     def _show_problem_card(self, card: dict[str, str]) -> None:
-        self._problem_title.configure(text=f"✗ {card['title']}: {card['id']}")
+        self._problem_title.configure(text=f"{card['symbol']} {card['title']}: {card['id']}")
         self._problem_message.configure(text=card["message"])
         for widget, text in (
             (self._problem_meaning_label, card["meaning_label"]),

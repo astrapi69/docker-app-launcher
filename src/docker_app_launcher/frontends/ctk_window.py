@@ -19,7 +19,7 @@ import threading
 import tkinter as tk
 from typing import Any
 
-from docker_app_launcher import actions, i18n, lockfile, tray, ui_model, update_check
+from docker_app_launcher import actions, i18n, lockfile, preview_states, tray, ui_model, update_check
 from docker_app_launcher.config import LOCALE_LABELS, LauncherConfig, locale_for_label
 from docker_app_launcher.frontends.tk_window import ASSISTANT_WIDGET_BUILDERS, _set_window_icon
 from docker_app_launcher.frontends.tooltip import Tooltip as _Tooltip
@@ -63,7 +63,7 @@ if HAS_CTK:
     class CtkLauncherApp(ctk.CTk):  # type: ignore[misc]
         """The persistent window, rendered with CustomTkinter widgets."""
 
-        def __init__(self, config: LauncherConfig, *, debug: bool = False) -> None:
+        def __init__(self, config: LauncherConfig, *, debug: bool = False, preview_state: str | None = None) -> None:
             super().__init__()
             config.resolve()
             self._cfg = config
@@ -166,6 +166,11 @@ if HAS_CTK:
                 self._assistant[element] = getattr(self, builder)()
 
             self._log(f"{about_lines(config)[0]} · {config.gui_backend} · {_platform.system()}")
+            if preview_state is not None:
+                # Looking tool (#115): no daemon call, no cleanup offer, no update
+                # check, no focus marker - a preview must change nothing.
+                preview_states.apply_preview_state(self, preview_state, config)
+                return
             self._refresh()
             if config.cleanup_on_start:
                 self._offer_cleanup_if_stale()
@@ -514,8 +519,14 @@ if HAS_CTK:
 
         # --- rendering ---
 
-        def _refresh(self) -> None:
-            state = actions.get_state(self._cfg)
+        def _refresh(self, state: str | None = None) -> None:
+            """Render the window for ``state``; ask Docker for it when not given.
+
+            ``state`` is passed as a VALUE only by the preview switch (#115), which
+            must not touch the daemon. Every caller in normal operation omits it.
+            """
+            if state is None:
+                state = actions.get_state(self._cfg)
             if state == "no_docker":
                 self._render_docker_help()
             else:
@@ -995,11 +1006,11 @@ if HAS_CTK:
             return True
 
 
-def run(config: LauncherConfig, *, debug: bool = False) -> int:
+def run(config: LauncherConfig, *, debug: bool = False, preview_state: str | None = None) -> int:
     """Launch the CustomTkinter window. Returns 0 on normal close."""
     if not HAS_CTK:
         raise RuntimeError("the CustomTkinter frontend requires the 'ctk' extra: pip install docker-app-launcher[ctk]")
     ctk.set_appearance_mode("system")
-    app = CtkLauncherApp(config, debug=debug)
+    app = CtkLauncherApp(config, debug=debug, preview_state=preview_state)
     app.mainloop()
     return 0

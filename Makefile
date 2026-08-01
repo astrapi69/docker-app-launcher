@@ -144,6 +144,32 @@ launcher-cleanup: ## Remove stale leftovers for $(TEST_CONFIG)
 launcher-version: ## Print the launcher version
 	poetry run docker-app-launcher --version
 
+# The look, end to end (#115). Every preview state for PREVIEW_SECONDS, each
+# window titled "[n/N] <state>" so what you are looking at is never in doubt.
+# Touches no Docker and writes nothing - that is enforced by the preview
+# itself (tests/test_preview_states.py), not by this target.
+#   make preview-tour PREVIEW_SECONDS=10
+#   make preview-tour PREVIEW_CONFIG=test-configs/adaptive-learner.json
+PREVIEW_SECONDS ?= 5
+PREVIEW_CONFIG ?=
+
+.PHONY: preview-tour
+preview-tour: ## Show every launcher UI state for $(PREVIEW_SECONDS)s, numbered in the title
+	@# The state list comes from the ONE source, never a copy in this file:
+	@# a copy would go stale the first time a state is added.
+	@states=$$(poetry run python -c "from docker_app_launcher import preview_states as p; print(' '.join(p.PREVIEW_STATES))") || exit 1; \
+	total=$$(printf '%s\n' $$states | wc -l | tr -d ' '); i=0; \
+	cfg=$${PREVIEW_CONFIG:+--config $$PREVIEW_CONFIG}; \
+	echo "$$total states, $(PREVIEW_SECONDS)s each - close a window early to skip to the next"; \
+	for s in $$states; do \
+		i=$$((i+1)); \
+		printf '\n=== [%s/%s] %s ===\n' "$$i" "$$total" "$$s"; \
+		timeout --foreground $(PREVIEW_SECONDS) poetry run docker-app-launcher $$cfg --preview $$s; \
+		rc=$$?; \
+		[ $$rc -eq 0 ] || [ $$rc -eq 124 ] || { echo "preview $$s failed (rc=$$rc)"; exit $$rc; }; \
+	done; \
+	printf '\ntour done: %s states shown\n' "$$total"
+
 .PHONY: launcher-test-al
 launcher-test-al: ## Manual GUI test with the Adaptive Learner config
 	$(MAKE) launcher-test TEST_CONFIG=test-configs/adaptive-learner.json

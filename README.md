@@ -66,7 +66,31 @@ docker-app-launcher --cleanup                 # remove stale leftovers
 docker-app-launcher --open                    # open the app in the browser
 docker-app-launcher --debug ...               # verbose logging to stdout + launcher-debug.log
 docker-app-launcher --log-level DEBUG ...     # set the log level (DEBUG, INFO, WARNING, ERROR)
+docker-app-launcher --preview fresh           # open the window in a UI state, just to LOOK at it
 ```
+
+**Preview** (`--preview <state>`, 0.28): opens the window in a named UI
+state so its LOOK can be judged — the one thing every other check here
+misses, and the reason the text-wrapping bug and the unresizable window
+were found on a device rather than in CI. It touches no Docker and writes
+nothing: no launcher.json, no `.env`, no pending marker. The states are
+`fresh`, `busy_cancellable`, `failure_problem_card`, `guard_unavailable`,
+`long_log` and `small_window`; `--help` lists them with a `[real]` or
+`[fed]` marker, and the same marker is printed when the preview opens.
+`[fed]` means the rendering chain is the shipped one but its input is
+supplied — because producing that state for real would need Docker or a
+write. Works with every `gui_backend` (tk, ctk, qt).
+
+To see them all in one go, each window titled `[n/N] <state>` so a
+screenshot always names what it shows:
+
+```bash
+make preview-tour                        # 5 seconds per state
+make preview-tour PREVIEW_SECONDS=10     # slower
+make preview-tour PREVIEW_CONFIG=test-configs/adaptive-learner.json
+```
+
+Closing a window early skips to the next one.
 
 **Machine-readable output**: `--json` turns `--doctor`, `--status`,
 `--health` and `--support-bundle` into JSON with **stable `id` fields**

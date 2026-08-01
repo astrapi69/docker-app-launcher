@@ -54,11 +54,19 @@ close it is the window's X button.
 ## Step 3: Run "Check system"
 
 Before installing anything, press the **Check system** button. The launcher runs
-a short self-test and shows a checklist. Every line is either a green tick
-(fine) or a red cross (a problem).
+a short self-test and shows a checklist. Each line carries one of three
+marks:
 
-If a line has a problem, a small **problem card** appears above the log with two
-short sections written for non-experts:
+- **✓** fine
+- **✗** a problem — something is broken and needs fixing before it works
+- **!** a warning — it works, but there is something you should know about
+  (for example: the app is reachable from your whole network)
+
+A warning is not a smaller error. Your app can run perfectly and still be
+worth a warning.
+
+If a line has a problem or a warning, a small **card** appears above the log
+with two short sections written for non-experts:
 
 - **What does this mean?** explains the problem in plain language.
 - **What you can do** tells you the next step.
@@ -242,6 +250,17 @@ close while something is installing or updating, you are asked first:
 that step ends, nothing is deleted, and downloaded parts stay for the
 next attempt.
 
+
+## Light or dark
+
+The launcher follows your system: on a desktop set to dark, the window is
+dark. If it used to be light on a dark desktop, that was a bug — it is
+fixed, not changed on purpose.
+
+To decide for yourself, set `appearance` in the launcher config to
+`"light"` or `"dark"`; `"system"` is the default and follows your desktop.
+Where your system expresses no preference, the launcher stays light and
+notes that in its log.
 
 ## "Reachable from every network" — what that means
 

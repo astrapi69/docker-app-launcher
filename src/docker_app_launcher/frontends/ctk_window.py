@@ -19,11 +19,11 @@ import threading
 import tkinter as tk
 from typing import Any
 
-from docker_app_launcher import actions, i18n, lockfile, preview_states, tray, ui_model, update_check
+from docker_app_launcher import actions, appearance, i18n, lockfile, preview_states, tray, ui_model, update_check
 from docker_app_launcher.config import LOCALE_LABELS, LauncherConfig, locale_for_label
 from docker_app_launcher.frontends.tk_window import ASSISTANT_WIDGET_BUILDERS, _set_window_icon
 from docker_app_launcher.frontends.tooltip import Tooltip as _Tooltip
-from docker_app_launcher.palette import LIGHT_PALETTE
+from docker_app_launcher.palette import palette_for
 from docker_app_launcher.ui_model import (
     _STATE_KEYS,
     BUTTON_LABELS,
@@ -56,8 +56,6 @@ except ImportError:  # pragma: no cover - exercised only without the extra
     ctk = None
     HAS_CTK = False
 
-_OK_COLOR = LIGHT_PALETTE.success
-_ERR_COLOR = LIGHT_PALETTE.error
 
 if HAS_CTK:
 
@@ -68,6 +66,9 @@ if HAS_CTK:
             super().__init__()
             config.resolve()
             self._cfg = config
+            # Appearance (#118), before the widgets: same decision as tk/qt.
+            self._appearance, _why = appearance.effective_appearance(config.appearance)
+            self._palette = palette_for(self._appearance)
             self._cfg.locale = actions.resolve_locale(self._cfg)
             self._debug = debug
             self._tray: tray.TrayController | None = None
@@ -254,10 +255,10 @@ if HAS_CTK:
         def _make_button(self, parent: Any, name: str, command: Any) -> Any:
             btn = ctk.CTkButton(parent, text=self._t(BUTTON_LABELS[name]), width=170, command=command)
             # Explicit focus ring (#31): CTk paints none by default.
-            btn.bind("<FocusIn>", lambda _e, b=btn: b.configure(border_width=2, border_color=LIGHT_PALETTE.link))
+            btn.bind("<FocusIn>", lambda _e, b=btn: b.configure(border_width=2, border_color=self._palette.link))
             btn.bind("<FocusOut>", lambda _e, b=btn: b.configure(border_width=0))
             self._buttons[name] = btn
-            self._tooltips[name] = _Tooltip(btn)
+            self._tooltips[name] = _Tooltip(btn, self._palette)
             return btn
 
         # --- installation assistant (#81) ---
@@ -267,7 +268,7 @@ if HAS_CTK:
 
         def _apply_status_headline(self, state: str, *, health_ok: bool | None = None) -> None:
             severity, text = ui_model.status_headline(self._cfg, state, health_ok=health_ok)
-            colors = {"ok": LIGHT_PALETTE.success, "error": LIGHT_PALETTE.error, "info": None}
+            colors = {"ok": self._palette.success, "error": self._palette.error, "info": None}
             color = colors[severity]
             self._state_label.configure(text_color=color if color else ("gray10", "gray90"))
             self._headline_symbol = text.split(" ", 1)[0]
@@ -566,10 +567,12 @@ if HAS_CTK:
         def _validate_port(self) -> None:
             raw = self._port_var.get().strip()
             if not raw.isdigit():
-                self._port_indicator.configure(text="✗", text_color=_ERR_COLOR)
+                self._port_indicator.configure(text="✗", text_color=self._palette.error)
                 return
             free, _ = actions.check_port(int(raw))
-            self._port_indicator.configure(text="✓" if free else "✗", text_color=_OK_COLOR if free else _ERR_COLOR)
+            self._port_indicator.configure(
+                text="✓" if free else "✗", text_color=self._palette.success if free else self._palette.error
+            )
 
         def _render_docker_help(self) -> None:
             for child in self._docker_help_frame.winfo_children():
@@ -1011,7 +1014,13 @@ def run(config: LauncherConfig, *, debug: bool = False, preview_state: str | Non
     """Launch the CustomTkinter window. Returns 0 on normal close."""
     if not HAS_CTK:
         raise RuntimeError("the CustomTkinter frontend requires the 'ctk' extra: pip install docker-app-launcher[ctk]")
-    ctk.set_appearance_mode("system")
+    # NOT "system" (#118): CustomTkinter resolves that through darkdetect,
+    # which answers "does the GTK theme name contain -dark" - measured wrong on
+    # a KDE desktop, reporting light while the XDG portal and Qt both said
+    # dark. Our own detection asks the portal, so the mode is passed EXPLICITLY.
+    mode, why = appearance.effective_appearance(config.appearance)
+    logger.info("ctk appearance: %s (%s)", mode, why)
+    ctk.set_appearance_mode(mode)
     app = CtkLauncherApp(config, debug=debug, preview_state=preview_state)
     app.mainloop()
     return 0

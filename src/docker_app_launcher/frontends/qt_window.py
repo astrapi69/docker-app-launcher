@@ -22,10 +22,20 @@ import sys
 import threading
 from typing import Any
 
-from docker_app_launcher import actions, i18n, lockfile, preview_states, tray, ui_model, update_check
+from docker_app_launcher import (
+    actions,
+    appearance,
+    i18n,
+    lockfile,
+    preview_states,
+    theming,
+    tray,
+    ui_model,
+    update_check,
+)
 from docker_app_launcher.config import LOCALE_LABELS, LauncherConfig, locale_for_label
 from docker_app_launcher.frontends.tk_window import ASSISTANT_WIDGET_BUILDERS
-from docker_app_launcher.palette import LIGHT_PALETTE
+from docker_app_launcher.palette import palette_for
 from docker_app_launcher.ui_model import (
     _STATE_KEYS,
     BUTTON_LABELS,
@@ -88,6 +98,9 @@ if HAS_QT:
             super().__init__()
             config.resolve()
             self._cfg = config
+            # Appearance (#118), before the widgets: same decision as tk/qt.
+            self._appearance, _why = appearance.effective_appearance(config.appearance)
+            self._palette = palette_for(self._appearance)
             self._cfg.locale = actions.resolve_locale(self._cfg)
             self._debug = debug
             self._tray: tray.TrayController | None = None
@@ -325,7 +338,7 @@ if HAS_QT:
 
         def _apply_status_headline(self, state: str, *, health_ok: bool | None = None) -> None:
             severity, text = ui_model.status_headline(self._cfg, state, health_ok=health_ok)
-            colors = {"ok": LIGHT_PALETTE.success, "error": LIGHT_PALETTE.error, "info": ""}
+            colors = {"ok": self._palette.success, "error": self._palette.error, "info": ""}
             color = f" color: {colors[severity]};" if colors[severity] else ""
             self._state_label.setStyleSheet(f"font-size: 15px; font-weight: bold;{color}")
             self._headline_symbol = text.split(" ", 1)[0]
@@ -1067,6 +1080,16 @@ def run(config: LauncherConfig, *, debug: bool = False, preview_state: str | Non
     if not HAS_QT:
         raise RuntimeError("the Qt frontend requires the 'qt' extra: pip install docker-app-launcher[qt]")
     app = QApplication.instance() or QApplication(sys.argv)
+    # Fusion + our palette (#118). Qt CAN detect the system appearance itself
+    # and gets it right, but the launcher must render ONE decision across all
+    # three frontends - including the config override - so the value comes
+    # from the same place tk and ctk read.
+    mode, why = appearance.effective_appearance(config.appearance)
+    logger.info("qt appearance: %s (%s)", mode, why)
+    qp = theming.qt_palette(palette_for(mode))
+    if qp is not None and isinstance(app, QApplication):
+        app.setStyle("Fusion")
+        app.setPalette(qp)
     window = QtLauncherApp(config, debug=debug, preview_state=preview_state)
     window.show()
     return app.exec()

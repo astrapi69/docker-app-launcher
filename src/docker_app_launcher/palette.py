@@ -59,6 +59,15 @@ class Palette:
     warning: str
     #: Something to click or open.
     link: str
+    #: Button face - a surface, not a state.
+    button_background: str
+    #: Button face while pressed/hovered.
+    button_active_background: str
+    #: Text of a DISABLED control. Deliberately low contrast: that is what
+    #: "you cannot use this now" looks like, and WCAG 1.4.3 exempts inactive
+    #: controls from the ratio. Excluded from TEXT_MEANINGS for that reason,
+    #: with the reason written down rather than left as an omission.
+    disabled_foreground: str
 
 
 # Exactly today's values, so this module lands with no visual change at all.
@@ -71,6 +80,9 @@ LIGHT_PALETTE = Palette(
     error="#c5221f",
     warning="#b06000",
     link="#2a5db0",
+    button_background="#e3e3e3",
+    button_active_background="#cccccc",
+    disabled_foreground="#8a8a8a",
 )
 
 # Contrast-matched counterparts. Not taste: each foreground colour is measured
@@ -85,6 +97,9 @@ DARK_PALETTE = Palette(
     error="#f28b82",
     warning="#fdd663",
     link="#8ab4f8",
+    button_background="#333333",
+    button_active_background="#444444",
+    disabled_foreground="#777777",
 )
 
 _BY_APPEARANCE = {LIGHT: LIGHT_PALETTE, DARK: DARK_PALETTE}
@@ -100,6 +115,9 @@ MEANINGS: tuple[str, ...] = (
     "error",
     "warning",
     "link",
+    "button_background",
+    "button_active_background",
+    "disabled_foreground",
 )
 
 #: Foreground meanings: measured against ``background`` for contrast. The two

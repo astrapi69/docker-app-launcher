@@ -250,13 +250,6 @@ jobs:
           python -c "import docker_app_launcher; print(docker_app_launcher.__version__)"
           docker-app-launcher --version
 
-      - name: MEASUREMENT - what does each appearance source answer here (#118)
-        # Not a gate and not a feature: macOS and Windows can only be measured
-        # where they run. The result is read from the log and recorded in #118,
-        # then this step goes away with the decision it informs.
-        continue-on-error: true
-        run: python tests/measure_appearance_sources.py
-
       - name: Headless CLI parity smoke (loads config, reads state, exits 0)
         # --status runs the same actions layer the GUI uses; with no Docker
         # daemon it resolves to "no_docker" and exits 0, so this verifies the

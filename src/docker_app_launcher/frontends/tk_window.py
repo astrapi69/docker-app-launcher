@@ -32,10 +32,20 @@ from pathlib import Path
 from tkinter import messagebox, ttk
 from typing import TYPE_CHECKING
 
-from docker_app_launcher import actions, i18n, lockfile, preview_states, tray, ui_model, update_check
+from docker_app_launcher import (
+    actions,
+    appearance,
+    i18n,
+    lockfile,
+    preview_states,
+    theming,
+    tray,
+    ui_model,
+    update_check,
+)
 from docker_app_launcher.config import LOCALE_LABELS, LauncherConfig, locale_for_label
 from docker_app_launcher.frontends.tooltip import Tooltip as _Tooltip
-from docker_app_launcher.palette import LIGHT_PALETTE
+from docker_app_launcher.palette import palette_for
 
 # The framework-neutral UI model lives in ``ui_model``; re-exported here so the
 # long-standing ``gui.BUTTON_STATES`` / ``gui.dispatch_action`` API keeps
@@ -131,6 +141,13 @@ class LauncherApp(tk.Tk):
         super().__init__()
         config.resolve()
         self._cfg = config
+        # Appearance FIRST (#118): Tk consults the option database when a widget
+        # is CREATED, so arming it after the window is built colours nothing
+        # that matters.
+        self._appearance, _why = appearance.effective_appearance(config.appearance)
+        self._palette = palette_for(self._appearance)
+        logger.info("rendering %s appearance (%s)", self._appearance, _why)
+        theming.arm_widget_defaults(self, self._palette)
         # Effective UI language: the user's persisted picker choice wins over the
         # config default (which already resolved "auto" -> system locale).
         self._cfg.locale = actions.resolve_locale(self._cfg)
@@ -234,9 +251,9 @@ class LauncherApp(tk.Tk):
         )
         self._status.pack(side="left", fill="both", expand=True)
         scrollbar.configure(command=self._status.yview)
-        self._status.tag_configure("ok", foreground=LIGHT_PALETTE.success)
-        self._status.tag_configure("err", foreground=LIGHT_PALETTE.error)
-        self._status.tag_configure("info", foreground=LIGHT_PALETTE.muted)
+        self._status.tag_configure("ok", foreground=self._palette.success)
+        self._status.tag_configure("err", foreground=self._palette.error)
+        self._status.tag_configure("info", foreground=self._palette.muted)
 
         # Separator + secondary actions BELOW the log (packed after the expanding
         # log frame, so they sit at the bottom of the window). The progress bar
@@ -255,6 +272,7 @@ class LauncherApp(tk.Tk):
         for element, builder in ASSISTANT_WIDGET_BUILDERS.items():
             self._assistant[element] = getattr(self, builder)()
 
+        theming.apply_palette(self, self._palette)  # widgets built above predate the database
         self._log(f"{about_lines(config)[0]} · {config.gui_backend} · {platform.system()}")
         if preview_state is not None:
             # Looking tool (#115): no daemon call, no cleanup offer, no update
@@ -307,10 +325,10 @@ class LauncherApp(tk.Tk):
             width=18,
             command=command,
             highlightthickness=2,
-            highlightcolor=LIGHT_PALETTE.link,
+            highlightcolor=self._palette.link,
         )
         self._buttons[name] = btn
-        self._tooltips[name] = _Tooltip(btn)
+        self._tooltips[name] = _Tooltip(btn, self._palette)
         return btn
 
     # --- helpers ---
@@ -325,7 +343,7 @@ class LauncherApp(tk.Tk):
 
     def _apply_status_headline(self, state: str, *, health_ok: bool | None = None) -> None:
         severity, text = ui_model.status_headline(self._cfg, state, health_ok=health_ok)
-        colors = {"ok": LIGHT_PALETTE.success, "error": LIGHT_PALETTE.error, "info": LIGHT_PALETTE.muted}
+        colors = {"ok": self._palette.success, "error": self._palette.error, "info": self._palette.muted}
         self._state_label.configure(foreground=colors[severity])
         self._headline_symbol = text.split(" ", 1)[0]
 
@@ -708,11 +726,11 @@ class LauncherApp(tk.Tk):
     def _validate_port(self) -> None:
         raw = self._port_var.get().strip()
         if not raw.isdigit():
-            self._port_indicator.configure(text="✗", fg=LIGHT_PALETTE.error)
+            self._port_indicator.configure(text="✗", fg=self._palette.error)
             return
         free, _ = actions.check_port(int(raw))
         self._port_indicator.configure(
-            text="✓" if free else "✗", fg=LIGHT_PALETTE.success if free else LIGHT_PALETTE.error
+            text="✓" if free else "✗", fg=self._palette.success if free else self._palette.error
         )
 
     # --- docker help (no-docker state) ---
@@ -845,7 +863,7 @@ class LauncherApp(tk.Tk):
             text="⚠ " + self._t("advanced_warning"),
             wraplength=440,
             justify="left",
-            fg=LIGHT_PALETTE.warning,
+            fg=self._palette.warning,
         ).pack(pady=(4, 2))
         tk.Button(self._advanced_frame, text=self._t("restore_defaults"), command=self._restore_internal_defaults).pack(
             pady=(0, 4)

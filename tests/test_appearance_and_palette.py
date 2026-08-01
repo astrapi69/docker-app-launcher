@@ -244,10 +244,118 @@ class TestNoColourLiteralsRemain:
                     offenders.append(f"{path.name}:{number}: {line.strip()}")
         assert not offenders, "colour literals bypass the palette:\n" + "\n".join(offenders)
 
-    def test_the_light_palette_is_what_they_now_use(self) -> None:
-        # The replacement must be a refactor, not a redesign: the values the
-        # frontends resolve to are exactly the ones they had.
+    def test_status_colours_follow_the_ACTIVE_palette(self) -> None:
+        """Not the light one - found by looking at a regenerated screenshot.
+
+        Replacing the literals with ``LIGHT_PALETTE`` was right while only one
+        palette existed and WRONG the moment a second one did: the dark
+        window's log line came out near-invisible and its error line kept the
+        light-mode red. A picture caught it; no assertion would have, because
+        the widgets were configured successfully with the wrong colour.
+        """
+        import re
+        from pathlib import Path
+
+        frontends = Path(__file__).resolve().parents[1] / "src" / "docker_app_launcher" / "frontends"
+        offenders: list[str] = []
+        for path in sorted(frontends.glob("*.py")):
+            if path.name == "tooltip.py":
+                continue  # takes its palette as an argument, default documented
+            for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+                if re.search(r"\bLIGHT_PALETTE\.", line):
+                    offenders.append(f"{path.name}:{number}: {line.strip()}")
+        assert not offenders, "status colours pinned to the light palette:\n" + "\n".join(offenders)
+
+
+class TestTheWindowRendersTheDecision:
+    """#118 applied: the appearance reaches the real window, in all three."""
+
+    @pytest.fixture
+    def cfg_factory(self, tmp_path):
+        from docker_app_launcher.config import LauncherConfig
+
+        def make(appearance_value: str):
+            return LauncherConfig(
+                app_name="Theme",
+                locale="en",
+                appearance=appearance_value,
+                install_dir=str(tmp_path / "app"),
+                config_dir=str(tmp_path / "cfg"),
+                update_check_enabled=False,
+                cleanup_on_start=False,
+                single_instance=False,
+            ).resolve()
+
+        return make
+
+    def test_tk_window_uses_the_configured_palette(self, cfg_factory) -> None:
+        import tkinter as tk
+
+        from docker_app_launcher.frontends import tk_window
+
+        try:
+            probe = tk.Tk()
+        except tk.TclError:
+            pytest.skip("no display")
+        probe.destroy()
+
+        window = tk_window.LauncherApp(cfg_factory("dark"), preview_state="fresh")
+        try:
+            window.update()
+            assert window._appearance == appearance.DARK
+            assert str(window.cget("bg")) == palette.DARK_PALETTE.background
+            # A widget built during __init__ must be dark too - that is what
+            # the option database buys over a one-shot recursive pass.
+            assert str(window._state_label.cget("bg")) == palette.DARK_PALETTE.background
+        finally:
+            window.destroy()
+
+    def test_an_explicit_light_config_stays_light_on_a_dark_desktop(self, cfg_factory, monkeypatch) -> None:
+        import tkinter as tk
+
+        from docker_app_launcher.frontends import tk_window
+
+        try:
+            probe = tk.Tk()
+        except tk.TclError:
+            pytest.skip("no display")
+        probe.destroy()
+
+        monkeypatch.setattr(appearance, "detect_system_appearance", lambda: (appearance.DARK, "desktop is dark"))
+        window = tk_window.LauncherApp(cfg_factory("light"), preview_state="fresh")
+        try:
+            window.update()
+            assert window._appearance == appearance.LIGHT, "the config must beat the detection"
+        finally:
+            window.destroy()
+
+    def test_ctk_is_fed_from_our_detection_not_darkdetect(self) -> None:
+        # The defect being fixed: set_appearance_mode("system") resolves
+        # through darkdetect, which is measurably wrong on a KDE desktop.
+        import inspect
+
         from docker_app_launcher.frontends import ctk_window
 
-        assert ctk_window._OK_COLOR == "#188038"
-        assert ctk_window._ERR_COLOR == "#c5221f"
+        source = inspect.getsource(ctk_window.run)
+        assert 'set_appearance_mode("system")' not in source, "ctk is back on darkdetect"
+        assert "effective_appearance" in source
+
+    def test_qt_gets_the_same_decision(self) -> None:
+        import inspect
+
+        from docker_app_launcher.frontends import qt_window
+
+        source = inspect.getsource(qt_window.run)
+        assert "effective_appearance" in source
+        assert "qt_palette" in source
+
+    def test_the_test_helper_delegates_to_the_product_function(self) -> None:
+        # One mechanism: the screenshots must show what users get. A second
+        # colour table in the tests would drift invisibly, because nobody
+        # compares a screenshot against a running app.
+        import inspect
+
+        from tests.test_gui_window import apply_dark_theme
+
+        source = inspect.getsource(apply_dark_theme)
+        assert "theming.apply_palette" in source

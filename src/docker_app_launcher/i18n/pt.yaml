@@ -97,6 +97,12 @@ dockerfile_mode_needs_dockerpy: O modo dockerfile precisa do pacote Python docke
 dockerfile_not_found: 'Dockerfile não encontrado: {path}. Verifique deployment_mode/Dockerfile na configuração do launcher.'
 dockerfile_unreadable: 'Dockerfile encontrado, mas ilegível: {path} ({error}).'
 error: 'Erro: {msg}'
+error_credential_helper_broken: 'O auxiliar de credenciais do registro está quebrado: {error}. O lançador não precisa de login no registro aqui - remova a entrada obsoleta credsStore/credHelpers de ~/.docker/config.json.'
+error_credential_helper_broken_required: 'O auxiliar de credenciais do registro está quebrado: {error}. Esta configuração declara use_registry_credentials, portanto é necessário um auxiliar funcional - repare o auxiliar ou a entrada credsStore/credHelpers em ~/.docker/config.json.'
+error_docker_permission_denied: Permissão negada no soquete do Docker (seu usuário não está no grupo 'docker').
+error_image_platform_missing: 'A imagem {reference} não tem variante para a plataforma desta máquina: {detail}. O publicador deve fornecer uma imagem multiarquitetura (p. ex. linux/amd64 + linux/arm64).'
+error_registry_refused: 'O registro recusou o acesso a {reference}: {detail}. Ou a imagem não está publicada (o publicador deve fornecer uma imagem pública nesta referência) ou é privada - um registro privado precisa de use_registry_credentials: true na configuração e um docker login.'
+error_registry_unreachable: 'Não foi possível alcançar o registro de {reference}: {detail}. Baixar a imagem do aplicativo precisa de conexão com a internet; depois de baixada, o aplicativo funciona offline.'
 error_word: Erro
 fix_docker_permission: Configurar acesso ao Docker…
 free_port_found: 'Porta livre encontrada: {port}.'
@@ -208,5 +214,6 @@ update_stopping: Parando {app} para atualizar...
 updating: Atualizando imagem (alguns minutos após alterações de código, segundos caso contrário)...
 verify_clean: 'Verificação: nenhum contêiner encontrado ✓'
 verify_remain: 'Verificação: {count} contêiner(es) restante(s) ✗'
+warning_found: Aviso encontrado
 what_it_means: O que isso significa?
 what_to_do: O que você pode fazer

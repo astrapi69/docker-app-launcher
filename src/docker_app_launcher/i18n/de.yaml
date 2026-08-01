@@ -97,6 +97,12 @@ dockerfile_mode_needs_dockerpy: Der dockerfile-Modus benötigt das Python-Paket 
 dockerfile_not_found: 'Dockerfile nicht gefunden: {path}. deployment_mode/Dockerfile-Einstellungen in der Launcher-Konfiguration prüfen.'
 dockerfile_unreadable: 'Dockerfile gefunden, aber nicht lesbar: {path} ({error}).'
 error: 'Fehler: {msg}'
+error_credential_helper_broken: 'Der Anmeldedaten-Helfer der Registry ist defekt: {error}. Der Launcher braucht hier keine Registry-Anmeldung - entfernen Sie den veralteten credsStore/credHelpers-Eintrag aus ~/.docker/config.json.'
+error_credential_helper_broken_required: 'Der Anmeldedaten-Helfer der Registry ist defekt: {error}. Diese Launcher-Konfiguration erklärt use_registry_credentials, ein funktionierender Helfer ist also erforderlich - reparieren Sie den Helfer oder den credsStore/credHelpers-Eintrag in ~/.docker/config.json.'
+error_docker_permission_denied: Zugriff auf den Docker-Socket verweigert (Ihr Benutzer ist nicht in der Gruppe 'docker').
+error_image_platform_missing: 'Das Abbild {reference} hat keine Variante für die Plattform dieses Rechners: {detail}. Der Herausgeber muss ein Multi-Arch-Abbild bereitstellen (z. B. linux/amd64 + linux/arm64).'
+error_registry_refused: 'Die Registry hat den Zugriff auf {reference} verweigert: {detail}. Entweder ist das Abbild nicht veröffentlicht (der Herausgeber muss ein öffentliches Abbild unter dieser Referenz bereitstellen) oder es ist privat - eine private Registry braucht use_registry_credentials: true in der Launcher-Konfiguration und ein docker login.'
+error_registry_unreachable: 'Die Registry für {reference} war nicht erreichbar: {detail}. Das Herunterladen des App-Abbilds braucht eine Internetverbindung; danach läuft die App offline.'
 error_word: Fehler
 fix_docker_permission: Docker-Zugriff einrichten…
 free_port_found: 'Freier Port gefunden: {port}.'
@@ -208,5 +214,6 @@ update_stopping: '{app} wird zum Aktualisieren gestoppt...'
 updating: Image wird aktualisiert (nach Code-Änderungen einige Minuten, sonst Sekunden)...
 verify_clean: 'Verifizierung: keine Container gefunden ✓'
 verify_remain: 'Verifizierung: {count} Container verbleiben ✗'
+warning_found: Warnung gefunden
 what_it_means: Was bedeutet das?
 what_to_do: Was du tun kannst

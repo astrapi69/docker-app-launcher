@@ -97,6 +97,12 @@ dockerfile_mode_needs_dockerpy: Le mode dockerfile nécessite le paquet Python d
 dockerfile_not_found: 'Dockerfile introuvable : {path}. Vérifiez deployment_mode/Dockerfile dans la configuration du launcher.'
 dockerfile_unreadable: 'Dockerfile trouvé mais illisible : {path} ({error}).'
 error: 'Erreur : {msg}'
+error_credential_helper_broken: 'L''assistant d''identifiants du registre est défectueux : {error}. Le lanceur n''a besoin d''aucune connexion au registre ici - supprimez l''entrée credsStore/credHelpers obsolète de ~/.docker/config.json.'
+error_credential_helper_broken_required: 'L''assistant d''identifiants du registre est défectueux : {error}. Cette configuration déclare use_registry_credentials, un assistant fonctionnel est donc requis - réparez l''assistant ou l''entrée credsStore/credHelpers dans ~/.docker/config.json.'
+error_docker_permission_denied: Permission refusée sur le socket Docker (votre utilisateur n'est pas dans le groupe « docker »).
+error_image_platform_missing: 'L''image {reference} n''a aucune variante pour la plate-forme de cette machine : {detail}. L''éditeur doit fournir une image multi-architecture (p. ex. linux/amd64 + linux/arm64).'
+error_registry_refused: 'Le registre a refusé l''accès à {reference} : {detail}. Soit l''image n''est pas publiée (l''éditeur doit fournir une image publique à cette référence), soit elle est privée - un registre privé nécessite use_registry_credentials: true dans la configuration et un docker login.'
+error_registry_unreachable: 'Le registre pour {reference} est injoignable : {detail}. Le téléchargement de l''image nécessite une connexion internet ; une fois téléchargée, l''application fonctionne hors ligne.'
 error_word: Erreur
 fix_docker_permission: Configurer l'accès Docker…
 free_port_found: 'Port libre trouvé : {port}.'
@@ -208,5 +214,6 @@ update_stopping: Arrêt de {app} pour la mise à jour...
 updating: Mise à jour de l'image (quelques minutes après des changements de code, sinon quelques secondes)...
 verify_clean: 'Vérification : aucun conteneur trouvé ✓'
 verify_remain: 'Vérification : {count} conteneur(s) restant(s) ✗'
+warning_found: Avertissement détecté
 what_it_means: Qu'est-ce que cela signifie ?
 what_to_do: Ce que vous pouvez faire

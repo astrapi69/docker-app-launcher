@@ -97,6 +97,12 @@ dockerfile_mode_needs_dockerpy: El modo dockerfile necesita el paquete Python do
 dockerfile_not_found: 'Dockerfile no encontrado: {path}. Revisa deployment_mode/Dockerfile en la configuración del launcher.'
 dockerfile_unreadable: 'Dockerfile encontrado pero no legible: {path} ({error}).'
 error: 'Error: {msg}'
+error_credential_helper_broken: 'El asistente de credenciales del registro está roto: {error}. El lanzador no necesita iniciar sesión en el registro aquí; elimine la entrada obsoleta credsStore/credHelpers de ~/.docker/config.json.'
+error_credential_helper_broken_required: 'El asistente de credenciales del registro está roto: {error}. Esta configuración declara use_registry_credentials, por lo que se requiere un asistente funcional: repare el asistente o la entrada credsStore/credHelpers en ~/.docker/config.json.'
+error_docker_permission_denied: Permiso denegado en el socket de Docker (su usuario no está en el grupo 'docker').
+error_image_platform_missing: 'La imagen {reference} no tiene variante para la plataforma de esta máquina: {detail}. El publicador debe proporcionar una imagen multiarquitectura (p. ej. linux/amd64 + linux/arm64).'
+error_registry_refused: 'El registro denegó el acceso a {reference}: {detail}. O la imagen no está publicada (el publicador debe proporcionar una imagen pública en esta referencia) o es privada: un registro privado necesita use_registry_credentials: true en la configuración más un docker login.'
+error_registry_unreachable: 'No se pudo alcanzar el registro para {reference}: {detail}. Descargar la imagen de la aplicación necesita conexión a internet; una vez descargada, la aplicación funciona sin conexión.'
 error_word: Error
 fix_docker_permission: Configurar acceso a Docker…
 free_port_found: 'Puerto libre encontrado: {port}.'
@@ -208,5 +214,6 @@ update_stopping: Deteniendo {app} para actualizar...
 updating: Actualizando imagen (unos minutos tras cambios de código, segundos en otros casos)...
 verify_clean: 'Verificación: no se encontraron contenedores ✓'
 verify_remain: 'Verificación: quedan {count} contenedor(es) ✗'
+warning_found: Advertencia encontrada
 what_it_means: ¿Qué significa esto?
 what_to_do: Qué puedes hacer

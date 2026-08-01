@@ -97,6 +97,12 @@ dockerfile_mode_needs_dockerpy: dockerfile modu, bu kurulumda kullanılamayan Py
 dockerfile_not_found: 'Dockerfile bulunamadı: {path}. Launcher yapılandırmasında deployment_mode/Dockerfile ayarlarını kontrol edin.'
 dockerfile_unreadable: 'Dockerfile bulundu ama okunamıyor: {path} ({error}).'
 error: 'Hata: {msg}'
+error_credential_helper_broken: 'Kayıt defteri kimlik bilgisi yardımcısı bozuk: {error}. Başlatıcının burada kayıt defteri oturumuna ihtiyacı yok - ~/.docker/config.json dosyasındaki eski credsStore/credHelpers girdisini kaldırın.'
+error_credential_helper_broken_required: 'Kayıt defteri kimlik bilgisi yardımcısı bozuk: {error}. Bu yapılandırma use_registry_credentials bildiriyor, bu yüzden çalışan bir yardımcı gerekli - yardımcıyı veya ~/.docker/config.json içindeki credsStore/credHelpers girdisini onarın.'
+error_docker_permission_denied: Docker yuvasında izin reddedildi (kullanıcınız 'docker' grubunda değil).
+error_image_platform_missing: '{reference} imajının bu makinenin platformu için bir sürümü yok: {detail}. Yayıncı çok mimarili bir imaj sağlamalı (ör. linux/amd64 + linux/arm64).'
+error_registry_refused: 'Kayıt defteri {reference} erişimini reddetti: {detail}. İmaj yayımlanmamış (yayıncı bu referansta herkese açık bir imaj sağlamalı) ya da özel - özel kayıt defteri yapılandırmada use_registry_credentials: true ve bir docker login gerektirir.'
+error_registry_unreachable: '{reference} için kayıt defterine ulaşılamadı: {detail}. Uygulama imajını indirmek internet bağlantısı gerektirir; indirildikten sonra uygulama çevrimdışı çalışır.'
 error_word: Hata
 fix_docker_permission: Docker erişimini ayarla…
 free_port_found: 'Boş bağlantı noktası bulundu: {port}.'
@@ -208,5 +214,6 @@ update_stopping: Güncelleme için {app} durduruluyor...
 updating: İmaj güncelleniyor (kod değişikliklerinden sonra birkaç dakika, aksi halde saniyeler)...
 verify_clean: 'Doğrulama: konteyner bulunamadı ✓'
 verify_remain: 'Doğrulama: {count} konteyner kaldı ✗'
+warning_found: Uyarı bulundu
 what_it_means: Bu ne anlama geliyor?
 what_to_do: Ne yapabilirsiniz

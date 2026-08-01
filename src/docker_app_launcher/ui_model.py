@@ -19,7 +19,7 @@ from collections.abc import Callable
 from importlib.metadata import PackageNotFoundError, version
 from typing import TYPE_CHECKING
 
-from docker_app_launcher import actions, i18n
+from docker_app_launcher import actions, check_ids, i18n
 from docker_app_launcher.config import LauncherConfig
 
 if TYPE_CHECKING:
@@ -446,23 +446,29 @@ GUARD_USER_NOTE_KEYS: tuple[str, ...] = (
     "operation_pending_blocked",
 )
 
-ERROR_CHECK_IDS: tuple[str, ...] = (
-    "docker_running",
-    "install_dir",
-    "compose_file_exists",
-    "dockerfile_exists",
-    "image_source_declared",
-    "readiness_blocker",
-    "port_drift",
-    "health_reachable",
-    # #111: security-relevant, so it gets a real card rather than a bare line -
-    # the user must be able to read what network exposure means and what to do.
-    "bind_address_open",
-)
+# DERIVED from what the ids actually emit (#127), not listed. The old literal
+# got the membership right and the REASON wrong - it called bind_address_open
+# error-capable when it is the only warn emitter in the project. Kept under the
+# old name: consumers import it.
+ERROR_CHECK_IDS: tuple[str, ...] = check_ids.NEEDS_EXPLANATION_IDS
 
 # Non-color status markers (accessibility: a state must be readable without
 # color; the same symbols the text doctor report uses).
-_STATUS_SYMBOL = {"ok": "✓", "error": "✗", "warn": "✗", "info": "·"}
+# warn has its OWN symbol (#127). It used to share ✗ with error - the same
+# conflation as the card, one layer down: a running app that is merely
+# reachable from the network is not a broken one.
+_STATUS_SYMBOL = {"ok": "✓", "error": "✗", "warn": "!", "info": "·"}
+
+
+#: Which severity the card shows first. Error before warning: something broken
+#: outranks something merely open. Both are explained; neither is called the
+#: other.
+_SEVERITY_ORDER: tuple[str, ...] = ("error", "warn")
+
+#: The heading per severity - the whole point of the concept fix. A warning
+#: under "problem found" is a small dishonesty that would then apply to every
+#: warning the launcher ever grows.
+_SEVERITY_TITLE_KEYS = {"error": "problem_found", "warn": "warning_found"}
 
 
 def check_meaning(config: LauncherConfig, check_id: str) -> str:
@@ -504,17 +510,30 @@ def doctor_checklist_rows(report: DoctorReport) -> list[tuple[str, str]]:
 
 
 def primary_problem(config: LauncherConfig, report: DoctorReport) -> dict[str, str] | None:
-    """The problem card for the FIRST error check, or None when all green.
+    """The card for the most urgent finding that needs explaining, or None.
 
-    Learners see problem class + meaning + fix on top; the raw detail stays
-    in the check message (rendered in the collapsible log, never first).
+    Selection is by SEVERITY, not by a single status (#127). It used to scan
+    for ``error`` only, which meant the security warning - the one place in the
+    project that emits ``warn`` - had 22 explanation texts that could never be
+    shown.
+
+    The cheap fix would have been to let ``error`` also mean ``warn``. That
+    smuggles a warning under a heading which says a problem was found: the user
+    would read that something is broken while their app runs perfectly and is
+    merely reachable from the network. Since this is the only ``warn`` emitter,
+    that wording would have set the tone for every future warning. So the card
+    carries a SEVERITY and the heading follows it.
     """
-    for check in report.checks:
-        if check.status == "error":
+    for severity in _SEVERITY_ORDER:
+        for check in report.checks:
+            if check.status != severity:
+                continue
             known = check.id in ERROR_CHECK_IDS
             return {
                 "id": check.id,
-                "title": i18n.t("problem_found", config),
+                "severity": severity,
+                "symbol": _STATUS_SYMBOL[severity],
+                "title": i18n.t(_SEVERITY_TITLE_KEYS[severity], config),
                 "message": check.message,
                 "meaning_label": i18n.t("what_it_means", config),
                 "meaning": check_meaning(config, check.id) if known else "",

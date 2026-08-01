@@ -97,6 +97,12 @@ dockerfile_mode_needs_dockerpy: Η λειτουργία dockerfile χρειάζ�
 dockerfile_not_found: 'Το Dockerfile δεν βρέθηκε: {path}. Ελέγξτε τις ρυθμίσεις deployment_mode/Dockerfile στη διαμόρφωση του launcher.'
 dockerfile_unreadable: 'Το Dockerfile βρέθηκε αλλά δεν είναι αναγνώσιμο: {path} ({error}).'
 error: 'Σφάλμα: {msg}'
+error_credential_helper_broken: 'Ο βοηθός διαπιστευτηρίων του μητρώου είναι χαλασμένος: {error}. Ο εκκινητής δεν χρειάζεται σύνδεση στο μητρώο εδώ - αφαιρέστε την παλιά καταχώριση credsStore/credHelpers από το ~/.docker/config.json.'
+error_credential_helper_broken_required: 'Ο βοηθός διαπιστευτηρίων είναι χαλασμένος: {error}. Αυτή η ρύθμιση δηλώνει use_registry_credentials, άρα απαιτείται λειτουργικός βοηθός - επισκευάστε τον βοηθό ή την καταχώριση credsStore/credHelpers στο ~/.docker/config.json.'
+error_docker_permission_denied: Άρνηση πρόσβασης στην υποδοχή Docker (ο χρήστης σας δεν ανήκει στην ομάδα 'docker').
+error_image_platform_missing: 'Η εικόνα {reference} δεν έχει παραλλαγή για την πλατφόρμα αυτού του υπολογιστή: {detail}. Ο εκδότης πρέπει να παρέχει εικόνα πολλαπλών αρχιτεκτονικών (π.χ. linux/amd64 + linux/arm64).'
+error_registry_refused: 'Το μητρώο αρνήθηκε την πρόσβαση στο {reference}: {detail}. Είτε η εικόνα δεν έχει δημοσιευτεί (ο εκδότης πρέπει να παρέχει δημόσια εικόνα σε αυτή την αναφορά) είτε είναι ιδιωτική - ένα ιδιωτικό μητρώο χρειάζεται use_registry_credentials: true στη ρύθμιση και ένα docker login.'
+error_registry_unreachable: 'Δεν ήταν δυνατή η πρόσβαση στο μητρώο για {reference}: {detail}. Η λήψη της εικόνας απαιτεί σύνδεση στο διαδίκτυο· μετά τη λήψη η εφαρμογή λειτουργεί εκτός σύνδεσης.'
 error_word: Σφάλμα
 fix_docker_permission: Ρύθμιση πρόσβασης Docker…
 free_port_found: 'Βρέθηκε ελεύθερη θύρα: {port}.'
@@ -208,5 +214,6 @@ update_stopping: Διακοπή του {app} για ενημέρωση...
 updating: Ενημέρωση image (μερικά λεπτά μετά από αλλαγές κώδικα, αλλιώς δευτερόλεπτα)...
 verify_clean: 'Επαλήθευση: δεν βρέθηκαν containers ✓'
 verify_remain: 'Επαλήθευση: {count} container(s) απομένουν ✗'
+warning_found: Βρέθηκε προειδοποίηση
 what_it_means: Τι σημαίνει αυτό;
 what_to_do: Τι μπορείτε να κάνετε

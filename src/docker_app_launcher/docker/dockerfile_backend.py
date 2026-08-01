@@ -289,34 +289,17 @@ def port_binding(config: LauncherConfig, host_port: int) -> tuple[str, int] | in
 
 
 def _classified_detail(exc: Exception, config: LauncherConfig | None = None) -> str:
-    """Human detail via the #44 exception classification - never duplicated."""
-    # Matching on the class NAME, because the exception is raised deep inside
-    # docker-py's auth resolution and importing it here would tie this module
-    # to a private path. MEASURED (docker-py 7.2.0, real daemon, #110):
-    # client.api.build() with a broken credsStore raises
-    # docker.credentials.errors.StoreError UNWRAPPED - this match is correct
-    # for the launcher's path. AuthConfig.resolve_authconfig() instead WRAPS it
-    # in DockerException, where this match does NOT fire; nothing here takes
-    # that path today. tests/docker/test_credential_error_identity.py pins the
-    # library's class identity, so a rename or move in an upgrade fails loudly
-    # instead of silently degrading to an echoed library error.
-    if type(exc).__name__ == "StoreError":
-        # A broken credsStore/credHelpers entry in ~/.docker/config.json (#77):
-        # name the fix, never just echo the library error.
-        if config is not None and config.use_registry_credentials:
-            return (
-                f"registry credential helper is broken: {exc}. This launcher config declares "
-                "use_registry_credentials, so working helpers are required - repair the helper "
-                "or the credsStore/credHelpers entry in ~/.docker/config.json."
-            )
-        return (
-            f"registry credential helper is broken: {exc}. The launcher build needs no registry "
-            "login - remove the stale credsStore/credHelpers entry from ~/.docker/config.json."
-        )
-    verdict = py_client._classify_exception(exc)
-    if verdict == "permission":
-        return "permission denied on the docker socket (not in the 'docker' group)"
-    return str(exc) or verdict
+    """Human detail for an exception - delegated to the ONE classifier (#128).
+
+    This function used to BE the classifier, and image mode never called it,
+    so a broken credential helper and a denied docker socket were unreachable
+    there. The classification now lives in ``error_classes`` and both backends
+    ask it, which is that mode difference disappearing. The wrapper stays as
+    the call sites' name for "give me the text".
+    """
+    from docker_app_launcher.docker import error_classes
+
+    return error_classes.detail_of(exc, config)
 
 
 def _close(client: Any) -> None:

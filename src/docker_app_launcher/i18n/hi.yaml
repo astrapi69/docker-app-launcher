@@ -97,6 +97,12 @@ dockerfile_mode_needs_dockerpy: dockerfile मोड को Python पैके�
 dockerfile_not_found: 'Dockerfile नहीं मिला: {path}। launcher कॉन्फ़िगरेशन में deployment_mode/Dockerfile सेटिंग जाँचें।'
 dockerfile_unreadable: 'Dockerfile मिली पर पढ़ी नहीं जा सकी: {path} ({error})।'
 error: 'त्रुटि: {msg}'
+error_credential_helper_broken: 'रजिस्ट्री क्रेडेंशियल हेल्पर खराब है: {error}. लॉन्चर को यहाँ रजिस्ट्री लॉगिन की आवश्यकता नहीं है - ~/.docker/config.json से पुरानी credsStore/credHelpers प्रविष्टि हटाएँ।'
+error_credential_helper_broken_required: 'रजिस्ट्री क्रेडेंशियल हेल्पर खराब है: {error}. यह कॉन्फ़िगरेशन use_registry_credentials घोषित करता है, इसलिए कार्यशील हेल्पर आवश्यक है - हेल्पर या ~/.docker/config.json की credsStore/credHelpers प्रविष्टि ठीक करें।'
+error_docker_permission_denied: डॉकर सॉकेट पर अनुमति अस्वीकृत (आपका उपयोगकर्ता 'docker' समूह में नहीं है)।
+error_image_platform_missing: 'छवि {reference} में इस मशीन के प्लेटफ़ॉर्म के लिए कोई संस्करण नहीं है: {detail}. प्रकाशक को मल्टी-आर्किटेक्चर छवि देनी होगी (जैसे linux/amd64 + linux/arm64)।'
+error_registry_refused: 'रजिस्ट्री ने {reference} तक पहुँच अस्वीकार की: {detail}. या तो छवि प्रकाशित नहीं है (प्रकाशक को इस संदर्भ पर सार्वजनिक छवि देनी होगी) या वह निजी है - निजी रजिस्ट्री के लिए कॉन्फ़िगरेशन में use_registry_credentials: true और docker login चाहिए।'
+error_registry_unreachable: '{reference} के लिए रजिस्ट्री तक नहीं पहुँचा जा सका: {detail}. ऐप छवि डाउनलोड करने के लिए इंटरनेट कनेक्शन चाहिए; डाउनलोड के बाद ऐप ऑफ़लाइन चलता है।'
 error_word: त्रुटि
 fix_docker_permission: Docker पहुँच सेट करें…
 free_port_found: 'खाली पोर्ट मिला: {port}।'
@@ -208,5 +214,6 @@ update_stopping: अपडेट के लिए {app} को रोका ज�
 updating: इमेज अपडेट हो रही है (कोड बदलाव के बाद कुछ मिनट, अन्यथा कुछ सेकंड)...
 verify_clean: 'सत्यापन: कोई कंटेनर नहीं मिला ✓'
 verify_remain: 'सत्यापन: {count} कंटेनर शेष हैं ✗'
+warning_found: चेतावनी मिली
 what_it_means: इसका क्या मतलब है?
 what_to_do: आप क्या कर सकते हैं

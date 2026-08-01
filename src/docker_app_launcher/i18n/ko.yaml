@@ -97,6 +97,12 @@ dockerfile_mode_needs_dockerpy: dockerfile 모드에는 Python 패키지 docker(
 dockerfile_not_found: 'Dockerfile을 찾을 수 없습니다: {path}. launcher 설정의 deployment_mode/Dockerfile을 확인하세요.'
 dockerfile_unreadable: 'Dockerfile을 찾았지만 읽을 수 없습니다: {path} ({error}).'
 error: '오류: {msg}'
+error_credential_helper_broken: '레지스트리 자격 증명 도우미가 손상되었습니다: {error}. 여기서는 레지스트리 로그인이 필요하지 않습니다. ~/.docker/config.json에서 오래된 credsStore/credHelpers 항목을 제거하세요.'
+error_credential_helper_broken_required: '레지스트리 자격 증명 도우미가 손상되었습니다: {error}. 이 구성은 use_registry_credentials를 선언하므로 작동하는 도우미가 필요합니다. 도우미 또는 ~/.docker/config.json의 credsStore/credHelpers 항목을 복구하세요.'
+error_docker_permission_denied: Docker 소켓 권한이 거부되었습니다 (사용자가 'docker' 그룹에 없습니다).
+error_image_platform_missing: '이미지 {reference}에 이 컴퓨터 플랫폼용 변형이 없습니다: {detail}. 게시자가 다중 아키텍처 이미지(예: linux/amd64 + linux/arm64)를 제공해야 합니다.'
+error_registry_refused: '레지스트리가 {reference} 접근을 거부했습니다: {detail}. 이미지가 게시되지 않았거나(게시자가 이 참조에 공개 이미지를 제공해야 함) 비공개입니다. 비공개 레지스트리에는 설정의 use_registry_credentials: true와 docker login이 필요합니다.'
+error_registry_unreachable: '{reference}의 레지스트리에 연결할 수 없습니다: {detail}. 앱 이미지를 내려받으려면 인터넷 연결이 필요하며, 내려받은 뒤에는 오프라인으로 실행됩니다.'
 error_word: 오류
 fix_docker_permission: Docker 접근 설정…
 free_port_found: '사용 가능한 포트 발견: {port}.'
@@ -208,5 +214,6 @@ update_stopping: 업데이트를 위해 {app}을(를) 중지하는 중...
 updating: 이미지 업데이트 중 (코드 변경 후에는 몇 분, 그 외에는 몇 초)...
 verify_clean: '검증: 컨테이너를 찾을 수 없습니다 ✓'
 verify_remain: '검증: 컨테이너 {count}개가 남아 있습니다 ✗'
+warning_found: 경고가 있습니다
 what_it_means: 무슨 뜻인가요?
 what_to_do: 할 수 있는 일

@@ -97,6 +97,12 @@ dockerfile_mode_needs_dockerpy: Mode dockerfile memerlukan paket Python docker (
 dockerfile_not_found: 'Dockerfile tidak ditemukan: {path}. Periksa pengaturan deployment_mode/Dockerfile di konfigurasi launcher.'
 dockerfile_unreadable: 'Dockerfile ditemukan tetapi tidak terbaca: {path} ({error}).'
 error: 'Kesalahan: {msg}'
+error_credential_helper_broken: 'Pembantu kredensial registri rusak: {error}. Peluncur tidak memerlukan login registri di sini - hapus entri credsStore/credHelpers yang usang dari ~/.docker/config.json.'
+error_credential_helper_broken_required: 'Pembantu kredensial registri rusak: {error}. Konfigurasi ini menyatakan use_registry_credentials, jadi pembantu yang berfungsi diperlukan - perbaiki pembantu atau entri credsStore/credHelpers di ~/.docker/config.json.'
+error_docker_permission_denied: Izin ditolak pada soket Docker (pengguna Anda tidak ada dalam grup 'docker').
+error_image_platform_missing: 'Image {reference} tidak memiliki varian untuk platform mesin ini: {detail}. Penerbit harus menyediakan image multi-arsitektur (mis. linux/amd64 + linux/arm64).'
+error_registry_refused: 'Registri menolak akses ke {reference}: {detail}. Image tersebut belum dipublikasikan (penerbit harus menyediakan image publik pada referensi ini) atau bersifat privat - registri privat memerlukan use_registry_credentials: true di konfigurasi serta docker login.'
+error_registry_unreachable: 'Registri untuk {reference} tidak dapat dijangkau: {detail}. Mengunduh image aplikasi memerlukan koneksi internet; setelah terunduh, aplikasi berjalan offline.'
 error_word: Kesalahan
 fix_docker_permission: Siapkan akses Docker…
 free_port_found: 'Port tersedia ditemukan: {port}.'
@@ -208,5 +214,6 @@ update_stopping: Menghentikan {app} untuk pembaruan...
 updating: Memperbarui image (beberapa menit setelah perubahan kode, beberapa detik jika tidak)...
 verify_clean: 'Verifikasi: tidak ada kontainer ditemukan ✓'
 verify_remain: 'Verifikasi: {count} kontainer tersisa ✗'
+warning_found: Peringatan ditemukan
 what_it_means: Apa artinya ini?
 what_to_do: Yang bisa Anda lakukan

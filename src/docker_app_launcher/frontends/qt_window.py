@@ -403,7 +403,7 @@ if HAS_QT:
             return frame
 
         def _show_problem_card(self, card: dict[str, str]) -> None:
-            self._problem_title.setText(f"✗ {card['title']}: {card['id']}")
+            self._problem_title.setText(f"{card['symbol']} {card['title']}: {card['id']}")
             self._problem_message.setText(card["message"])
             self._problem_meaning.setText(card["meaning"])
             self._problem_fix.setText(card["fix"])

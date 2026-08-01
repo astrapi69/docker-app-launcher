@@ -336,7 +336,11 @@ def run_preview(config: LauncherConfig, state: str, *, debug: bool) -> int:
     from docker_app_launcher.frontends import get_frontend
 
     # Printed WITH the preview, so nobody mistakes a fed state for a real one.
-    print(preview_states.state_note(state))
+    # flush: stdout is block-buffered as soon as it is redirected, and the
+    # screenshot harness (#116) kills this process once it has its image - the
+    # honesty note would then be the one thing lost, in exactly the situation
+    # it exists for.
+    print(preview_states.state_note(state), flush=True)
     return int(get_frontend(config.gui_backend).run(config, debug=debug, preview_state=state))
 
 

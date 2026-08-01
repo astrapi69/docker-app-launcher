@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 import tkinter as tk
 
-from docker_app_launcher.palette import LIGHT_PALETTE
+from docker_app_launcher.palette import LIGHT_PALETTE, Palette
 
 logger = logging.getLogger("docker_app_launcher.frontends.tooltip")
 
@@ -23,7 +23,11 @@ class Tooltip:
     or off (enabled) as the app state changes.
     """
 
-    def __init__(self, widget: tk.Widget) -> None:
+    def __init__(self, widget: tk.Widget, palette: Palette = LIGHT_PALETTE) -> None:
+        # Defaulted, so the long-standing one-argument call sites keep working;
+        # the windows pass their ACTIVE palette (#118), which is what makes a
+        # tooltip readable in dark mode instead of dark-on-dark.
+        self._palette = palette
         self._widget = widget
         self._text = ""
         self._tip: tk.Toplevel | None = None
@@ -49,8 +53,8 @@ class Tooltip:
                 self._tip,
                 text=self._text,
                 justify="left",
-                background=LIGHT_PALETTE.muted,
-                foreground=LIGHT_PALETTE.field_background,
+                background=self._palette.muted,
+                foreground=self._palette.foreground,
                 relief="solid",
                 borderwidth=1,
                 padx=6,

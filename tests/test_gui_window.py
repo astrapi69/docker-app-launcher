@@ -53,51 +53,18 @@ _DARK = {
 
 
 def apply_dark_theme(root: tk.Misc) -> None:
-    """Best-effort dark styling for a plain-Tk window (tests/screenshots only).
+    """Dark styling for a test window - DELEGATES to the product function.
 
-    Safe to call on ANY frontend window and at any time: only pure-tkinter
-    widgets are touched (CustomTkinter subclasses tk widgets but styles
-    itself), and dynamically created widgets get styled on the next call.
+    This helper used to carry its own colour table and its own recursive
+    walker. It is now a thin call into ``theming.apply_palette`` (#118), so the
+    screenshots this suite attaches to every CI run show what USERS get rather
+    than a look that only exists in tests. Two mechanisms would drift, and the
+    drift would be invisible: nobody compares a screenshot to a running app.
     """
-    try:
-        from tkinter import ttk as _ttk
+    from docker_app_launcher import theming
+    from docker_app_launcher.palette import DARK_PALETTE
 
-        style = _ttk.Style(root)
-        style.theme_use("clam")
-        style.configure(".", background=_DARK["bg"], foreground=_DARK["fg"], fieldbackground=_DARK["entry_bg"])
-        style.map("TCombobox", fieldbackground=[("readonly", _DARK["entry_bg"])])
-    except tk.TclError:
-        pass
-    with contextlib.suppress(tk.TclError):
-        root.configure(bg=_DARK["bg"])  # type: ignore[call-arg]
-    stack: list[tk.Misc] = list(root.winfo_children())
-    while stack:
-        widget = stack.pop()
-        stack.extend(widget.winfo_children())
-        if not type(widget).__module__.startswith("tkinter"):
-            continue  # CustomTkinter (and friends) style themselves
-        try:
-            if isinstance(widget, tk.Button):
-                widget.configure(
-                    bg=_DARK["button_bg"],
-                    fg=_DARK["fg"],
-                    activebackground=_DARK["active_bg"],
-                    activeforeground=_DARK["fg"],
-                    disabledforeground="#777777",
-                )
-            elif isinstance(widget, tk.Entry):
-                widget.configure(
-                    bg=_DARK["entry_bg"], fg=_DARK["fg"], insertbackground=_DARK["fg"], disabledbackground=_DARK["bg"]
-                )
-            elif isinstance(widget, tk.Text):
-                widget.configure(bg=_DARK["entry_bg"], fg=_DARK["fg"], insertbackground=_DARK["fg"])
-            elif isinstance(widget, (tk.Frame, tk.Label)):
-                widget.configure(bg=_DARK["bg"])
-                if isinstance(widget, tk.Label):
-                    widget.configure(fg=_DARK["fg"])
-        except tk.TclError:
-            # ttk widgets and platform quirks: no bg/fg options - skip.
-            pass
+    theming.apply_palette(root, DARK_PALETTE)
 
 
 def _keep_off_screen(window: tk.Tk) -> None:

@@ -6,6 +6,77 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.28.0] - 2026-08-01
+
+Seeing the launcher, and following the system's appearance. Two things
+below change what you see WITHOUT you having done anything — both are
+fixes, and both are called out so nobody reports the corrected behaviour
+as a new bug.
+
+### Changed
+
+- **The window follows your system's light/dark setting (#118).** If your
+  desktop prefers dark, the launcher is now dark. This is a FIX, not a
+  new feature: the one frontend that claimed to follow the system asked a
+  library which really answers "does the GTK theme name contain `-dark`",
+  and on a KDE desktop it reported light while the XDG portal and Qt both
+  reported dark. Measured on all three platforms. **`"appearance":
+  "light"` in the launcher config overrides it**, as does `"dark"`;
+  `"system"` is the default. Where the system expresses no preference the
+  launcher renders light and says so in the log — a named decision, not a
+  silent fallback.
+- **`--doctor` distinguishes warnings from errors in its output (#127).**
+  A warning now carries `!` where it used to share `✗` with errors. If
+  you read or parse the text report, that symbol is new. The `--json`
+  output is unchanged — it always carried the real `status` field.
+
+### Added
+
+- **Preview switch (`--preview <state>`) and `make preview-tour`
+  (#115).** Opens the window in a named UI state so its LOOK can be
+  judged: `fresh`, `busy_cancellable`, `failure_problem_card`,
+  `guard_unavailable`, `long_log`, `small_window`. Touches no Docker and
+  writes nothing — no `launcher.json`, no `.env`, no marker. Each state
+  is marked `[real]` or `[fed]`, where `[fed]` means the shipped
+  rendering chain with supplied input, because producing that state for
+  real would need Docker or a write. The tour shows all six, five seconds
+  each, numbered in the window title.
+- **Screenshots of every preview state attached to each CI run (#116),**
+  kept 30 days, with a `MANIFEST.md` saying which states are real and
+  which are fed. For looking at, deliberately not compared automatically.
+- **`--gui-backend NAME` (#119)** picks the window toolkit for one start,
+  overriding the config. An unknown name is refused with the known ones
+  listed; a frontend whose extra is missing is refused with the `pip
+  install` line that fixes it. Both exit `2`.
+- **`appearance` config field (#118):** `system` (default), `light` or
+  `dark`. An unknown value is a hard error at config load.
+- **Error classes on the action path, translated (#128).** Install, start
+  and update failures are now classified into named causes with texts in
+  all 11 languages: broken credential helper (two variants, because the
+  remedy differs), denied docker socket, missing platform variant,
+  unreachable registry, refused registry. Previously these were hardcoded
+  English inside a translated shell.
+- **QA guide** (`docs/qa-visual-check.md`) for testers: what to look for
+  per state, and how to verify in ten seconds that the preview really
+  touches no Docker and writes nothing.
+
+### Fixed
+
+- **The same cause was classified differently per deployment mode
+  (#128).** In `image` mode — the main path for end users — a broken
+  credential helper and a denied docker socket were literally
+  unreachable, so the two costliest causes to diagnose surfaced as raw
+  library lines. Both backends now ask one classifier.
+- **The security warning about an open bind address can be shown at all
+  (#127).** NOT a new warning: it has existed since 0.26.0 and `--doctor`
+  has always reported it. What was broken is that its explanation card —
+  present in eleven languages — could never render, because the card
+  selected only `error` while the warning is the project's only `warn`.
+  Newly VISIBLE, not newly found.
+- **The check-id vocabulary ships in the package (#81).** The ids
+  `--doctor --json` publishes as a stable API had their only complete
+  list in the test suite, which shipped code cannot import.
+
 ## [0.27.0] - 2026-08-01
 
 Fixes a shipped defect on the main installation path: in `image` mode —
@@ -1298,7 +1369,8 @@ plan to move to image mode.
 - CLI ↔ GUI parity: both route through the same actions.
 - 160+ tests (no display required), mypy strict, ruff clean.
 
-[Unreleased]: https://github.com/astrapi69/docker-app-launcher/compare/v0.27.0...HEAD
+[Unreleased]: https://github.com/astrapi69/docker-app-launcher/compare/v0.28.0...HEAD
+[0.28.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.27.0...v0.28.0
 [0.27.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.26.0...v0.27.0
 [0.26.0]: https://github.com/astrapi69/docker-app-launcher/compare/v0.25.2...v0.26.0
 [0.25.2]: https://github.com/astrapi69/docker-app-launcher/compare/v0.25.1...v0.25.2

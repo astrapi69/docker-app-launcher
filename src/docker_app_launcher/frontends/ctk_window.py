@@ -23,6 +23,7 @@ from docker_app_launcher import actions, i18n, lockfile, preview_states, tray, u
 from docker_app_launcher.config import LOCALE_LABELS, LauncherConfig, locale_for_label
 from docker_app_launcher.frontends.tk_window import ASSISTANT_WIDGET_BUILDERS, _set_window_icon
 from docker_app_launcher.frontends.tooltip import Tooltip as _Tooltip
+from docker_app_launcher.palette import LIGHT_PALETTE
 from docker_app_launcher.ui_model import (
     _STATE_KEYS,
     BUTTON_LABELS,
@@ -55,8 +56,8 @@ except ImportError:  # pragma: no cover - exercised only without the extra
     ctk = None
     HAS_CTK = False
 
-_OK_COLOR = "#188038"
-_ERR_COLOR = "#c5221f"
+_OK_COLOR = LIGHT_PALETTE.success
+_ERR_COLOR = LIGHT_PALETTE.error
 
 if HAS_CTK:
 
@@ -253,7 +254,7 @@ if HAS_CTK:
         def _make_button(self, parent: Any, name: str, command: Any) -> Any:
             btn = ctk.CTkButton(parent, text=self._t(BUTTON_LABELS[name]), width=170, command=command)
             # Explicit focus ring (#31): CTk paints none by default.
-            btn.bind("<FocusIn>", lambda _e, b=btn: b.configure(border_width=2, border_color="#2a5db0"))
+            btn.bind("<FocusIn>", lambda _e, b=btn: b.configure(border_width=2, border_color=LIGHT_PALETTE.link))
             btn.bind("<FocusOut>", lambda _e, b=btn: b.configure(border_width=0))
             self._buttons[name] = btn
             self._tooltips[name] = _Tooltip(btn)
@@ -266,7 +267,7 @@ if HAS_CTK:
 
         def _apply_status_headline(self, state: str, *, health_ok: bool | None = None) -> None:
             severity, text = ui_model.status_headline(self._cfg, state, health_ok=health_ok)
-            colors = {"ok": "#188038", "error": "#c5221f", "info": None}
+            colors = {"ok": LIGHT_PALETTE.success, "error": LIGHT_PALETTE.error, "info": None}
             color = colors[severity]
             self._state_label.configure(text_color=color if color else ("gray10", "gray90"))
             self._headline_symbol = text.split(" ", 1)[0]

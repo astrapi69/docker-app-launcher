@@ -108,6 +108,16 @@ make preview-tour PREVIEW_CONFIG=test-configs/adaptive-learner.json
 
 Closing a window early skips to the next one.
 
+**Appearance** (`appearance`, 0.28): `system` (default), `light` or `dark`.
+`system` asks the OS through its own tools — the XDG desktop portal on
+Linux, `defaults read -g AppleInterfaceStyle` on macOS, `AppsUseLightTheme`
+on Windows — all of which work from a frozen bundle. The detection is
+three-valued: light, dark, or **no preference**; where the system says
+nothing the launcher renders light and LOGS that it did, because a wrong
+appearance with no trace looks like a design choice rather than a bug. An
+explicit `light`/`dark` always wins over the detection, and an unknown
+value is a hard error at config load, not a silent default.
+
 **Machine-readable output**: `--json` turns `--doctor`, `--status`,
 `--health` and `--support-bundle` into JSON with **stable `id` fields**
 (e.g. `docker_running`, `readiness_blocker`, `port_drift`,

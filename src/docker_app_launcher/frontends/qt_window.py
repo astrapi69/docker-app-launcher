@@ -25,6 +25,7 @@ from typing import Any
 from docker_app_launcher import actions, i18n, lockfile, preview_states, tray, ui_model, update_check
 from docker_app_launcher.config import LOCALE_LABELS, LauncherConfig, locale_for_label
 from docker_app_launcher.frontends.tk_window import ASSISTANT_WIDGET_BUILDERS
+from docker_app_launcher.palette import LIGHT_PALETTE
 from docker_app_launcher.ui_model import (
     _STATE_KEYS,
     BUTTON_LABELS,
@@ -324,7 +325,7 @@ if HAS_QT:
 
         def _apply_status_headline(self, state: str, *, health_ok: bool | None = None) -> None:
             severity, text = ui_model.status_headline(self._cfg, state, health_ok=health_ok)
-            colors = {"ok": "#188038", "error": "#c5221f", "info": ""}
+            colors = {"ok": LIGHT_PALETTE.success, "error": LIGHT_PALETTE.error, "info": ""}
             color = f" color: {colors[severity]};" if colors[severity] else ""
             self._state_label.setStyleSheet(f"font-size: 15px; font-weight: bold;{color}")
             self._headline_symbol = text.split(" ", 1)[0]

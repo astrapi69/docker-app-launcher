@@ -10,6 +10,8 @@ from __future__ import annotations
 import logging
 import tkinter as tk
 
+from docker_app_launcher.palette import LIGHT_PALETTE
+
 logger = logging.getLogger("docker_app_launcher.frontends.tooltip")
 
 
@@ -47,8 +49,8 @@ class Tooltip:
                 self._tip,
                 text=self._text,
                 justify="left",
-                background="#333333",
-                foreground="#ffffff",
+                background=LIGHT_PALETTE.muted,
+                foreground=LIGHT_PALETTE.field_background,
                 relief="solid",
                 borderwidth=1,
                 padx=6,

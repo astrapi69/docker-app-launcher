@@ -627,6 +627,20 @@ tests/integration/run_lifecycle_matrix_integration.sh
 DAL_LIFECYCLE_MATRIX_MODE=image tests/integration/run_lifecycle_matrix_integration.sh
 ```
 
+The old-engine cell pulls a generic public image by default, so the suite
+never depends on a consumer release being published. To measure it once
+against YOUR published image instead (#89), point the three knobs at it —
+the cell prints the reference, the resolved digest, the image size, the
+port and the response body, so a run whose override did not take effect is
+distinguishable from a real one:
+
+```bash
+DAL_OLD_ENGINE_GHCR_REF="ghcr.io/owner/app:1.2.3" \
+DAL_OLD_ENGINE_GHCR_CONTAINER_PORT=18001 \
+DAL_OLD_ENGINE_GHCR_PATH=/api/health \
+  tests/integration/run_image_mode_old_engine_integration.sh -s
+```
+
 CI split: every push runs the mocked suite plus the old-engine cell; the
 full lifecycle matrix runs nightly (`lifecycle-matrix.yml`) and on
 demand via the Actions tab — a green push alone does not imply

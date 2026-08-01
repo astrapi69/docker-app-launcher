@@ -32,7 +32,7 @@ from pathlib import Path
 from tkinter import messagebox, ttk
 from typing import TYPE_CHECKING
 
-from docker_app_launcher import actions, i18n, lockfile, tray, ui_model, update_check
+from docker_app_launcher import actions, i18n, lockfile, preview_states, tray, ui_model, update_check
 from docker_app_launcher.config import LOCALE_LABELS, LauncherConfig, locale_for_label
 from docker_app_launcher.frontends.tooltip import Tooltip as _Tooltip
 
@@ -126,7 +126,7 @@ ASSISTANT_WIDGET_BUILDERS = {
 class LauncherApp(tk.Tk):
     """The persistent window. Thin Tk over the helpers above."""
 
-    def __init__(self, config: LauncherConfig, *, debug: bool = False) -> None:
+    def __init__(self, config: LauncherConfig, *, debug: bool = False, preview_state: str | None = None) -> None:
         super().__init__()
         config.resolve()
         self._cfg = config
@@ -255,6 +255,11 @@ class LauncherApp(tk.Tk):
             self._assistant[element] = getattr(self, builder)()
 
         self._log(f"{about_lines(config)[0]} · {config.gui_backend} · {platform.system()}")
+        if preview_state is not None:
+            # Looking tool (#115): no daemon call, no cleanup offer, no update
+            # check, no focus marker - a preview must change nothing.
+            preview_states.apply_preview_state(self, preview_state, config)
+            return
         self._refresh()
         if config.cleanup_on_start:
             self._offer_cleanup_if_stale()
@@ -653,8 +658,14 @@ class LauncherApp(tk.Tk):
 
     # --- rendering ---
 
-    def _refresh(self) -> None:
-        state = actions.get_state(self._cfg)
+    def _refresh(self, state: str | None = None) -> None:
+        """Render the window for ``state``; ask Docker for it when not given.
+
+        ``state`` is passed as a VALUE only by the preview switch (#115), which
+        must not touch the daemon. Every caller in normal operation omits it.
+        """
+        if state is None:
+            state = actions.get_state(self._cfg)
         if state == "no_docker":
             self._render_docker_help()
         else:
@@ -1282,8 +1293,12 @@ def _set_window_icon(root: tk.Tk, icon_path: str) -> None:
         logger.debug("could not set window icon from %s: %s", path, exc)
 
 
-def run(config: LauncherConfig, *, debug: bool = False) -> int:
-    """Launch the persistent window. Returns 0 on normal close."""
-    app = LauncherApp(config, debug=debug)
+def run(config: LauncherConfig, *, debug: bool = False, preview_state: str | None = None) -> int:
+    """Launch the persistent window. Returns 0 on normal close.
+
+    ``preview_state`` opens it in a named UI state for looking at it (#115):
+    no daemon call, no writes.
+    """
+    app = LauncherApp(config, debug=debug, preview_state=preview_state)
     app.mainloop()
     return 0

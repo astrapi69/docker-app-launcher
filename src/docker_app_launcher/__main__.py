@@ -13,7 +13,7 @@ import logging
 import sys
 from collections.abc import Sequence
 
-from docker_app_launcher import __version__, actions, i18n, lockfile, snap, tray, ui_model
+from docker_app_launcher import __version__, actions, i18n, lockfile, preview_states, snap, tray, ui_model
 from docker_app_launcher.config import LauncherConfig
 from docker_app_launcher.logging_setup import setup_logging
 
@@ -81,6 +81,13 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Render the window once, print its contract (title/labels/log) as JSON, and exit. "
         "Used by the frozen-binary CI check (#38).",
+    )
+    parser.add_argument(
+        "--preview",
+        metavar="STATE",
+        choices=preview_states.PREVIEW_STATES,
+        help="Open the window in a named UI state for LOOKING at it (#115) - touches no Docker and "
+        "writes nothing. States:\n" + preview_states.describe_states(),
     )
     return parser
 
@@ -312,7 +319,25 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.render_probe:
         return run_render_probe(config)
 
+    if args.preview:
+        return run_preview(config, args.preview, debug=args.debug)
+
     return _launch_window(config, debug=args.debug)
+
+
+def run_preview(config: LauncherConfig, state: str, *, debug: bool) -> int:
+    """Open the window in ``state`` and hold it (#115).
+
+    Deliberately NOT routed through :func:`_launch_window`: that takes the
+    single-instance lockfile, and a looking tool must not write - nor refuse
+    to open because the real launcher is running, which is exactly when you
+    want to compare the two.
+    """
+    from docker_app_launcher.frontends import get_frontend
+
+    # Printed WITH the preview, so nobody mistakes a fed state for a real one.
+    print(preview_states.state_note(state))
+    return int(get_frontend(config.gui_backend).run(config, debug=debug, preview_state=state))
 
 
 def _launch_window(config: LauncherConfig, *, debug: bool) -> int:

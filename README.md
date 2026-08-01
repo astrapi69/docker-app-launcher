@@ -14,7 +14,7 @@ Pip-installable, no Electron, Linux/macOS/Windows, 11-language UI.
 
 ## Documentation
 
-Two focused guides live in [`docs/`](docs/); this README is the full reference.
+Three focused guides live in [`docs/`](docs/); this README is the full reference.
 
 - **[End-user quickstart](docs/quickstart-end-user.md)** — for people who just
   want to run an app: install Docker, start the launcher, "Check system",
@@ -24,6 +24,11 @@ Two focused guides live in [`docs/`](docs/); this README is the full reference.
   shipping their own app: `launcher.json` per mode, the health endpoint
   contract, ports/volumes/env, tag vs digest pinning, release artifacts (GHCR
   publish plus an optional `docker save` archive), and the update path.
+- **[QA visual check](docs/qa-visual-check.md)** — for testers: see every
+  state of the window (`make preview-tour`) without Docker and without
+  anything being written, what to look for per state, how to tell a real
+  state from a fed one, and how to verify both promises yourself in ten
+  seconds.
 
 ## Quick Start
 

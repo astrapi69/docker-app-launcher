@@ -48,6 +48,34 @@ KNOWN_CHECK_IDS: tuple[str, ...] = (
     "health_reachable",
 )
 
+#: Error classes the ACTION path can end in (install/start/update/port change),
+#: as opposed to the doctor's checks. A separate tuple on purpose: the doctor
+#: never emits these, so folding them into KNOWN_CHECK_IDS would break the
+#: proof that the registry equals what CheckResult actually carries (#128).
+#: Same rule though - additive only, and every id needs its ``error_<id>``
+#: text in all 11 catalogs.
+ACTION_ERROR_IDS: tuple[str, ...] = (
+    # The helper is broken and the launcher does NOT need a registry login -
+    # the remedy is to remove the stale entry (#77).
+    "credential_helper_broken",
+    # Same breakage, but the config declares use_registry_credentials, so a
+    # working helper is required and the remedy is to repair it, not remove it.
+    "credential_helper_broken_required",
+    "docker_permission_denied",
+    # The registry has the image but not for this machine's architecture (#78).
+    "image_platform_missing",
+    "registry_unreachable",
+    # The token flow refused: not published, or private (#87).
+    "registry_refused",
+)
+
+#: Everything a problem card may have to explain, from either path.
+ALL_PROBLEM_IDS: tuple[str, ...] = KNOWN_CHECK_IDS + ACTION_ERROR_IDS
+
+#: Returned when no class matches. NOT an id: it means the raw library line is
+#: shown, which is a gap to close rather than a class to name.
+UNCLASSIFIED = ""
+
 #: Membership test for the runtime. The point of having the registry in the
 #: package at all: an id can be checked where it is emitted, not only where
 #: it is tested.

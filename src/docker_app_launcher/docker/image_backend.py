@@ -272,42 +272,24 @@ def _looks_like_network_error(exc: BaseException) -> bool:
 
 
 def _classify_pull_error(exc: Exception, config: LauncherConfig) -> str:
-    return _classify_pull_message(str(exc), config)
+    """Any exception from the acquire/run path, through the ONE classifier.
+
+    THE mode fix (#128): this used to jump straight to message matching, so a
+    StoreError or an EACCES on the socket - both named classes in dockerfile
+    mode - left image mode as a raw library line. ``error_classes.classify``
+    tries the exception first and only then its text, so the same cause now
+    gets the same class in whichever backend catches it.
+    """
+    from docker_app_launcher.docker import error_classes
+
+    return error_classes.detail_of(exc, config)
 
 
 def _classify_pull_message(message: str, config: LauncherConfig) -> str:
-    """Engine pull errors into actionable text — never a raw library line."""
-    lower = message.lower()
-    if "no matching manifest" in lower or "does not match the specified platform" in lower:
-        # Multi-arch gap: the engine found the image but no variant for
-        # this platform (#78) - the consumer must publish it.
-        return (
-            f"the image {config.image_reference} has no variant for this machine's platform: {message}. "
-            "The publisher must provide a multi-arch image (e.g. linux/amd64 + linux/arm64)."
-        )
-    if any(m in lower for m in ("no such host", "temporary failure", "timeout", "connection refused")):
-        return (
-            f"could not reach the registry for {config.image_reference}: {message}. "
-            "Downloading the app image needs an internet connection; once pulled, the app runs offline."
-        )
-    refusal_markers = (
-        "denied",
-        "unauthorized",
-        "authentication required",
-        "pull access denied",
-        "repository does not exist",
-    )
-    if any(m in lower for m in refusal_markers):
-        # Registry token flow refused the pull (#87) - GHCR answers like this
-        # for missing AND private repositories. Name the registry access as
-        # the cause, never the raw library line.
-        return (
-            f"the registry refused access to {config.image_reference}: {message}. "
-            "Either the image is not published (the publisher must provide a public image at "
-            "this reference) or it is private - a private registry needs "
-            "use_registry_credentials: true in the launcher config plus a docker login."
-        )
-    return message
+    """Engine/registry message into actionable, LOCALIZED text (#128)."""
+    from docker_app_launcher.docker import error_classes
+
+    return error_classes.detail_of(message, config)
 
 
 def _close(client: Any) -> None:

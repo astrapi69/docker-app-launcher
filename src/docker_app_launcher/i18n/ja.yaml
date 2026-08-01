@@ -97,6 +97,12 @@ dockerfile_mode_needs_dockerpy: dockerfile モードには Python パッケー�
 dockerfile_not_found: 'Dockerfile が見つかりません: {path}。launcher 設定の deployment_mode/Dockerfile を確認してください。'
 dockerfile_unreadable: 'Dockerfile は見つかりましたが読み取れません: {path} ({error})。'
 error: 'エラー: {msg}'
+error_credential_helper_broken: 'レジストリの資格情報ヘルパーが壊れています: {error}。ここではレジストリへのログインは不要です。~/.docker/config.json の古い credsStore/credHelpers エントリを削除してください。'
+error_credential_helper_broken_required: 'レジストリの資格情報ヘルパーが壊れています: {error}。この構成は use_registry_credentials を宣言しているため、動作するヘルパーが必要です。ヘルパーまたは ~/.docker/config.json の credsStore/credHelpers エントリを修復してください。'
+error_docker_permission_denied: Docker ソケットへのアクセスが拒否されました (ユーザーが 'docker' グループに属していません)。
+error_image_platform_missing: 'イメージ {reference} にこのマシンのプラットフォーム向けの版がありません: {detail}。公開者がマルチアーキテクチャのイメージ (例: linux/amd64 + linux/arm64) を提供する必要があります。'
+error_registry_refused: 'レジストリが {reference} へのアクセスを拒否しました: {detail}。イメージが公開されていない (公開者がこの参照で公開イメージを提供する必要があります) か、非公開です。非公開レジストリには設定の use_registry_credentials: true と docker login が必要です。'
+error_registry_unreachable: '{reference} のレジストリに到達できませんでした: {detail}。アプリのイメージのダウンロードにはインターネット接続が必要です。取得後はオフラインで動作します。'
 error_word: エラー
 fix_docker_permission: Docker アクセスを設定…
 free_port_found: '空きポートが見つかりました: {port}。'

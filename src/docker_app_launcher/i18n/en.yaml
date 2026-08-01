@@ -97,6 +97,12 @@ dockerfile_mode_needs_dockerpy: The dockerfile deployment mode needs the docker 
 dockerfile_not_found: 'Dockerfile not found: {path}. Check deployment_mode/dockerfile settings in the launcher config.'
 dockerfile_unreadable: 'Dockerfile found but not readable: {path} ({error}).'
 error: 'Error: {msg}'
+error_credential_helper_broken: 'registry credential helper is broken: {error}. The launcher needs no registry login here - remove the stale credsStore/credHelpers entry from ~/.docker/config.json.'
+error_credential_helper_broken_required: 'registry credential helper is broken: {error}. This launcher config declares use_registry_credentials, so a working helper is required - repair the helper or the credsStore/credHelpers entry in ~/.docker/config.json.'
+error_docker_permission_denied: permission denied on the docker socket (your user is not in the 'docker' group).
+error_image_platform_missing: 'the image {reference} has no variant for this machine''s platform: {detail}. The publisher must provide a multi-arch image (e.g. linux/amd64 + linux/arm64).'
+error_registry_refused: 'the registry refused access to {reference}: {detail}. Either the image is not published (the publisher must provide a public image at this reference) or it is private - a private registry needs use_registry_credentials: true in the launcher config plus a docker login.'
+error_registry_unreachable: 'could not reach the registry for {reference}: {detail}. Downloading the app image needs an internet connection; once pulled, the app runs offline.'
 error_word: Error
 fix_docker_permission: Set up Docker access…
 free_port_found: 'Free port found: {port}.'

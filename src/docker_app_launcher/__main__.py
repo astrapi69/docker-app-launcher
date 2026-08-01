@@ -77,6 +77,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--cleanup", action="store_true", help="Remove stale leftovers and exit.")
     parser.add_argument("--open", action="store_true", help="Open the app in the browser and exit.")
     parser.add_argument(
+        "--gui-backend",
+        metavar="NAME",
+        help="Which window toolkit to open for THIS start, overriding the config's gui_backend "
+        "(#119). Deliberately not a fixed choice list: frontends can also arrive as entry "
+        "points, and a hardcoded list here would refuse a valid one. An unknown name is "
+        "refused with the known ones named.",
+    )
+    parser.add_argument(
         "--render-probe",
         action="store_true",
         help="Render the window once, print its contract (title/labels/log) as JSON, and exit. "
@@ -306,6 +314,17 @@ def main(argv: Sequence[str] | None = None) -> int:
     setup_logging(config, debug=args.debug)
     snap.log_confinement_warning()  # surface Snap sandbox path limits (G7, #63)
 
+    if args.gui_backend:
+        # Validated EAGERLY, even for a CLI-only run: a typo that is silently
+        # ignored today would be discovered the next time someone opens the
+        # window, far from the command that caused it.
+        config.gui_backend = args.gui_backend
+        refusal = _frontend_refusal(config.gui_backend)
+        if refusal is not None:
+            print(f"Error: {refusal}", file=sys.stderr)
+            logger.error("%s", refusal)
+            return 2
+
     if args.port is not None:
         ok, msg = actions.set_port(config, args.port)
         if not ok:
@@ -325,6 +344,41 @@ def main(argv: Sequence[str] | None = None) -> int:
     return _launch_window(config, debug=args.debug)
 
 
+def _frontend_refusal(name: str) -> str | None:
+    """Why ``name`` cannot be used, or ``None`` when it can (#119).
+
+    Resolution only - the module is imported, not run, so this stays cheap
+    and side-effect-free. Whether the toolkit is actually INSTALLED is a
+    different question: ctk/qt import fine without their extra and refuse in
+    ``run()``, which :func:`_open_frontend` turns into the same clean
+    message. A selection that leads nowhere is worse than no selection.
+    """
+    from docker_app_launcher.frontends import get_frontend
+
+    try:
+        get_frontend(name)
+    except (ValueError, TypeError) as exc:
+        return str(exc)
+    return None
+
+
+def _open_frontend(config: LauncherConfig, *, debug: bool, preview_state: str | None = None) -> int:
+    """Open the configured frontend, translating a missing extra into a message.
+
+    Without this the RuntimeError from ``run()`` - which already carries the
+    exact ``pip install docker-app-launcher[qt]`` hint - reached the user as a
+    traceback, which reads like a crash rather than like an instruction.
+    """
+    from docker_app_launcher.frontends import get_frontend
+
+    try:
+        return int(get_frontend(config.gui_backend).run(config, debug=debug, preview_state=preview_state))
+    except RuntimeError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        logger.error("frontend %s unusable: %s", config.gui_backend, exc)
+        return 2
+
+
 def run_preview(config: LauncherConfig, state: str, *, debug: bool) -> int:
     """Open the window in ``state`` and hold it (#115).
 
@@ -333,15 +387,13 @@ def run_preview(config: LauncherConfig, state: str, *, debug: bool) -> int:
     to open because the real launcher is running, which is exactly when you
     want to compare the two.
     """
-    from docker_app_launcher.frontends import get_frontend
-
     # Printed WITH the preview, so nobody mistakes a fed state for a real one.
     # flush: stdout is block-buffered as soon as it is redirected, and the
     # screenshot harness (#116) kills this process once it has its image - the
     # honesty note would then be the one thing lost, in exactly the situation
     # it exists for.
     print(preview_states.state_note(state), flush=True)
-    return int(get_frontend(config.gui_backend).run(config, debug=debug, preview_state=state))
+    return _open_frontend(config, debug=debug, preview_state=state)
 
 
 def _launch_window(config: LauncherConfig, *, debug: bool) -> int:
@@ -352,9 +404,7 @@ def _launch_window(config: LauncherConfig, *, debug: bool) -> int:
     duplicate window. Disabled by ``config.single_instance = False``.
     """
     if not config.single_instance:
-        from docker_app_launcher.frontends import get_frontend
-
-        return int(get_frontend(config.gui_backend).run(config, debug=debug))
+        return _open_frontend(config, debug=debug)
     if lockfile.another_instance_alive(config.lock_path):
         # Ask the running window to come to the foreground (#31) - the
         # refusal notice alone left the user searching for the window.
@@ -365,9 +415,7 @@ def _launch_window(config: LauncherConfig, *, debug: bool) -> int:
         return 0
     lockfile.write_lock(config.lock_path)
     try:
-        from docker_app_launcher.frontends import get_frontend
-
-        return int(get_frontend(config.gui_backend).run(config, debug=debug))
+        return _open_frontend(config, debug=debug)
     finally:
         lockfile.clear_lock(config.lock_path)
 

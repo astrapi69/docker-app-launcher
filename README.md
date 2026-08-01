@@ -81,6 +81,17 @@ nothing: no launcher.json, no `.env`, no pending marker. The states are
 supplied — because producing that state for real would need Docker or a
 write. Works with every `gui_backend` (tk, ctk, qt).
 
+To see them all in one go, each window titled `[n/N] <state>` so a
+screenshot always names what it shows:
+
+```bash
+make preview-tour                        # 5 seconds per state
+make preview-tour PREVIEW_SECONDS=10     # slower
+make preview-tour PREVIEW_CONFIG=test-configs/adaptive-learner.json
+```
+
+Closing a window early skips to the next one.
+
 **Machine-readable output**: `--json` turns `--doctor`, `--status`,
 `--health` and `--support-bundle` into JSON with **stable `id` fields**
 (e.g. `docker_running`, `readiness_blocker`, `port_drift`,

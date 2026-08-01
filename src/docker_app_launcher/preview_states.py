@@ -130,6 +130,7 @@ def apply_preview_state(window: Any, state_id: str, config: LauncherConfig) -> N
     if state_id not in PREVIEW_STATES:
         raise KeyError(f"unknown preview state {state_id!r} (known: {', '.join(PREVIEW_STATES)})")
 
+    _mark_title(window, state_id)
     # Every state starts from a rendered window whose state came as a VALUE.
     window._refresh(state="not_installed")
 
@@ -162,6 +163,27 @@ def apply_preview_state(window: Any, state_id: str, config: LauncherConfig) -> N
     if state_id == "small_window":
         _shrink(window, config)
         return
+
+
+def title_marker(state_id: str) -> str:
+    """``[3/6] failure_problem_card`` - the state's own, stable number.
+
+    It is the state's INDEX in the one list, not a counter the tour keeps,
+    so a single ``--preview`` and the same state inside ``make preview-tour``
+    carry the same number. The marker lives in the WINDOW title rather than
+    in the terminal: a screenshot without it is a picture nobody can file,
+    which is the whole problem the previews exist to fix.
+    """
+    return f"[{PREVIEW_STATES.index(state_id) + 1}/{len(PREVIEW_STATES)}] {state_id}"
+
+
+def _mark_title(window: Any, state_id: str) -> None:
+    """Prefix the window title with the marker, in whichever toolkit spelling."""
+    marker = title_marker(state_id)
+    if hasattr(window, "setWindowTitle"):  # Qt
+        window.setWindowTitle(f"{marker} · {window.windowTitle()}")
+    elif hasattr(window, "title"):  # Tk family
+        window.title(f"{marker} · {window.title()}")
 
 
 def _failure_report(config: LauncherConfig) -> DoctorReport:

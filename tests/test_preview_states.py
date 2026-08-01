@@ -71,6 +71,35 @@ class TestStateTable:
             preview_states.state_note("no-such-state")
 
 
+class TestTitleMarker:
+    """A picture nobody can file is not evidence - so the state names itself."""
+
+    def test_marker_numbers_the_state_within_the_list(self) -> None:
+        total = len(preview_states.PREVIEW_STATES)
+        for index, state_id in enumerate(preview_states.PREVIEW_STATES, start=1):
+            assert preview_states.title_marker(state_id) == f"[{index}/{total}] {state_id}"
+
+    def test_the_number_is_the_state_own_not_a_tour_counter(self) -> None:
+        # Same number whether it is shown alone or as part of the tour: the
+        # index lives in the state list, so the two cannot disagree.
+        assert preview_states.title_marker("fresh").startswith("[1/")
+        last = preview_states.PREVIEW_STATES[-1]
+        assert preview_states.title_marker(last).startswith(f"[{len(preview_states.PREVIEW_STATES)}/")
+
+
+class TestMakefileReadsTheOneList:
+    def test_the_tour_target_hardcodes_no_state(self) -> None:
+        # The tour asks Python for the states. A copy in the Makefile would go
+        # stale the first time a state is added - and nobody would notice,
+        # because a shorter tour still looks like a working tour.
+        makefile = Path(__file__).resolve().parents[1] / "Makefile"
+        text = makefile.read_text(encoding="utf-8")
+        assert "preview-tour:" in text, "the tour target vanished"
+        hardcoded = [s for s in preview_states.PREVIEW_STATES if f'"{s}"' in text or f"'{s}'" in text]
+        assert not hardcoded, f"Makefile copies state ids instead of asking for them: {hardcoded}"
+        assert "PREVIEW_STATES" in text, "the tour must read the one list"
+
+
 class TestCliSurface:
     def test_choices_come_from_the_one_list(self) -> None:
         # One source for switch and screenshots (#116) - a second list would
@@ -127,7 +156,11 @@ class TestRealWindowRules:
         window = tk_window.LauncherApp(cfg, preview_state=state)
         try:
             window.update()
-            assert window.title(), "the window rendered no title"
+            title = window.title()
+            assert title, "the window rendered no title"
+            assert preview_states.title_marker(state) in title, (
+                f"the window does not name the state it shows: {title!r}"
+            )
         finally:
             window.destroy()
 

@@ -737,8 +737,14 @@ if HAS_QT:
             if not raw.isdigit():
                 self._log(self._t("port_invalid", min=1, max=65535), tag="err")
                 return
-            self._set_busy(True)
             port = int(raw)
+            # Same cancel plumbing as tk/ctk (#101): armed before the thread, so
+            # a stale flag from an earlier cancel cannot abort this rebuild.
+            self._cancel_build.clear()
+            self._build_in_progress = True
+            self._current_action = "change_internal_port"
+            self._set_busy(True)
+            self._show_cancel_for("change_internal_port")
 
             def step(label: str) -> None:
                 self._post(lambda: self._log(label))
@@ -746,7 +752,14 @@ if HAS_QT:
             def worker() -> None:
                 result = run_guarded(
                     "change_internal_port",
-                    lambda: actions.change_internal_port(self._cfg, name, port, on_step=step, on_output=step),
+                    lambda: actions.change_internal_port(
+                        self._cfg,
+                        name,
+                        port,
+                        on_step=step,
+                        on_output=step,
+                        should_cancel=self._cancel_build.is_set,
+                    ),
                 )
                 self._post(lambda: self._on_result("change_internal_port", result))
 

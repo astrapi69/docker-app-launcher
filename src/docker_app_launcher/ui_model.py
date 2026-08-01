@@ -605,14 +605,17 @@ CANCELLABLE_ACTIONS: dict[str, str] = {
     # ends up with a state they did not ask for; the message says so and
     # names Start as the next step (previous image still local, #88).
     "update": "update_cancelled_stopped",
+    # same shape as update, one difference the message has to carry (#101):
+    # the new internal port is ALREADY persisted when the rebuild starts, so
+    # Start rebuilds with it - the user is not back where they began.
+    "change_internal_port": "internal_port_cancelled_stopped",
 }
 # NOT cancellable, each with its reason (honesty over pretense - a control
 # that only resets the UI while work continues is worse than none):
 #   stop/uninstall - short, and a mid-flight abort could leave a worse
 #     half-state (container removed, volume kept or vice versa) than
-#     finishing; change_port/cleanup - near-instant; change_internal_port -
-#     its rebuild path has no cancel plumbing yet (own compose call;
-#     tracked as #101, not just prose);
+#     finishing; change_port/cleanup - near-instant (no build, no image
+#     acquisition in any mode, #112);
 #     archive load inside image mode - a single fast local call.
 
 

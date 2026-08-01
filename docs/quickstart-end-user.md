@@ -222,7 +222,10 @@ button next to the progress bar. Cancelling is safe: parts that were
 already downloaded stay on your computer and make the next attempt
 faster. If you cancel an **update**, the app will be stopped afterwards
 (updating stops it first) — press **Start** to run the version you had
-before. If a cancelled step stops answering, the window frees itself
+before. The same is true for an **internal port change**: it rebuilds the
+app, so it stops it first, and cancelling leaves it stopped — your new
+port is already saved, so **Start** simply rebuilds with it. If a
+cancelled step stops answering, the window frees itself
 after a few seconds and tells you; new operations wait until the old one
 reports back (at most 10 minutes), and restarting the launcher also
 clears this. Your data is kept in all of these cases.

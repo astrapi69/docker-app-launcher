@@ -114,6 +114,7 @@ image_needs_network: 앱 이미지가 아직 이 컴퓨터에 없습니다 - 다
 install: 설치
 install_needs_network: 설치하려면 지금 베이스 이미지를 내려받기 위한 인터넷 연결이 필요합니다. 앱 자체는 설치 후 오프라인으로 실행됩니다.
 installing: '{app} 을(를) 설정하는 중...'
+internal_port_cancelled_stopped: '취소되었습니다 - 내부 포트 변경은 다시 빌드하기 전에 앱을 멈추므로 앱이 지금 중지(STOPPED) 상태입니다. 새 내부 포트는 이미 저장되어 있으므로 Start를 누르면 그 값으로 다시 빌드합니다. 빌드 캐시는 남아 있어 더 빠릅니다. ({detail})'
 internal_port_changed: 내부 포트 {name} 을(를) {port} (으)로 변경했습니다.
 internal_port_compose_only: '내부 포트는 compose 배포 모드에서만 변경할 수 있습니다. 이 앱은 {mode} 모드로 실행 중입니다. 그 모드에서 내부 포트는 이미지 자체에 속하므로 새 앱 버전만 이를 바꿀 수 있습니다.'
 internal_port_confirm: 내부 포트를 변경하려면 Docker 이미지를 다시 빌드해야 합니다 (2-5분). 계속하시겠습니까?

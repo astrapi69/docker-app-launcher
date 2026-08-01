@@ -114,6 +114,7 @@ image_needs_network: Das App-Image ist noch nicht auf diesem Rechner - zum Herun
 install: Installieren
 install_needs_network: Die Installation braucht jetzt eine Internetverbindung, um die Basis-Images herunterzuladen. Die App selbst läuft nach der Installation offline.
 installing: '{app} wird eingerichtet...'
+internal_port_cancelled_stopped: 'Abgebrochen - die App ist jetzt GESTOPPT, weil eine Änderung des internen Ports sie vor dem Neubau stoppt. Der neue interne Port ist bereits gespeichert; ein Druck auf Start baut damit neu, der Build-Cache bleibt und beschleunigt das. ({detail})'
 internal_port_changed: Interner Port {name} auf {port} geändert.
 internal_port_compose_only: 'Interne Ports lassen sich nur im Compose-Bereitstellungsmodus ändern; diese App läuft im Modus {mode}. Dort gehört der interne Port zum Abbild selbst, ihn ändert also nur eine neue App-Version.'
 internal_port_confirm: Eine interne Port-Änderung erfordert einen Rebuild der Docker-Images (2-5 Minuten). Fortfahren?

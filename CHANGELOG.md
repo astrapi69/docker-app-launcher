@@ -6,6 +6,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **The internal-port rebuild can be cancelled (#101).** It was the one
+  long-running action running its own Compose build without the cancel
+  plumbing, so the user faced a minutes-long rebuild with the Cancel
+  control deliberately hidden. It now behaves like install/start/update,
+  in all three frontends. The cancel message is honest about the state it
+  leaves: the app is STOPPED and the new internal port is already saved,
+  so Start rebuilds with it — the build cache stays and speeds that up.
+
 ### Fixed
 
 - **The host-port change now works in every deployment mode (#112).** It

@@ -131,6 +131,7 @@ def change_internal_port(
     *,
     on_step: ProgressFn | None = None,
     on_output: OutputFn | None = None,
+    should_cancel: CancelFn | None = None,
 ) -> tuple[bool, str]:
     """Change an internal container port - this REQUIRES an image rebuild.
 
@@ -142,6 +143,12 @@ def change_internal_port(
     2. if the stack is running, STOP it, then ``up --build -d`` (minutes - the
        images are rebuilt with the new internal port);
     3. health-check on the public port.
+
+    The rebuild is CANCELLABLE (#101): ``should_cancel`` reaches the compose
+    call like every other build path, so the minutes-long step has the same way
+    out as install/start. A cancel leaves the app STOPPED with the new internal
+    port already persisted - the message says exactly that, because "cancelled"
+    alone would leave the user guessing why nothing runs.
 
     When the stack is not running this only persists (a later build picks it up).
     Returns ``(ok, message)``.
@@ -185,12 +192,21 @@ def change_internal_port(
         # container; compose would otherwise restart the old one (same reason as
         # start(), where this was measured).
         rc, tail = _stream_compose(
-            config, "up", "--build", "-d", "--force-recreate", on_output=on_output, timeout=float(config.build_timeout)
+            config,
+            "up",
+            "--build",
+            "-d",
+            "--force-recreate",
+            on_output=on_output,
+            timeout=float(config.build_timeout),
+            should_cancel=should_cancel,
         )
     except FileNotFoundError:
         return False, _t(config, "docker_unavailable")
     except subprocess.TimeoutExpired:
         return False, _t(config, "build_timeout")
+    except BuildCancelled as exc:
+        return False, _t(config, "internal_port_cancelled_stopped", detail=str(exc) or _t(config, "build_cancelled"))
     if rc != 0:
         return False, _t(config, "build_failed", detail=tail)
     if get_state(config) != "running":

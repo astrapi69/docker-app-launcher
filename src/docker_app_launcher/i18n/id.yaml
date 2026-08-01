@@ -114,6 +114,7 @@ image_needs_network: Image aplikasi belum ada di mesin ini - mengunduhnya memerl
 install: Pasang
 install_needs_network: Pemasangan membutuhkan koneksi internet sekarang untuk mengunduh image dasar. Aplikasinya sendiri berjalan luring setelah terpasang.
 installing: '{app} sedang disiapkan...'
+internal_port_cancelled_stopped: 'Dibatalkan - aplikasi kini BERHENTI, karena perubahan port internal menghentikannya sebelum membangun ulang. Port internal yang baru sudah tersimpan, jadi menekan Start akan membangun ulang dengannya; cache build tetap ada dan mempercepatnya. ({detail})'
 internal_port_changed: Port internal {name} diubah menjadi {port}.
 internal_port_compose_only: 'Port internal hanya dapat diubah dalam mode penerapan compose; aplikasi ini berjalan dalam mode {mode}. Di sana port internal adalah bagian dari image itu sendiri, jadi hanya versi aplikasi baru yang dapat mengubahnya.'
 internal_port_confirm: Mengubah port internal memerlukan pembangunan ulang image Docker (2-5 menit). Lanjutkan?

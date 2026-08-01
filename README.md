@@ -86,7 +86,9 @@ docker-app-launcher --config launcher.json --health --json
 found blockers / health failed · `2` config or usage error.
 
 **Cancelling and the concurrency guard** (0.25): running installs,
-starts and updates show a Cancel control while they run. Cancel really
+starts, updates and internal-port rebuilds show a Cancel control while
+they run. A cancelled internal-port rebuild leaves the app STOPPED with
+the new internal port already saved, so Start rebuilds with it. Cancel really
 ends the operation where that is technically true — a cancelled pull
 keeps already-downloaded layers cached (the next attempt is faster), a
 cancelled update leaves the app STOPPED and says that Start runs the

@@ -856,7 +856,14 @@ class LauncherApp(tk.Tk):
         if not messagebox.askyesno(self._cfg.app_name, self._t("internal_port_confirm")):
             return
         port = int(raw)
+        # The rebuild is a build like any other, so it gets the same way out
+        # (#101): arm the signal BEFORE the thread starts, or a leftover set
+        # flag from an earlier cancel would abort this one immediately.
+        self._cancel_build.clear()
+        self._build_in_progress = True
+        self._current_action = "change_internal_port"
         self._set_busy(True)
+        self._show_cancel_for("change_internal_port")
 
         def step(label: str) -> None:
             self.after(0, lambda: self._log(label))
@@ -867,7 +874,14 @@ class LauncherApp(tk.Tk):
         def worker() -> None:
             result = run_guarded(
                 "change_internal_port",
-                lambda: actions.change_internal_port(self._cfg, name, port, on_step=step, on_output=output),
+                lambda: actions.change_internal_port(
+                    self._cfg,
+                    name,
+                    port,
+                    on_step=step,
+                    on_output=output,
+                    should_cancel=self._cancel_build.is_set,
+                ),
             )
             self.after(0, lambda: self._on_result("change_internal_port", result))
 
